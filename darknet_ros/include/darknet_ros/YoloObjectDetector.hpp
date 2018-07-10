@@ -239,6 +239,8 @@ class YoloObjectDetector
   bool isNodeRunning(void);
 
   void *publishInThread();
+
+  bool use_grey;
 };
 
 } /* namespace darknet_ros*/

@@ -4,19 +4,43 @@ project(darknet_ros)
 # Set c++11 cmake flags
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
+#######################
+# Print option status #
+#######################
+
+if(NOT WIN32)
+  string(ASCII 27 Esc)
+  set(ColourReset "${Esc}[m")
+  set(ColourBold  "${Esc}[1m")
+  set(Red         "${Esc}[31m")
+  set(Green       "${Esc}[32m")
+  set(Yellow      "${Esc}[33m")
+  set(Blue        "${Esc}[34m")
+  set(Magenta     "${Esc}[35m")
+  set(Cyan        "${Esc}[36m")
+  set(White       "${Esc}[37m")
+  set(BoldRed     "${Esc}[1;31m")
+  set(BoldGreen   "${Esc}[1;32m")
+  set(BoldYellow  "${Esc}[1;33m")
+  set(BoldBlue    "${Esc}[1;34m")
+  set(BoldMagenta "${Esc}[1;35m")
+  set(BoldCyan    "${Esc}[1;36m")
+  set(BoldWhite   "${Esc}[1;37m")
+endif()
+
 # Define path of darknet folder here.
 find_path(DARKNET_PATH
   NAMES "README.md"
   HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
-message("Darknet path dir = ${DARKNET_PATH}")
+message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
   find_package(CUDA REQUIRED)
-  message(STATUS "CUDA Version: ${CUDA_VERSION_STRINGS}")
-  message(STATUS "CUDA Libararies: ${CUDA_LIBRARIES}")
+  message(STATUS "CUDA Version: ${BoldGreen} ${CUDA_VERSION_STRINGS} ${ColourReset}")
+  message(STATUS "CUDA Libararies: ${BoldGreen} ${CUDA_LIBRARIES} ${ColourReset}")
   set(
     CUDA_NVCC_FLAGS
     ${CUDA_NVCC_FLAGS};
@@ -25,13 +49,41 @@ if (CUDA_FOUND)
     -gencode arch=compute_35,code=sm_35
     -gencode arch=compute_50,code=[sm_50,compute_50]
     -gencode arch=compute_52,code=[sm_52,compute_52]
-    -gencode arch=compute_61,code=sm_61
-    -gencode arch=compute_62,code=sm_62
+    -gencode arch=compute_61,code=[sm_61,compute_61]
+    -gencode arch=compute_62,code=[sm_62,compute_62]
   )
   add_definitions(-DGPU)
 else()
   list(APPEND LIBRARIES "m")
 endif()
+
+
+# Find CUDNN
+#function(find_cudnn)
+#  if (DEFINED ENV{CUDNN_ROOT} AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
+#    set(CUDNN_ROOT $ENV{CUDNN_ROOT})
+#  elseif (DEFINED CUDA_TOOLKIT_ROOT_DIR AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
+#    set(CUDNN_ROOT ${CUDA_TOOLKIT_ROOT_DIR})
+#  endif()
+#  #  set(CUDNN_ROOT /usr/local/cuda CACHE PATH "CUDNN root path")
+#  find_path(CUDNN_INCLUDE_DIRS cudnn.h
+#          HINTS ${CUDNN_ROOT}
+#          ${CUDNN_ROOT}/include
+#          DOC "CUDNN include path")
+#  find_library(CUDNN_LIBRARIES NAMES libcudnn.so cudnn.lib
+#          PATHS ${CUDNN_ROOT}
+#          ${CUDNN_ROOT}/lib
+#          ${CUDNN_ROOT}/lib64
+#          ${CUDNN_ROOT}/lib/x64
+#          DOC "CUDNN library path")
+#  if(CUDNN_INCLUDE_DIRS AND CUDNN_LIBRARIES)
+#    set(CUDNN_FOUND TRUE PARENT_SCOPE)
+#    message(STATUS "Found CUDNN (include: ${BoldGreen} ${CUDNN_INCLUDE_DIRS} ${ColourReset}, library: ${BoldGreen} ${CUDNN_LIBRARIES} ${ColourReset})")
+#    mark_as_advanced(CUDNN_INCLUDE_DIRS CUDNN_LIBRARIES)
+#  else()
+#    MESSAGE(STATUS "Failed to find CUDNN in path: ${BoldGreen} ${CUDNN_ROOT} (${BoldRed}Did you set CUDNN_ROOT properly? ${ColourReset})")
+#  endif()
+#endfunction()
 
 # Find X11
 MESSAGE ( STATUS "Searching for X11..." )
@@ -93,6 +145,17 @@ if (CUDA_FOUND)
     /usr/local/cuda/lib64
   )
 
+#      find_cudnn()
+#      if(CUDNN_FOUND)
+#          include_directories(SYSTEM ${CUDNN_INCLUDE_DIRS})
+#          list(APPEND CUDA_LIBRARIES ${CUDNN_LIBRARIES})
+#          message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
+#          option(CUDNN "Enable CuDNN" ON)
+#          add_definitions(-DCUDNN)
+#      else()
+#          message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
+#      endif()
+
   cuda_add_library(${PROJECT_NAME}_lib
     src/YoloObjectDetector.cpp
     src/image_interface.c
@@ -145,6 +208,7 @@ if (CUDA_FOUND)
     cudart
     cublas
     curand
+#    cudnn
     ${Boost_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
@@ -236,21 +300,21 @@ install(
 )
 
 # Download yolov2-tiny.weights
-set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
-set(FILE "${PATH}/yolov2-tiny.weights")
-message(STATUS "Checking and downloading yolov2-tiny.weights if needed ...")
-if (NOT EXISTS "${FILE}")
-  message(STATUS "... file does not exist. Downloading now ...")
-  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2-tiny.weights -P ${PATH})
-endif()
+#set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
+#set(FILE "${PATH}/yolov2-tiny.weights")
+#message(STATUS "Checking and downloading yolov2-tiny.weights if needed ...")
+#if (NOT EXISTS "${FILE}")
+#  message(STATUS "... file does not exist. Downloading now ...")
+#  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2-tiny.weights -P ${PATH})
+#endif()
 
 # Download yolov3.weights
-set(FILE "${PATH}/yolov3.weights")
-message(STATUS "Checking and downloading yolov3.weights if needed ...")
-if (NOT EXISTS "${FILE}")
-  message(STATUS "... file does not exist. Downloading now ...")
-  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3.weights -P ${PATH})
-endif()
+#set(FILE "${PATH}/yolov3.weights")
+#message(STATUS "Checking and downloading yolov3.weights if needed ...")
+#if (NOT EXISTS "${FILE}")
+#  message(STATUS "... file does not exist. Downloading now ...")
+#  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3.weights -P ${PATH})
+#endif()
 
 #############
 ## Testing ##
@@ -261,10 +325,10 @@ if(CATKIN_ENABLE_TESTING)
   set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
   set(FILE "${PATH}/yolov2.weights")
   message(STATUS "Checking and downloading yolov2.weights if needed ...")
-  if (NOT EXISTS "${FILE}")
-    message(STATUS "... file does not exist. Downloading now ...")
-    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
-  endif()
+#  if (NOT EXISTS "${FILE}")
+#    message(STATUS "... file does not exist. Downloading now ...")
+#    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
+#  endif()
 
   find_package(rostest REQUIRED)
 

@@ -31,7 +31,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh)
       numClasses_(0),
       classLabels_(0),
       rosBoxes_(0),
-      rosBoxCounter_(0)
+      rosBoxCounter_(0),
+      use_grey(false)
 {
   ROS_INFO("[YoloObjectDetector] Node started.");
 
@@ -186,7 +187,12 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& msg)
   cv_bridge::CvImagePtr cam_image;
 
   try {
-    cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+//    cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    if(use_grey)
+      cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+    else
+      cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+
     imageHeader_ = msg->header;
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -412,7 +418,9 @@ void *YoloObjectDetector::fetchInThread()
     boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
     buffId_[buffIndex_] = actionId_;
   }
-  rgbgr_image(buff_[buffIndex_]);
+  if(!use_grey)
+    rgbgr_image(buff_[buffIndex_]);
+
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
   return 0;
 }
