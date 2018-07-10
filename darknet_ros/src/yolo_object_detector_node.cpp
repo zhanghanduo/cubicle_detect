@@ -10,7 +10,7 @@
 #include <ros/ros.h>
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "darknet_ros");
+  ros::init(argc, argv, "cubicle_detect");
   ros::NodeHandle nodeHandle("~");
   darknet_ros::YoloObjectDetector yoloObjectDetector(nodeHandle);
 
