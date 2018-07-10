@@ -48,6 +48,12 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   }
 
   init();
+
+  mpDetection = new Detection(this, nodeHandle_);
+
+  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
+
+  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 bool YoloObjectDetector::CudaInfo() {
@@ -268,6 +274,16 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
     right_roi_ = cameraRight.rawRoi();
 }
 
+void YoloObjectDetector::getDepth(cv::Mat &depthFrame) {
+
+    depthFrame.copyTo(disparityFrame);
+
+//    disparityFrame.convertTo(doubleFrame, CV_32FC1);
+
+    isReceiveDepth = true;
+}
+
+
 void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
                                         const sensor_msgs::ImageConstPtr &image2,
                                         const sensor_msgs::CameraInfoConstPtr& left_info,
@@ -305,6 +321,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       origRight = cv::Mat(cam_image2->image, right_roi_);
       cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
       cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
+      mpDetection -> getImage(left_rectified, right_rectified);
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);

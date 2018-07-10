@@ -81,7 +81,7 @@ public:
 
     void getImage(cv::Mat &Frame1, cv::Mat &Frame2);
 
-    void getParams(int width, int height);
+    void getParams();
 
     /*!
     * As a thread, keep running!
@@ -166,17 +166,6 @@ private:
     Util::CPPTimer timer1;
 
 };
-
-
-
-
-
-
-
-
-
-
-
 
 }
 

@@ -75,6 +75,8 @@ extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
 
 namespace darknet_ros {
 
+class Detection;
+
 //! Bounding box of the detected object.
 typedef struct
 {
@@ -105,6 +107,12 @@ class YoloObjectDetector
 
     int globalframe, Scale;
     double stereo_baseline_, u0;
+
+    /*!
+    * Callback of camera.
+    * @param[in] msg image pointer.
+    */
+    void getDepth(cv::Mat &depthFrame);
 private:
 
     /*!
@@ -163,7 +171,7 @@ private:
     image_transport::ImageTransport imageTransport_;
 
     //! ROS subscriber and publisher.
-    image_transport::Subscriber imageSubscriber_;
+//    image_transport::Subscriber imageSubscriber_;
     ros::Publisher objectPublisher_;
     ros::Publisher boundingBoxesPublisher_;
 
@@ -179,11 +187,17 @@ private:
     bool isReceiveDepth;
     bool blnFirstFrame;
 
-//    std::vector<Blob> currentFrameBlobs;
-//    std::vector<Blob> blobs;
+    std::vector<Blob> currentFrameBlobs;
+    std::vector<Blob> blobs;
 
     //! Publisher of the bounding box image.
     ros::Publisher detectionImagePublisher_;
+
+    obstacle_msgs::obs obstacles;
+
+    Util::CPPTimer timer_yolo, timer_1, timer_2;
+
+    Util::HOGFeatureDescriptor* hog_descriptor;
 
     // Yolo running on thread.
     std::thread yoloThread_;
@@ -263,9 +277,9 @@ private:
 
     IplImage* getIplImage();
 
-    bool getImageStatus(void);
+    bool getImageStatus();
 
-    bool isNodeRunning(void);
+    bool isNodeRunning();
 
     void *publishInThread();
 
@@ -278,6 +292,9 @@ private:
                                 const sensor_msgs::CameraInfoConstPtr&right_info);
 
     cv::Rect left_roi_, right_roi_;
+    cv::Mat disparityFrame;
+    Detection* mpDetection;
+    std::thread* mpDepth_gen_run;
 };
 
 } /* namespace darknet_ros*/

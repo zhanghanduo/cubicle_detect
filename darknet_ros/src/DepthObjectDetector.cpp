@@ -53,30 +53,30 @@ Detection::Detection(YoloObjectDetector* pYolo, ros::NodeHandle n):
 
     if(n.getParam("params", Parameter_filename))
         ROS_INFO("Get params: %s", Parameter_filename.c_str());
-    else
-        ROS_WARN("Use default params file position: %s", Parameter_filename.c_str());
 
     if(n.getParam("min_disparity", min_disparity))
         ROS_INFO("Get minimal disparity value: %d", min_disparity);
-    else
-        ROS_WARN("Using default minimal disparity value: %d", min_disparity);
 
     if(n.getParam("disparity_scope", disp_size))
         ROS_INFO("Get disparity scope: %d", disp_size);
-    else
-        ROS_WARN("Using default disparity scope: %d", disp_size);
 
+    if(n.getParam("Width", Width))
+        ROS_INFO("Get image width: %d", Width);
+    if(n.getParam("Height", Height))
+        ROS_INFO("Get image height: %d", Height);
+    if(n.getParam("scale", Scale))
+        ROS_INFO("Scale: %d", Scale);
+
+    Width /= Scale;
+    Height /= Scale;
+    getParams();
     /***** Initialize the related values and thresholds *****/
 
 //    pub = n.advertise<obstacle_msgs::MapInfo>("/wide/map_msg", 10);
 
 }
 
-void Detection::getParams(int width, int height) {
-
-    Width = width;
-
-    Height = height;
+void Detection::getParams() {
 
     vxiLeft = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_RGB);
     NVXIO_CHECK_REFERENCE(vxiLeft); // NOLINT
@@ -221,7 +221,7 @@ void Detection::Run(){
 
             GenerateDisparityMap();
 
-//            mpYolo->getDepth(disparity_map);
+            mpYolo->getDepth(disparity_map);
 
 //            Initialize();
 

@@ -3,7 +3,7 @@
 //
 #include "darknet_ros/Blob.h"
 
-namespace cubicle_detect {
+namespace darknet_ros {
 
     Blob::Blob(cv::Rect _BBoxRect) {
 
