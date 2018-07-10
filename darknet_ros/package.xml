@@ -1,25 +1,56 @@
 <?xml version="1.0"?>
-<package format="2">
+<package>
   <name>cubicle_detect</name>
-  <version>1.1.3</version>
-  <description>Darknet is an open source neural network framework that runs on CPU and GPU. You only look once (YOLO) is a state-of-the-art, real-time object detection system.</description>
+  <version>1.1.4</version>
+  <description>ROS package to use YOLO and stereo images for obstacle mapping
+    and (future) 3D bounding boxes, using CUDA C++.</description>
   <maintainer email="hzhang032@e.ntu.edu.sg">Zhang Handuo</maintainer>
   <license>BSD</license>
   <url type="website">https://github.com/zhanghanduo/cubicle_detect</url>
   <author email="hzhang032@e.ntu.edu.sg">Zhang Handuo</author>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>boost</depend>
+  <build_depend>boost</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>OpenCV</build_depend>
+  <build_depend>OpenMP</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>message_filters</build_depend>
+  <build_depend>image_geometry</build_depend>
+  <build_depend>obstacle_msgs</build_depend>
+  <build_depend>darknet_ros_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>VisionWorks</build_depend>
+  <build_depend>VisionWorks-NVXIO</build_depend>
+  <!--<build_depend>pcl_ros</build_depend>-->
 
-  <depend>roscpp</depend>
-  <depend>rospy</depend>
-  <depend>std_msgs</depend>
-  <depend>image_transport</depend>
-  <depend>cv_bridge</depend>
-  <depend>sensor_msgs</depend>
-  <depend>message_generation</depend>
-  <depend>darknet_ros_msgs</depend>
-  <depend>actionlib</depend>
+  <run_depend>boost</run_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>image_geometry</run_depend>
+  <run_depend>obstacle_msgs</run_depend>
+  <run_depend>darknet_ros_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>OpenCV</run_depend>
+  <run_depend>OpenMP</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>message_filters</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>VisionWorks</run_depend>
+  <run_depend>VisionWorks-NVXIO</run_depend>
+  <!--<run_depend>pcl_ros</run_depend>-->
 
   <!-- Test dependencies -->
   <test_depend>rostest</test_depend>
