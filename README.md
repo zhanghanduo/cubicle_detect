@@ -2,20 +2,27 @@
 
 ## Overview
 
-This is a ROS package developed for object detection in camera images. You only look once (YOLO) is a state-of-the-art, real-time object detection system. In the following ROS package you are able to use YOLO on GPU and CPU. The pre-trained model of the convolutional neural network is able to detect pre-trained classes including the data set from VOC and COCO (e.g. aeroplane, bicycle, bird, boat, bottle, bus, car, cat, chair, cow, dining table, dog, horse, motorbike, person, potted plant, sheep, sofa, train and tv monitor) or you can also create a network with your own detection objects. For more information about YOLO, Darknet, available training data and training YOLO see the following link: [YOLO: Real-Time Object Detection](http://pjreddie.com/darknet/yolo/).
+This is a ROS package developed for object detection in camera images. You only look once (YOLO) is a state-of-the-art, real-time object detection system. In the following ROS package you are able to use YOLO on GPU and CPU. The pre-trained model of the convolutional neural network is able to detect pre-trained classes including the data set from VOC, COCO and BDD100K dataset. 
+For more information about YOLO, Darknet, available training data and training YOLO see the following link: [YOLO: Real-Time Object Detection](http://pjreddie.com/darknet/yolo/).
 
-The YOLO packages have been tested under ROS Kinetic and Ubuntu 16.04. This is research code, expect that it changes often and any fitness for a particular purpose is disclaimed.
+The YOLO packages have been tested under ROS Kinetic and Ubuntu 16.04.
 
-**Author: [Marko Bjelonic](https://sites.google.com/site/bjelonicmarko/), marko.bjelonic@mavt.ethz.ch**
+Thanks to the original author:Author: [Marko Bjelonic](https://sites.google.com/site/bjelonicmarko/). I have to say sorry as I did not fork that repo because the submodule [darknet](https://github.com/zhanghanduo/darknet) has been modified.
 
-**Affiliation: [Robotic Systems Lab](http://www.rsl.ethz.ch/), ETH Zurich**
-
-![Darknet Ros example: Detection image](darknet_ros/doc/test_detection.png)
-![Darknet Ros example: Detection image](darknet_ros/doc/test_detection_anymal.png)
+![Darknet Ros example: Detection image](darknet_ros/doc/predictionsbdd.jpg)
 
 ## Citing
 
-The YOLO methods used in this software are described in the paper: [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/abs/1506.02640).
+The YOLO V3 methods used in this software are described in the paper: 
+
+```
+@article{yolov3,
+	title={YOLOv3: An Incremental Improvement},
+	author={Redmon, Joseph and Farhadi, Ali},
+	journal = {arXiv},
+	year={2018}
+}
+```
 
 ## Installation
 
@@ -28,12 +35,10 @@ This software is built on the Robotic Operating System ([ROS]), which needs to b
 
 ### Building
 
-[![Build Status](https://ci.leggedrobotics.com/buildStatus/icon?job=github_leggedrobotics/darknet_ros/master)](https://ci.leggedrobotics.com/job/github_leggedrobotics/job/darknet_ros/job/master/)
-
 In order to install darknet_ros, clone the latest version using SSH (see [how to set up an SSH key](https://confluence.atlassian.com/bitbucket/set-up-an-ssh-key-728138079.html)) from this repository into your catkin workspace and compile the package using ROS.
 
     cd catkin_workspace/src
-    git clone --recursive git@github.com:leggedrobotics/darknet_ros.git
+    git clone --recursive git@github.com:zhanghanduo/cubicle_detect.git
     cd ../
 
 To maximize performance, make sure to build in *Release* mode. You can specify the build type by setting
@@ -44,7 +49,9 @@ or using the [Catkin Command Line Tools](http://catkin-tools.readthedocs.io/en/l
 
     catkin build darknet_ros -DCMAKE_BUILD_TYPE=Release
 
-Darknet on the CPU is fast (approximately 1.5 seconds on an Intel Core i7-6700HQ CPU @ 2.60GHz × 8) but it's like 500 times faster on GPU! You'll have to have an Nvidia GPU and you'll have to install CUDA. The CMakeLists.txt file automatically detects if you have CUDA installed or not. CUDA is a parallel computing platform and application programming interface (API) model created by Nvidia. If you do not have CUDA on your System the build process will switch to the CPU version of YOLO. If you are compiling with CUDA, you might receive the following build error:
+We recommend you to use an Nvidia GPU and you'll have to install CUDA (CUDNN is recommended).
+The CMakeLists.txt file automatically detects if you have CUDA&CUDNN installed or not.
+If you are compiling with CUDA, you might receive the following build error:
 
     nvcc fatal : Unsupported gpu architecture 'compute_61'.
 
@@ -54,20 +61,9 @@ This means that you need to check the compute capability (version) of your GPU. 
 
 ### Download weights
 
-The yolo-voc.weights and tiny-yolo-voc.weights are downloaded automatically in the CMakeLists.txt file. If you need to download them again, go into the weights folder and download the two pre-trained weights from the COCO data set:
+The yolo3.weights is downloaded automatically in the CMakeLists.txt file. If you need to download them again, go into the weights folder and download the pre-trained weights from the COCO data set:
 
     cd catkin_workspace/src/darknet_ros/darknet_ros/yolo_network_config/weights/
-    wget http://pjreddie.com/media/files/yolov2.weights
-    wget http://pjreddie.com/media/files/yolov2-tiny.weights
-
-And weights from the VOC data set can be found here:
-
-    wget http://pjreddie.com/media/files/yolov2-voc.weights
-    wget http://pjreddie.com/media/files/yolov2-tiny-voc.weights
-
-And the pre-trained weight from YOLO v3 can be found here:
-
-    wget http://pjreddie.com/media/files/yolov3-voc.weights
     wget http://pjreddie.com/media/files/yolov3.weights
 
 ### Use your own detection objects
