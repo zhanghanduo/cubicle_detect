@@ -205,6 +205,7 @@ private:
   network *net_;
   image buff_[3];
   image buffLetter_[3];
+//  image buff_rgb[3];
   int buffId_[3];
   int buffIndex_ = 0;
   IplImage * ipl_;
@@ -232,7 +233,7 @@ private:
   char *demoPrefix_;
 
   std_msgs::Header imageHeader_;
-  cv::Mat camImageCopy_, origLeft, origRight;
+  cv::Mat camImageCopy_, origLeft, origRight, camImageResized;
   cv::Mat left_rectified, right_rectified;
   boost::shared_mutex mutexImageCallback_;
 

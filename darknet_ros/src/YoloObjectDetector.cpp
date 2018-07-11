@@ -50,11 +50,11 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   init();
 
-  //  mpDetection = new Detection(this, nodeHandle_);
-//
-//  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
-//
-//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+  mpDetection = new Detection(this, nodeHandle_);
+
+  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
+
+  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -311,7 +311,6 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
   if (cam_image1) {
     {
       boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-//      camImageCopy_ = cam_image1->image.clone();
       frameWidth_ = cam_image1->image.size().width;
       frameHeight_ = cam_image1->image.size().height;
       frameWidth_ = frameWidth_ / Scale;
@@ -321,13 +320,18 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       origRight = cv::Mat(cam_image2->image, right_roi_);
       cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
       cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
-//      mpDetection -> getImage(left_rectified, right_rectified);
+      mpDetection -> getImage(left_rectified, right_rectified);
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
       imageStatus_ = true;
     }
   }
+
+//  if(isReceiveDepth){
+//
+//      isReceiveDepth = false;
+//  }
 }
 
 void YoloObjectDetector::checkForObjectsActionGoalCB()
@@ -546,6 +550,10 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread(void *ptr)
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
+//  if(isReceiveDepth){
+//      cv::imshow("disparity_map", disparityFrame * 256/128);
+//      isReceiveDepth = false;
+//  }
   int c = cvWaitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
