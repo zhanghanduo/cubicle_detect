@@ -136,14 +136,14 @@ void YoloObjectDetector::init()
 
   // Path to weights file.
   nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
-                    std::string("yolov2-tiny.weights"));
+                    std::string("yolo_bdd_c1_165300.weights"));
   nodeHandle_.param("weights_path", weightsPath, std::string("/default"));
   weightsPath += "/" + weightsModel;
   weights = new char[weightsPath.length() + 1];
   strcpy(weights, weightsPath.c_str());
 
   // Path to config file.
-  nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov2-tiny.cfg"));
+  nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolo_bdd_c1.cfg"));
   nodeHandle_.param("config_path", configPath, std::string("/default"));
   configPath += "/" + configModel;
   cfg = new char[configPath.length() + 1];
@@ -164,12 +164,12 @@ void YoloObjectDetector::init()
 
   // Load network.
   setupNetwork(cfg, weights, data, thresh, detectionNames, numClasses_,
-                0, 0, 1, 0.5, 0, 0, 0, 0);
+                0, nullptr, 1, 0.5, 0, 0, 0, 0);
   yoloThread_ = std::thread(&YoloObjectDetector::yolo, this);
 
   // Initialize publisher and subscriber.
-  std::string cameraTopicName;
-  int cameraQueueSize;
+//  std::string cameraTopicName;
+//  int cameraQueueSize;
   std::string objectDetectorTopicName;
   int objectDetectorQueueSize;
   bool objectDetectorLatch;
@@ -180,9 +180,9 @@ void YoloObjectDetector::init()
   int detectionImageQueueSize;
   bool detectionImageLatch;
 
-  nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName,
-                    std::string("/camera/image_raw"));
-  nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
+//  nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName,
+//                    std::string("/camera/image_raw"));
+//  nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
                     std::string("found_object"));
   nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
@@ -195,6 +195,7 @@ void YoloObjectDetector::init()
                     std::string("detection_image"));
   nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
   nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
+  nodeHandle_.param<bool>("use_grey", use_grey, true);
 
 //  imageSubscriber_ = imageTransport_.subscribe(cameraTopicName, cameraQueueSize,
 //                                               &YoloObjectDetector::cameraCallback, this);
@@ -289,7 +290,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
                                         const sensor_msgs::CameraInfoConstPtr& left_info,
                                         const sensor_msgs::CameraInfoConstPtr& right_info) {
 
-    ROS_DEBUG("[ObstacvleDetector] Stereo image received.");
+    ROS_DEBUG("[ObstacleDetector] Stereo image received.");
 
   cv_bridge::CvImagePtr cam_image1, cam_image2;
 
@@ -528,7 +529,7 @@ void *YoloObjectDetector::detectInThread()
   free_detections(dets, nboxes);
   demoIndex_ = (demoIndex_ + 1) % demoFrame_;
   running_ = 0;
-  return 0;
+  return nullptr;
 }
 
 void *YoloObjectDetector::fetchInThread()
@@ -543,7 +544,7 @@ void *YoloObjectDetector::fetchInThread()
     rgbgr_image(buff_[buffIndex_]);
 
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
-  return 0;
+  return nullptr;
 }
 
 void *YoloObjectDetector::displayInThread(void *ptr)
@@ -553,7 +554,7 @@ void *YoloObjectDetector::displayInThread(void *ptr)
   if (c != -1) c = c%256;
   if (c == 27) {
       demoDone_ = 1;
-      return 0;
+      return nullptr;
   } else if (c == 82) {
       demoThresh_ += .02;
   } else if (c == 84) {
@@ -565,21 +566,7 @@ void *YoloObjectDetector::displayInThread(void *ptr)
       demoHier_ -= .02;
       if(demoHier_ <= .0) demoHier_ = .0;
   }
-  return 0;
-}
-
-void *YoloObjectDetector::displayLoop(void *ptr)
-{
-  while (1) {
-    displayInThread(0);
-  }
-}
-
-void *YoloObjectDetector::detectLoop(void *ptr)
-{
-  while (1) {
-    detectInThread();
-  }
+  return nullptr;
 }
 
 void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,

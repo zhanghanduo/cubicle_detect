@@ -128,7 +128,6 @@ private:
 
     int Height, Width, Scale, frame, disp_size, min_disparity;
 
-    std::string Intrinsic_filename, Extrinsic_filename, Parameter_filename;
     cv::Size Initial_size;
     cv::Rect roi1, roi2;
 

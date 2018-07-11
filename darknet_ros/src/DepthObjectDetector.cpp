@@ -42,8 +42,7 @@ Detection::Detection(YoloObjectDetector* pYolo, ros::NodeHandle n):
         mbStopRequested(false),
         mbFinishRequested_(false)
 {
-    Parameter_filename = ros::package::getPath("cubicle_detect") + "/config/params.yml";
-    disparity_frame = "/disparity_node";
+    disparity_frame = "/disparity_id";
     Height = 422;
     Width = 640;
     disp_size = 64;
@@ -51,18 +50,15 @@ Detection::Detection(YoloObjectDetector* pYolo, ros::NodeHandle n):
 
     /***** Read Params from external configurations *****/
 
-    if(n.getParam("params", Parameter_filename))
-        ROS_INFO("Get params: %s", Parameter_filename.c_str());
-
     if(n.getParam("min_disparity", min_disparity))
         ROS_INFO("Get minimal disparity value: %d", min_disparity);
 
     if(n.getParam("disparity_scope", disp_size))
         ROS_INFO("Get disparity scope: %d", disp_size);
 
-    if(n.getParam("Width", Width))
+    if(n.getParam("image_width", Width))
         ROS_INFO("Get image width: %d", Width);
-    if(n.getParam("Height", Height))
+    if(n.getParam("image_height", Height))
         ROS_INFO("Get image height: %d", Height);
     if(n.getParam("scale", Scale))
         ROS_INFO("Scale: %d", Scale);
@@ -221,6 +217,8 @@ void Detection::Run(){
 
             GenerateDisparityMap();
 
+//            VisualizeResults();
+
             mpYolo->getDepth(disparity_map);
 
 //            Initialize();
@@ -258,38 +256,10 @@ void Detection::getImage(cv::Mat &Frame1, cv::Mat &Frame2) {
     isReceiveImage = true;
 }
 
-//void Detection::ImageGrabber(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2) {
-//
-//    cv_bridge::CvImagePtr cv_ptrl, cv_ptrr;
-//    try {
-//        cv_ptrl = cv_bridge::toCvCopy(image1, sensor_msgs::image_encodings::MONO8);
-//        cv_ptrr = cv_bridge::toCvCopy(image2, sensor_msgs::image_encodings::MONO8);
-//    } catch (cv_bridge::Exception &e) {
-//        ROS_ERROR("cv_bridge exception: %s", e.what());
-//        return;
-//    }
-////    image_time = image1->header.stamp;
-//    image_header = image1->header;
-//    left_original = cv_ptrl->image.clone();
-//    right_original = cv_ptrr->image.clone();
-//
-//    GenerateDisparityMap();
-//
-//    Initialize();
-//
-//    VisualizeResults();
-//}
-
-//bool Detection::CheckDepthUpdate(){
-//
-//    return isDepthNew;
-//}
-
 void Detection::SetFinish() {
     std::unique_lock<std::mutex> lock(mMutexFinish);
     mbFinished_ = true;
 }
-
 
 bool Detection::isFinished() {
     std::unique_lock<std::mutex> lock(mMutexFinish);
