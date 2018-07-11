@@ -13,8 +13,8 @@
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
-  <rosparam command="load" ns="darknet_ros" file="$(find cubicle_detect)/config/ros.yaml"/>
-  <rosparam command="load" ns="darknet_ros" file="$(find cubicle_detect)/config/yolov3_bdd.yaml"/>
+  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
+  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_bdd.yaml"/>
 
   <param name="use_sim_time" value="true" />
   <!--Rectify input stereo images  -->

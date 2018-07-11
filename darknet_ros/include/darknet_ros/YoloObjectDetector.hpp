@@ -75,7 +75,7 @@ extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
 
 namespace darknet_ros {
 
-class Detection;
+//class Detection;
 
 //! Bounding box of the detected object.
 typedef struct
@@ -293,7 +293,7 @@ private:
 
     cv::Rect left_roi_, right_roi_;
     cv::Mat disparityFrame;
-    Detection* mpDetection;
+//    Detection* mpDetection;
     std::thread* mpDepth_gen_run;
 };
 
