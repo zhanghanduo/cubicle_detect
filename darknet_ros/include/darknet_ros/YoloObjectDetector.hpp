@@ -16,6 +16,8 @@
 #include <pthread.h>
 #include <thread>
 #include <chrono>
+#include <mutex>
+#include <map>
 
 // ROS
 #include <ros/ros.h>
@@ -26,7 +28,12 @@
 #include <sensor_msgs/Image.h>
 #include <geometry_msgs/Point.h>
 #include <image_transport/image_transport.h>
-
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <image_geometry/stereo_camera_model.h>
+#include <image_geometry/pinhole_camera_model.h>
 // OpenCv
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -37,7 +44,10 @@
 #include <darknet_ros_msgs/BoundingBoxes.h>
 #include <darknet_ros_msgs/BoundingBox.h>
 #include <darknet_ros_msgs/CheckForObjectsAction.h>
-
+#include "darknet_ros/Blob.h"
+#include "darknet_ros/DepthObjectDetector.h"
+#include "utils/timing.h"
+#include "utils/hog.h"
 // Darknet.
 #ifdef GPU
 #include "cuda_runtime.h"
@@ -64,6 +74,8 @@ extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
 
 namespace darknet_ros {
 
+class Detection;
+
 //! Bounding box of the detected object.
 typedef struct
 {
@@ -77,14 +89,36 @@ class YoloObjectDetector
   /*!
    * Constructor.
    */
-  explicit YoloObjectDetector(ros::NodeHandle nh);
+  explicit YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p);
 
   /*!
    * Destructor.
    */
   ~YoloObjectDetector();
 
- private:
+    /*!
+  * Callback of camera.
+  * @param[in] msg image pointer.
+  */
+  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2,
+                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
+
+  int globalframe, Scale;
+  double stereo_baseline_, u0;
+
+  /*!
+  * Callback of camera.
+  * @param[in] msg image pointer.
+  */
+  void getDepth(cv::Mat &depthFrame);
+
+private:
+   /*!
+   * Reads Cuda infomation.
+   * @return true if successful.
+   */
+    bool CudaInfo();
+
   /*!
    * Reads and verifies the ROS parameters.
    * @return true if successful.
@@ -95,12 +129,6 @@ class YoloObjectDetector
    * Initialize the ROS connections.
    */
   void init();
-
-  /*!
-   * Callback of camera.
-   * @param[in] msg image pointer.
-   */
-  void cameraCallback(const sensor_msgs::ImageConstPtr& msg);
 
   /*!
    * Check for objects action goal callback.
@@ -129,7 +157,7 @@ class YoloObjectDetector
   typedef std::shared_ptr<CheckForObjectsActionServer> CheckForObjectsActionServerPtr;
 
   //! ROS node handle.
-  ros::NodeHandle nodeHandle_;
+  ros::NodeHandle nodeHandle_, nodeHandle_pub;
 
   //! Class labels.
   int numClasses_;
@@ -138,11 +166,7 @@ class YoloObjectDetector
   //! Check for objects action server.
   CheckForObjectsActionServerPtr checkForObjectsActionServer_;
 
-  //! Advertise and subscribe to image topics.
-  image_transport::ImageTransport imageTransport_;
-
   //! ROS subscriber and publisher.
-  image_transport::Subscriber imageSubscriber_;
   ros::Publisher objectPublisher_;
   ros::Publisher boundingBoxesPublisher_;
 
@@ -155,8 +179,20 @@ class YoloObjectDetector
   int frameWidth_;
   int frameHeight_;
 
+  bool isReceiveDepth;
+  bool blnFirstFrame;
+
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;
+
+  std::vector<Blob> currentFrameBlobs;
+  std::vector<Blob> blobs;
+
+  obstacle_msgs::obs obstacles;
+
+  Util::CPPTimer timer_yolo, timer_1, timer_2;
+
+  Util::HOGFeatureDescriptor* hog_descriptor;
 
   // Yolo running on thread.
   std::thread yoloThread_;
@@ -196,7 +232,8 @@ class YoloObjectDetector
   char *demoPrefix_;
 
   std_msgs::Header imageHeader_;
-  cv::Mat camImageCopy_;
+  cv::Mat camImageCopy_, origLeft, origRight;
+  cv::Mat left_rectified, right_rectified;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
@@ -222,10 +259,6 @@ class YoloObjectDetector
 
   void *displayInThread(void *ptr);
 
-  void *displayLoop(void *ptr);
-
-  void *detectLoop(void *ptr);
-
   void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
                     char **names, int classes,
                     int delay, char *prefix, int avg_frames, float hier, int w, int h,
@@ -242,6 +275,17 @@ class YoloObjectDetector
   void *publishInThread();
 
   bool use_grey;
+
+  /**
+   * @brief compute stereo baseline, ROI's and FOV's from camera calibration messages.
+   */
+  void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
+                              const sensor_msgs::CameraInfoConstPtr&right_info);
+
+  cv::Rect left_roi_, right_roi_;
+  cv::Mat disparityFrame;
+  Detection* mpDetection;
+  std::thread* mpDepth_gen_run;
 };
 
 } /* namespace darknet_ros*/

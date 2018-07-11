@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(darknet_ros)
+project(cubicle_detect)
 
 # Set c++11 cmake flags
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
@@ -31,8 +31,8 @@ endif()
 # Define path of darknet folder here.
 #find_path(DARKNET_PATH
 #  NAMES "README.md"
-#  HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../darknet_m/")
-set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet_m/")
+#  HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
+set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
 message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
@@ -100,44 +100,65 @@ find_package(Boost REQUIRED COMPONENTS thread)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
-  COMPONENTS
-    cv_bridge
-    roscpp
-    rospy
-    std_msgs
-    actionlib
-    darknet_ros_msgs
-    image_transport
-)
+        COMPONENTS
+        cv_bridge
+        roscpp
+        rospy
+        sensor_msgs
+        geometry_msgs
+        image_geometry
+        std_msgs
+        actionlib
+        darknet_ros_msgs
+        obstacle_msgs
+        image_transport
+        eigen_conversions
+        message_generation
+        tf
+        )
+
 
 # Enable OPENCV in darknet
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
 
+FIND_PACKAGE(VisionWorks REQUIRED)
+FIND_PACKAGE(VisionWorks-NVXIO REQUIRED)
+find_package(Eigen3 3.1.0 REQUIRED)
+
 catkin_package(
   INCLUDE_DIRS
-    include
+        include
   LIBRARIES
-    ${PROJECT_NAME}_lib
+        ${PROJECT_NAME}_lib
   CATKIN_DEPENDS
-    cv_bridge
-    roscpp
-    actionlib
-    rospy
-    std_msgs
-    darknet_ros_msgs
-    image_transport
+        cv_bridge
+        roscpp
+        actionlib
+        rospy
+        std_msgs
+        geometry_msgs
+        image_geometry
+        message_filters
+        obstacle_msgs
+        darknet_ros_msgs
+        image_transport
   DEPENDS
-    Boost
+        Boost
 )
 
 include_directories(
-  ${DARKNET_PATH}/src
-#  ${DARKNET_PATH}/include
-  include
-  ${Boost_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
+        ${DARKNET_PATH}/src
+        ${DARKNET_PATH}/include
+        include
+        ${Boost_INCLUDE_DIRS}
+        ${catkin_INCLUDE_DIRS}
+        ${VisionWorks_INCLUDE_DIRS}
+        ${VisionWorks-NVXIO_INCLUDE_DIRS}
+        ${EIGEN3_INCLUDE_DIR}
 )
+
+add_library(stereo_matching_fast src/stereo_matching.cpp)
 
 if (CUDA_FOUND)
 
@@ -156,9 +177,14 @@ if (CUDA_FOUND)
 #          message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
 #      endif()
 
+
   cuda_add_library(${PROJECT_NAME}_lib
-    src/YoloObjectDetector.cpp
-    src/image_interface.c
+          src/YoloObjectDetector.cpp
+          src/image_interface.c
+          src/DepthObjectDetector.cpp
+          src/Blob.cpp
+          src/data.cpp
+          src/hog.cpp
 
     ${DARKNET_PATH}/src/activation_layer.c        ${DARKNET_PATH}/src/im2col.c
     ${DARKNET_PATH}/src/activations.c             ${DARKNET_PATH}/src/image.c
@@ -193,77 +219,28 @@ if (CUDA_FOUND)
     )
 
   target_link_libraries(${PROJECT_NAME}_lib
-    m
-    pthread
-    stdc++
-    cuda
-    cudart
-    cublas
-    curand
-#    cudnn
-    ${Boost_LIBRARIES}
-    ${OpenCV_LIBRARIES}
-    ${catkin_LIBRARIES}
-    ${OpenCV_LIBS}
-  )
+          m
+          pthread
+          stdc++
+          cuda
+          cudart
+          cublas
+          curand
+          #    cudnn
+          ${Boost_LIBRARIES}
+          ${catkin_LIBRARIES}
+          ${OpenCV_LIBS}
+          ${EIGEN3_LIBS}
+          ${CUDA_LIBRARIES}
+          ${CUDA_nppi_LIBRARY}
+          ${VisionWorks_LIBRARIES}
+          ${VisionWorks-NVXIO_LIBRARIES}
+          stereo_matching_fast
+          )
 
   cuda_add_executable(${PROJECT_NAME}
     src/yolo_object_detector_node.cpp
   )
-#
-#else()
-#
-#  add_library(${PROJECT_NAME}_lib
-#    src/YoloObjectDetector.cpp
-#    src/image_interface.c
-#
-#    ${DARKNET_PATH}/src/activation_layer.c        ${DARKNET_PATH}/src/im2col.c
-#    ${DARKNET_PATH}/src/activations.c             ${DARKNET_PATH}/src/image.c
-#    ${DARKNET_PATH}/src/avgpool_layer.c           ${DARKNET_PATH}/src/layer.c
-#    ${DARKNET_PATH}/src/batchnorm_layer.c         ${DARKNET_PATH}/src/list.c
-#    ${DARKNET_PATH}/src/blas.c                    ${DARKNET_PATH}/src/local_layer.c
-#    ${DARKNET_PATH}/src/box.c                     ${DARKNET_PATH}/src/lstm_layer.c
-#    ${DARKNET_PATH}/src/col2im.c                  ${DARKNET_PATH}/src/matrix.c
-#    ${DARKNET_PATH}/src/connected_layer.c         ${DARKNET_PATH}/src/maxpool_layer.c
-#    ${DARKNET_PATH}/src/convolutional_layer.c     ${DARKNET_PATH}/src/network.c
-#    ${DARKNET_PATH}/src/cost_layer.c              ${DARKNET_PATH}/src/normalization_layer.c
-#    ${DARKNET_PATH}/src/crnn_layer.c              ${DARKNET_PATH}/src/option_list.c
-#    ${DARKNET_PATH}/src/crop_layer.c              ${DARKNET_PATH}/src/parser.c
-#    ${DARKNET_PATH}/src/cuda.c                    ${DARKNET_PATH}/src/region_layer.c
-#    ${DARKNET_PATH}/src/data.c                    ${DARKNET_PATH}/src/reorg_layer.c
-#    ${DARKNET_PATH}/src/deconvolutional_layer.c   ${DARKNET_PATH}/src/rnn_layer.c
-#    ${DARKNET_PATH}/src/demo.c                    ${DARKNET_PATH}/src/route_layer.c
-#    ${DARKNET_PATH}/src/detection_layer.c         ${DARKNET_PATH}/src/shortcut_layer.c
-#    ${DARKNET_PATH}/src/dropout_layer.c           ${DARKNET_PATH}/src/softmax_layer.c
-#    ${DARKNET_PATH}/src/gemm.c                    ${DARKNET_PATH}/src/tree.c
-#    ${DARKNET_PATH}/src/gru_layer.c               ${DARKNET_PATH}/src/utils.c
-#    ${DARKNET_PATH}/src/upsample_layer.c          ${DARKNET_PATH}/src/logistic_layer.c
-#    ${DARKNET_PATH}/src/l2norm_layer.c            ${DARKNET_PATH}/src/yolo_layer.c
-#
-#    ${DARKNET_PATH}/examples/art.c                ${DARKNET_PATH}/examples/lsd.c
-#    ${DARKNET_PATH}/examples/attention.c          ${DARKNET_PATH}/examples/nightmare.c
-#    ${DARKNET_PATH}/examples/captcha.c            ${DARKNET_PATH}/examples/regressor.c
-#    ${DARKNET_PATH}/examples/cifar.c              ${DARKNET_PATH}/examples/rnn.c
-#    ${DARKNET_PATH}/examples/classifier.c         ${DARKNET_PATH}/examples/segmenter.c
-#    ${DARKNET_PATH}/examples/coco.c               ${DARKNET_PATH}/examples/super.c
-#    ${DARKNET_PATH}/examples/darknet.c            ${DARKNET_PATH}/examples/tag.c
-#    ${DARKNET_PATH}/examples/detector.c           ${DARKNET_PATH}/examples/yolo.c
-#    ${DARKNET_PATH}/examples/go.c
-#  )
-#
-#  target_link_libraries(${PROJECT_NAME}_lib
-#    m
-#    pthread
-#    stdc++
-#    ${Boost_LIBRARIES}
-#    ${OpenCV_LIBRARIES}
-#    ${catkin_LIBRARIES}
-#    ${OpenCV_LIBS}
-#  )
-#
-#  add_executable(${PROJECT_NAME}
-#    src/yolo_object_detector_node.cpp
-#  )
 
 endif()
 
@@ -272,7 +249,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME}_lib
-  darknet_ros_msgs_generate_messages_cpp
+        darknet_ros_msgs_generate_messages_cpp
+        obstacle_msgs_generate_messages_cpp
 )
 
 install(TARGETS ${PROJECT_NAME}_lib

@@ -1,14 +1,16 @@
 /*
  * YoloObjectDetector.cpp
  *
- *  Created on: Dec 19, 2016
- *      Author: Marko Bjelonic
- *   Institute: ETH Zurich, Robotic Systems Lab
+ *  Created on: June 19, 2018
+ *      Author: Zhang Handuo
+ *   Institute: NTU, ST Corp Lab
  */
+
 
 // yolo object detector
 #include "darknet_ros/YoloObjectDetector.hpp"
-
+#include "utils/data.h"
+#include <ros/package.h>
 // Check for xServer
 #include <X11/Xlib.h>
 
@@ -18,6 +20,8 @@ std::string darknetFilePath_ = DARKNET_FILE_PATH;
 #error Path of darknet repository is not defined in CMakeLists.txt.
 #endif
 
+using namespace message_filters;
+
 namespace darknet_ros {
 
 char *cfg;
@@ -25,23 +29,32 @@ char *weights;
 char *data;
 char **detectionNames;
 
-YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh)
+YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
     : nodeHandle_(nh),
-      imageTransport_(nodeHandle_),
+      nodeHandle_pub(nh_p),
       numClasses_(0),
       classLabels_(0),
       rosBoxes_(0),
       rosBoxCounter_(0),
-      use_grey(false)
+      use_grey(false),
+      isReceiveDepth(false),
+      blnFirstFrame(true),
+      globalframe(0)
 {
-  ROS_INFO("[YoloObjectDetector] Node started.");
+  ROS_INFO("[ObstacleDetector] Node started.");
 
-  // Read parameters from config file.
-  if (!readParameters()) {
+  // Read Cuda Info and ROS parameters from config file.
+  if (!CudaInfo() || !readParameters()) {
     ros::requestShutdown();
   }
 
   init();
+
+  //  mpDetection = new Detection(this, nodeHandle_);
+//
+//  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
+//
+//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -51,6 +64,32 @@ YoloObjectDetector::~YoloObjectDetector()
     isNodeRunning_ = false;
   }
   yoloThread_.join();
+}
+
+bool YoloObjectDetector::CudaInfo() {
+
+  int deviceCount, device;
+  int gpuDeviceCount = 0;
+  struct cudaDeviceProp properties{};
+  cudaError_t cudaResultCode = cudaGetDeviceCount(&deviceCount);
+  if (cudaResultCode != cudaSuccess)
+    deviceCount = 0;
+  /* machine with no GPUs can still report one emulation device */
+  for (device = 0; device < deviceCount; ++ device){
+    cudaGetDeviceProperties(&properties, device);
+    if (properties.major != 9999)
+      ++gpuDeviceCount;
+  }
+  std::cout << gpuDeviceCount << " GPU CUDA device(s) found" << std::endl;
+
+  if (gpuDeviceCount > 0) {
+    std::cout << "GPU load success!" << std::endl;
+    return true;
+  }
+  else {
+    std::cout << "GPU load fail!" << std::endl;
+    return false;
+  }
 }
 
 bool YoloObjectDetector::readParameters()
@@ -81,7 +120,7 @@ bool YoloObjectDetector::readParameters()
 
 void YoloObjectDetector::init()
 {
-  ROS_INFO("[YoloObjectDetector] init().");
+  ROS_INFO("[ObstacleDetector] init().");
 
   // Initialize deep network of darknet.
   std::string weightsPath;
@@ -89,6 +128,7 @@ void YoloObjectDetector::init()
   std::string dataPath;
   std::string configModel;
   std::string weightsModel;
+  u0 = 0;
 
   // Threshold of object detection.
   float thresh;
@@ -156,8 +196,6 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
   nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
-  imageSubscriber_ = imageTransport_.subscribe(cameraTopicName, cameraQueueSize,
-                                               &YoloObjectDetector::cameraCallback, this);
   objectPublisher_ = nodeHandle_.advertise<std_msgs::Int8>(objectDetectorTopicName,
                                                            objectDetectorQueueSize,
                                                            objectDetectorLatch);
@@ -166,6 +204,8 @@ void YoloObjectDetector::init()
   detectionImagePublisher_ = nodeHandle_.advertise<sensor_msgs::Image>(detectionImageTopicName,
                                                                        detectionImageQueueSize,
                                                                        detectionImageLatch);
+  nodeHandle_.param<bool>("use_grey", use_grey, false);
+  nodeHandle_.param<int>("scale", Scale, 2);
 
   // Action servers.
   std::string checkForObjectsActionName;
@@ -180,36 +220,113 @@ void YoloObjectDetector::init()
   checkForObjectsActionServer_->start();
 }
 
-void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& msg)
-{
-  ROS_DEBUG("[YoloObjectDetector] USB image received.");
+void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
+                                               const sensor_msgs::CameraInfoConstPtr &right_info) {
 
-  cv_bridge::CvImagePtr cam_image;
+  ROS_INFO_STREAM("init calibration");
+
+  // Check if a valid calibration exists
+  if (left_info->K[0] == 0.0) {
+    ROS_ERROR("The camera is not calibrated");
+    return;
+  }
+
+  sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*left_info);
+  sensor_msgs::CameraInfoPtr right_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*right_info);
+  left_info_copy->header.frame_id = "stereo";
+  right_info_copy->header.frame_id = "stereo";
+
+  // Get Stereo Camera Model from Camera Info message
+  image_geometry::StereoCameraModel stereoCameraModel;
+  stereoCameraModel.fromCameraInfo(left_info_copy, right_info_copy);
+
+  // Get PinHole Camera Model from the Stereo Camera Model
+  const image_geometry::PinholeCameraModel &cameraLeft = stereoCameraModel.left();
+  const image_geometry::PinholeCameraModel &cameraRight = stereoCameraModel.right();
+
+//    double data[16] = { 1, 0, 0, -left_info->P[2]/Scale, 0, 1, 0, -left_info->P[6]/Scale, 0, 0, 0, left_info->P[0], 0};
+//    double data[16] = { 1, 0, 0, -322.94284058, 0, 1, 0, -232.25880432, 0, 0, 0, 922.9965, 0, 0, 0.001376324, 0};
+//    Q = cv::Mat(4, 4, CV_64F, data);
+
+  // Get rectify intrinsic Matrix (is the same for both cameras because they are rectified)
+  cv::Mat projectionLeft = cv::Mat(cameraLeft.projectionMatrix());
+  cv::Matx33d intrinsicLeft = projectionLeft(cv::Rect(0, 0, 3, 3));
+  cv::Mat projectionRight = cv::Mat(cameraRight.projectionMatrix());
+  cv::Matx33d intrinsicRight = projectionRight(cv::Rect(0, 0, 3, 3));
+
+  u0 = left_info->K[2];
+
+  assert(intrinsicLeft == intrinsicRight);
+
+  const cv::Matx33d &intrinsic = intrinsicLeft;
+
+  // Save the baseline
+  stereo_baseline_ = stereoCameraModel.baseline();
+  ROS_INFO_STREAM("baseline: " << stereo_baseline_);
+  assert(stereo_baseline_ > 0);
+
+  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
+  left_roi_ = cameraLeft.rawRoi();
+  right_roi_ = cameraRight.rawRoi();
+//    ROS_WARN("width, height: %d, %d", left_roi_.width, left_roi_.height);
+
+}
+
+void YoloObjectDetector::getDepth(cv::Mat &depthFrame) {
+
+  depthFrame.copyTo(disparityFrame);
+
+//    disparityFrame.convertTo(doubleFrame, CV_32FC1);
+
+  isReceiveDepth = true;
+}
+
+void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
+                                        const sensor_msgs::ImageConstPtr &image2,
+                                        const sensor_msgs::CameraInfoConstPtr& left_info,
+                                        const sensor_msgs::CameraInfoConstPtr& right_info){
+  ROS_DEBUG("[ObstacleDetector] Stereo images received.");
+
+  cv_bridge::CvImageConstPtr cam_image1, cam_image2;
 
   try {
-//    cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    if(use_grey)
-      cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
-    else
-      cam_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    if(use_grey) {
+      cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
+      cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+    }
+    else {
+      cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
+      cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::BGR8);
+    }
 
-    imageHeader_ = msg->header;
+    imageHeader_ = image1->header;
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
 
-  if (cam_image) {
+  if(u0 == 0)
+    loadCameraCalibration(left_info, right_info);
+
+  if (cam_image1) {
     {
       boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-      camImageCopy_ = cam_image->image.clone();
+//      camImageCopy_ = cam_image1->image.clone();
+      frameWidth_ = cam_image1->image.size().width;
+      frameHeight_ = cam_image1->image.size().height;
+      frameWidth_ = frameWidth_ / Scale;
+      frameHeight_ = frameHeight_ / Scale;
+
+      origLeft = cv::Mat(cam_image1->image, left_roi_);
+      origRight = cv::Mat(cam_image2->image, right_roi_);
+      cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
+      cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
+//      mpDetection -> getImage(left_rectified, right_rectified);
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
       imageStatus_ = true;
     }
-    frameWidth_ = cam_image->image.size().width;
-    frameHeight_ = cam_image->image.size().height;
   }
 }
 
@@ -245,6 +362,9 @@ void YoloObjectDetector::checkForObjectsActionGoalCB()
     }
     frameWidth_ = cam_image->image.size().width;
     frameHeight_ = cam_image->image.size().height;
+    frameHeight_ = cam_image->image.size().height;
+    frameWidth_ /= Scale;
+    frameHeight_ /= Scale;
   }
 }
 
@@ -330,6 +450,7 @@ detection *YoloObjectDetector::avgPredictions(network *net, int *nboxes)
 
 void *YoloObjectDetector::detectInThread()
 {
+  globalframe++;
   running_ = 1;
   float nms = .45;
 
@@ -344,21 +465,12 @@ void *YoloObjectDetector::detectInThread()
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
   draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0);
 
-//  rememberNetwork(net_);
-//  detection *dets = nullptr;
-
-//  dets = avgPredictions(net_, &nboxes);
-
-//  if (nms > 0) do_nms_obj(dets, nboxes, l.classes, nms);
-
-  if (enableConsoleOutput_) {
-    printf("\033[2J");
-    printf("\033[1;1H");
+  if ( (enableConsoleOutput_)&&(globalframe%10==1) ) {
+//    printf("\033[2J");
+//    printf("\033[1;1H");
     printf("\nFPS:%.1f\n",fps_);
     printf("Objects:\n\n");
   }
-//  image display = buff_[(buffIndex_+2) % 3];
-//  draw_detections_simple(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, demoClasses_);
 
   // extract the bounding boxes and send them to ROS
   int i, j;
@@ -557,7 +669,8 @@ void YoloObjectDetector::yolo()
 IplImage* YoloObjectDetector::getIplImage()
 {
   boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-  auto * ROS_img = new IplImage(camImageCopy_);
+//  auto * ROS_img = new IplImage(camImageCopy_);
+  IplImage* ROS_img = new IplImage(left_rectified);
   return ROS_img;
 }
 

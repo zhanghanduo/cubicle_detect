@@ -3,7 +3,7 @@
 <launch>
 
   <!-- Launch darknet ros with gdb launch prefix -->
-  <include file="$(find darknet_ros)/launch/darknet_ros.launch">
+  <include file="$(find cubicle_detect)/launch/darknet_ros.launch">
     <arg name="launch_prefix"   value="gdb -ex run --args"/>
   </include>
 
