@@ -789,7 +789,7 @@ void *YoloObjectDetector::publishInThread()
         darknet_ros_msgs::BoundingBox boundingBox;
 
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
-          auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);    //2D column
+          auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);     //2D column
           auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * frameHeight_);    //2D row
 
           auto xmin = static_cast<int>((rosBoxes_[i][j].x - rosBoxes_[i][j].w / 2) * frameWidth_);
@@ -798,18 +798,27 @@ void *YoloObjectDetector::publishInThread()
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
             if ((xmin > 2) &&(ymin > 2)) {
-                std::vector<cv::Point3f> cent_2d, cent_3d;
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 2));  // find 5x5 median
                 if(dis!=0) {
+                    // Hog features
+                                        
+                    std::vector<cv::Point3f> cent_2d, cent_3d;
                     obstacle_msgs::obs outputObs;
                     outputObs.classes = classLabels_[i];
                     outputObs.probability = rosBoxes_[i][j].prob;
                     outputObs.centerPos.x = xDirectionPosition[center_c_][dis];
                     outputObs.centerPos.y = yDirectionPosition[center_r_][dis];
                     outputObs.centerPos.z = depthTable[dis];
-                    outputObs.diameter = rosBoxes_[i][j].w * frameWidth_;
-                    outputObs.height = rosBoxes_[i][j].h * frameHeight_;
+                    float xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                    xmin_3d = xDirectionPosition[xmin][dis];
+                    xmax_3d = xDirectionPosition[xmax][dis];
+                    ymin_3d = yDirectionPosition[ymin][dis];
+                    ymax_3d = yDirectionPosition[ymax][dis];
+//                    outputObs.diameter = rosBoxes_[i][j].w * frameWidth_;
+//                    outputObs.height = rosBoxes_[i][j].h * frameHeight_;
+                    outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                    outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
                     //TODO: Histogram
                     obstacleBoxesResults_.obsData.push_back(outputObs);
                 }
