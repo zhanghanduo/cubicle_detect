@@ -304,6 +304,7 @@ private:
   cv::Mat disparityFrame;
   Detection* mpDetection;
   std::thread* mpDepth_gen_run;
+  int output_verbose;
 };
 
 } /* namespace darknet_ros*/

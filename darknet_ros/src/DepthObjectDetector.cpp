@@ -196,6 +196,15 @@ void Detection::GenerateDisparityMap(){
 
     disparity_SGBM.copyTo(disparity_map);
 
+    // Filter out remote disparity
+    for (int r=0; r<disparity_map.rows; r++) {
+        for (int c=0; c<disparity_map.cols; c++) {
+            if (disparity_map.at<uchar>(r,c) < min_disparity) {
+                disparity_map.at<uchar>(r,c) = 0;
+            }
+        }
+    }
+
     isDepthNew = true;
 
     mMutexDepth.unlock();

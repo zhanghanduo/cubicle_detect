@@ -153,14 +153,14 @@ void YoloObjectDetector::init()
 
   // Path to weights file.
   nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
-                    std::string("yolov2-tiny.weights"));
+                    std::string("yolo_bdd_c1_165300.weights"));
   nodeHandle_.param("weights_path", weightsPath, std::string("/default"));
   weightsPath += "/" + weightsModel;
   weights = new char[weightsPath.length() + 1];
   strcpy(weights, weightsPath.c_str());
 
   // Path to config file.
-  nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov2-tiny.cfg"));
+  nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolo_bdd_c1.cfg"));
   nodeHandle_.param("config_path", configPath, std::string("/default"));
   configPath += "/" + configModel;
   cfg = new char[configPath.length() + 1];
@@ -248,7 +248,7 @@ void YoloObjectDetector::init()
   checkForObjectsActionServer_->start();
 }
 
-void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
+void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
                                                const sensor_msgs::CameraInfoConstPtr &right_info) {
 
   ROS_INFO_STREAM("init calibration");
@@ -298,7 +298,15 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
   // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
   left_roi_ = cameraLeft.rawRoi();
   right_roi_ = cameraRight.rawRoi();
-//    ROS_WARN("width, height: %d, %d", left_roi_.width, left_roi_.height);
+//    {
+//        double tmp_left, tmp_right;
+//        tmp_left = left_roi_.height;
+//        left_roi_.height = left_roi_.width;
+//        left_roi_.width = tmp_left;
+//        tmp_left = right_roi_.height;
+//        right_roi_.height = right_roi_.width;
+//        right_roi_.width = tmp_left;
+//    }
 
 }
 
@@ -376,6 +384,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
     {
       boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
       origLeft = cv::Mat(cam_image1->image, left_roi_);
+
       origRight = cv::Mat(cam_image2->image, right_roi_);
       camImageOrig = cv::Mat(cv_rgb->image.clone(), left_roi_);
     }
@@ -389,11 +398,6 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       mpDetection -> getImage(left_rectified, right_rectified);
   }
 
-//  if(isReceiveDepth){   // receives the disparity map
-//      ROS_WARN("received depth info!");
-//
-//      isReceiveDepth = false;
-//  }
 }
 
 void YoloObjectDetector::checkForObjectsActionGoalCB()
@@ -536,7 +540,7 @@ void *YoloObjectDetector::detectInThread()
 //    printf("\033[1;1H");
 //    printf("\nFPS:%.1f\n",fps_);
 //    printf("Objects:\n\n");
-      printf("\nFPS:%.1f\n", fps_);
+      printf("FPS:%.1f\n", fps_);
   }
 
   // extract the bounding boxes and send them to ROS
@@ -609,7 +613,7 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread()
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-  cv::imshow("disparity_map",disparityFrame * 256 / disp_size);
+//  cv::imshow("disparity_map",disparityFrame * 256 / disp_size);
   int c = cvWaitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
@@ -783,7 +787,6 @@ void *YoloObjectDetector::publishInThread()
     for (int i = 0; i < numClasses_; i++) {
       if (rosBoxCounter_[i] > 0) {
         darknet_ros_msgs::BoundingBox boundingBox;
-        obstacle_msgs::obs outputObs;
 
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
           auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);    //2D column
@@ -794,6 +797,25 @@ void *YoloObjectDetector::publishInThread()
           auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
+            if ((xmin > 2) &&(ymin > 2)) {
+                std::vector<cv::Point3f> cent_2d, cent_3d;
+//                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
+                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 2));  // find 5x5 median
+                if(dis!=0) {
+                    obstacle_msgs::obs outputObs;
+                    outputObs.classes = classLabels_[i];
+                    outputObs.probability = rosBoxes_[i][j].prob;
+                    outputObs.centerPos.x = xDirectionPosition[center_c_][dis];
+                    outputObs.centerPos.y = yDirectionPosition[center_r_][dis];
+                    outputObs.centerPos.z = depthTable[dis];
+                    outputObs.diameter = rosBoxes_[i][j].w * frameWidth_;
+                    outputObs.height = rosBoxes_[i][j].h * frameHeight_;
+                    //TODO: Histogram
+                    obstacleBoxesResults_.obsData.push_back(outputObs);
+                }
+
+            }
+
           boundingBox.Class = classLabels_[i];
           boundingBox.probability = rosBoxes_[i][j].prob;
           boundingBox.xmin = xmin;
@@ -801,18 +823,6 @@ void *YoloObjectDetector::publishInThread()
           boundingBox.xmax = xmax;
           boundingBox.ymax = ymax;
           boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
-
-
-          outputObs.classes = classLabels_[i];
-          outputObs.probability = rosBoxes_[i][j].prob;
-          auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
-          outputObs.centerPos.x = xDirectionPosition[center_c_][dis];
-          outputObs.centerPos.y = yDirectionPosition[center_r_][dis];
-          outputObs.centerPos.z = depthTable[dis];
-          outputObs.diameter = rosBoxes_[i][j].w * frameWidth_;
-          outputObs.height = rosBoxes_[i][j].h * frameHeight_;
-          //TODO: Histogram
-          obstacleBoxesResults_.obsData.push_back(outputObs);
 
         }
       }

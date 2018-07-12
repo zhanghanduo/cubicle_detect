@@ -7,8 +7,8 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="12"/>
-  <arg name="disparity_scope"            default="128"/>
+  <arg name="min_disparity"              default="6"/>
+  <arg name="disparity_scope"            default="64"/>
 
   <!-- Load parameters -->
   <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
@@ -16,22 +16,22 @@
 
   <param name="use_sim_time" value="true" />
   <!--Rectify input stereo images  -->
-  <!--<include file="$(find undistort_images)/launch/stereo_kitti.launch" />-->
+  <include file="$(find undistort_images)/launch/stereo_wide.launch" />
 
   <!-- Start darknet and ros wrapper -->
-  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_kitti" output="screen" launch-prefix="$(arg launch_prefix)">
+  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="image_left_topic"      value="/kitti/camera_gray_left/image_raw" />
-    <param name="image_right_topic"     value="/kitti/camera_gray_right/image_raw" />
-    <param name="image_info_left"       value="/kitti/camera_gray_left/camera_info" />
-    <param name="image_info_right"      value="/kitti/camera_gray_right/camera_info" />
-    <param name="image_height"          value="376" />
-    <param name="image_width"           value="1244" />
+    <param name="image_left_topic"      value="/wide/left/image_rect" />
+    <param name="image_right_topic"     value="/wide/right/image_rect" />
+    <param name="image_info_left"       value="/wide/left/camera_info" />
+    <param name="image_info_right"      value="/wide/right/camera_info" />
+    <param name="image_height"          value="422" />
+    <param name="image_width"           value="640" />
     <param name="scale"                 value="1" />
   </node>
 
