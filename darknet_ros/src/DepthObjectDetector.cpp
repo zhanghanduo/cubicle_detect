@@ -218,11 +218,7 @@ void Detection::Run(){
 
             GenerateDisparityMap();
 
-//            VisualizeResults();
-
             mpYolo->getDepth(disparity_map);
-
-//            Initialize();
 
 //            VisualizeResults();
 

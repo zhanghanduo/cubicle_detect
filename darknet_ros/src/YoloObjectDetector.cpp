@@ -54,7 +54,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
-  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -287,16 +287,17 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
                                         const sensor_msgs::CameraInfoConstPtr& right_info){
   ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
-  cv_bridge::CvImageConstPtr cam_image1, cam_image2;
+  cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
 
   try {
+    cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
+    cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+
     if(use_grey) {
-      cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
-      cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+      cv_rgb = cam_image1;
     }
     else {
-      cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
-      cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::BGR8);
+      cv_rgb = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::BGR8);
     }
 
     imageHeader_ = image1->header;
@@ -309,26 +310,28 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
     loadCameraCalibration(left_info, right_info);
 
   if (cam_image1) {
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
       frameWidth_ = cam_image1->image.size().width;
       frameHeight_ = cam_image1->image.size().height;
       frameWidth_ = frameWidth_ / Scale;
       frameHeight_ = frameHeight_ / Scale;
-
+    {
+      boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
       origLeft = cv::Mat(cam_image1->image, left_roi_);
       origRight = cv::Mat(cam_image2->image, right_roi_);
-      cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
-      cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
-      mpDetection -> getImage(left_rectified, right_rectified);
+      camImageOrig = cv::Mat(cv_rgb->image.clone(), left_roi_);
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
       imageStatus_ = true;
     }
+      cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
+      cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
+      cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
+      mpDetection -> getImage(left_rectified, right_rectified);
   }
 
-//  if(isReceiveDepth){
+//  if(isReceiveDepth){   // receives the disparity map
+//      ROS_WARN("received depth info!");
 //
 //      isReceiveDepth = false;
 //  }
@@ -469,7 +472,7 @@ void *YoloObjectDetector::detectInThread()
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
   draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0);
 
-  if ( (enableConsoleOutput_)&&(globalframe%10==1) ) {
+  if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 //    printf("\033[2J");
 //    printf("\033[1;1H");
     printf("\nFPS:%.1f\n",fps_);
@@ -550,10 +553,10 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread(void *ptr)
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-//  if(isReceiveDepth){
-//      cv::imshow("disparity_map", disparityFrame * 256/128);
-//      isReceiveDepth = false;
-//  }
+  if(isReceiveDepth){
+      cv::imshow("disparity_map", disparityFrame * 256/128);
+      isReceiveDepth = false;
+  }
   int c = cvWaitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
@@ -608,6 +611,7 @@ void YoloObjectDetector::yolo()
 
   std::thread detect_thread;
   std::thread fetch_thread;
+//  std::thread depth_detect_thread;
 
   srand(2222222);
 
@@ -652,6 +656,7 @@ void YoloObjectDetector::yolo()
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+//    depth_detect_thread = std::thread(&Detection::Run, mpDetection);
     if (!demoPrefix_) {
       fps_ = 1./(what_time_is_it_now() - demoTime_);
       demoTime_ = what_time_is_it_now();
@@ -677,8 +682,8 @@ void YoloObjectDetector::yolo()
 IplImage* YoloObjectDetector::getIplImage()
 {
   boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-//  auto * ROS_img = new IplImage(camImageCopy_);
-  IplImage* ROS_img = new IplImage(left_rectified);
+  auto * ROS_img = new IplImage(camImageCopy_);
+//  IplImage* ROS_img = new IplImage(left_rectified);
   return ROS_img;
 }
 

@@ -233,7 +233,7 @@ private:
   char *demoPrefix_;
 
   std_msgs::Header imageHeader_;
-  cv::Mat camImageCopy_, origLeft, origRight, camImageResized;
+  cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
   cv::Mat left_rectified, right_rectified;
   boost::shared_mutex mutexImageCallback_;
 
