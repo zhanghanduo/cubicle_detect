@@ -529,7 +529,7 @@ void *YoloObjectDetector::detectInThread()
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 0);
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
-  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0);
+  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes
 
   if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 //    printf("\033[2J");
