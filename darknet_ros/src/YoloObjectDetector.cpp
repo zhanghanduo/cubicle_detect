@@ -138,13 +138,13 @@ void YoloObjectDetector::init()
   int ii;
   xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
   for(ii = 0; ii < Width; ii++)
-      xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size, sizeof(double)));
+      xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
   yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
   for(ii = 0; ii < Height; ii++)
-      yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size, sizeof(double)));
+      yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
-  depthTable = static_cast<double *>(calloc(disp_size, sizeof(double)));
+  depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
 
   // Threshold of object detection.
@@ -534,8 +534,9 @@ void *YoloObjectDetector::detectInThread()
   if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 //    printf("\033[2J");
 //    printf("\033[1;1H");
-    printf("\nFPS:%.1f\n",fps_);
-    printf("Objects:\n\n");
+//    printf("\nFPS:%.1f\n",fps_);
+//    printf("Objects:\n\n");
+      printf("\nFPS:%.1f\n", fps_);
   }
 
   // extract the bounding boxes and send them to ROS
@@ -566,7 +567,7 @@ void *YoloObjectDetector::detectInThread()
 
         // define 2D bounding box
         // BoundingBox must be 1% size of frame (3.2x2.4 pixels)
-        if (BoundingBox_width > 0.01 && BoundingBox_height > 0.01) {
+        if (BoundingBox_width > 0.02 && BoundingBox_height > 0.02) {
           roiBoxes_[count].x = x_center;
           roiBoxes_[count].y = y_center;
           roiBoxes_[count].w = BoundingBox_width;
@@ -605,10 +606,10 @@ void *YoloObjectDetector::fetchInThread()
   return nullptr;
 }
 
-void *YoloObjectDetector::displayInThread(void *ptr)
+void *YoloObjectDetector::displayInThread()
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-
+  cv::imshow("disparity_map",disparityFrame * 256 / disp_size);
   int c = cvWaitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
@@ -650,7 +651,7 @@ void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *dat
   fuse_conv_batchnorm(*net_);
 }
 
-void YoloObjectDetector::yolo()
+void YoloObjectDetector:: yolo()
 {
   const auto wait_duration = std::chrono::milliseconds(2000);
   while (!getImageStatus()) {
@@ -708,12 +709,16 @@ void YoloObjectDetector::yolo()
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
-//    depth_detect_thread = std::thread(&Detection::Run, mpDetection);
+//    depth_detect_thread = std::thread(&Detection::disparityInThread, mpDetection);
+//        if(isReceiveDepth){
+//
+//          isReceiveDepth = false;
+//        }
     if (!demoPrefix_) {
       fps_ = 1./(what_time_is_it_now() - demoTime_);
       demoTime_ = what_time_is_it_now();
       if (viewImage_) {
-        displayInThread(nullptr);
+        displayInThread();
       }
       publishInThread();
     } else {
@@ -782,7 +787,7 @@ void *YoloObjectDetector::publishInThread()
 
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
           auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);    //2D column
-          auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * frameWidth_);    //2D row
+          auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * frameHeight_);    //2D row
 
           auto xmin = static_cast<int>((rosBoxes_[i][j].x - rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymin = static_cast<int>((rosBoxes_[i][j].y - rosBoxes_[i][j].h / 2) * frameHeight_);

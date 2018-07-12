@@ -16,23 +16,23 @@
 
   <param name="use_sim_time" value="true" />
   <!--Rectify input stereo images  -->
-  <include file="$(find undistort_images)/launch/stereo_long.launch" />
+  <!--<include file="$(find undistort_images)/launch/stereo_long.launch" />-->
 
   <!-- Start darknet and ros wrapper -->
-  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect" output="screen" launch-prefix="$(arg launch_prefix)">
+  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_kitti" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="image_left_topic"      value="/long/left/image_rect" />
-    <param name="image_right_topic"     value="/long/right/image_rect" />
-    <param name="image_info_left"       value="/long/left/camera_info" />
-    <param name="image_info_right"      value="/long/right/camera_info" />
-    <param name="image_height"          value="844" />
-    <param name="image_width"           value="1280" />
-    <param name="scale"                 value="2" />
+    <param name="image_left_topic"      value="/kitti_stereo/left/image_rect" />
+    <param name="image_right_topic"     value="/kitti_stereo/right/image_rect" />
+    <param name="image_info_left"       value="/kitti_stereo/left/camera_info" />
+    <param name="image_info_right"      value="/kitti_stereo/right/camera_info" />
+    <param name="image_height"          value="375" />
+    <param name="image_width"           value="1242" />
+    <param name="scale"                 value="1" />
   </node>
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->

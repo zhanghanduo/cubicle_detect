@@ -47,7 +47,7 @@ Detection::Detection(YoloObjectDetector* pYolo, ros::NodeHandle n):
     Width = 1280; //640;
     disp_size = 128; //64;
     min_disparity = 12; //6;
-    Scale = 2; //1
+    Scale = 1; //1
 
     /***** Read Params from external configurations *****/
 
@@ -206,6 +206,15 @@ void Detection::VisualizeResults() {
     cv::imshow("disparity_map",disparity_map*256/disp_size);
 
     cv::waitKey(1);
+}
+
+void *Detection::disparityInThread() {
+
+    GenerateDisparityMap();
+
+    mpYolo->getDepth(disparity_map);
+
+    return nullptr;
 }
 
 void Detection::Run(){

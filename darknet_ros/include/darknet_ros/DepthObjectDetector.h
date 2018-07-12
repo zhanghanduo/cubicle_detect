@@ -88,6 +88,8 @@ public:
     */
     void Run();
 
+    void *disparityInThread();
+
 //    bool CheckDepthUpdate();
 
     int Height, Width, Scale, frame, disp_size, min_disparity;

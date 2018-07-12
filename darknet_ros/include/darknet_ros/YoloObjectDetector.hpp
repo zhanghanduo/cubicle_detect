@@ -222,6 +222,9 @@ private:
   image buffLetter_[3];
   int buffId_[3];
   int buffIndex_ = 0;
+
+//  int disId_[2];
+//  int disIndex_ = 0;
   IplImage * ipl_;
   double fps_ = 0;
   float demoThresh_ = 0;
@@ -272,7 +275,7 @@ private:
 
   void *fetchInThread();
 
-  void *displayInThread(void *ptr);
+  void *displayInThread();
 
   void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
                     char **names, int classes,
