@@ -90,6 +90,8 @@ public:
 
 //    bool CheckDepthUpdate();
 
+    int Height, Width, Scale, frame, disp_size, min_disparity;
+
 private:
 
 //      void ImageGrabber(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2);
@@ -125,8 +127,6 @@ private:
     bool CheckFinish();
 
     YoloObjectDetector* mpYolo;
-
-    int Height, Width, Scale, frame, disp_size, min_disparity;
 
     cv::Size Initial_size;
     cv::Rect roi1, roi2;

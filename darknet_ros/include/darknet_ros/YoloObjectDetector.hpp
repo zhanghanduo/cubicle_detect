@@ -104,7 +104,7 @@ class YoloObjectDetector
                       const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
 
   int globalframe, Scale;
-  double stereo_baseline_, u0;
+  double stereo_baseline_, u0, v0, focal;
 
   /*!
   * Callback of camera.
@@ -152,7 +152,13 @@ private:
    */
   bool publishDetectionImage(const cv::Mat& detectionImage);
 
-  //! Typedefs.
+  /*!
+   * Generate look up table to speed up depth generation.
+   */
+  void DefineLUTs();
+
+
+    //! Typedefs.
   typedef actionlib::SimpleActionServer<darknet_ros_msgs::CheckForObjectsAction> CheckForObjectsActionServer;
   typedef std::shared_ptr<CheckForObjectsActionServer> CheckForObjectsActionServerPtr;
 
@@ -169,16 +175,25 @@ private:
   //! ROS subscriber and publisher.
   ros::Publisher objectPublisher_;
   ros::Publisher boundingBoxesPublisher_;
+  ros::Publisher obstaclePublisher_;
+
+  std::string pub_obs_frame_id;
 
   //! Detected objects.
   std::vector<std::vector<RosBox_> > rosBoxes_;
   std::vector<int> rosBoxCounter_;
   darknet_ros_msgs::BoundingBoxes boundingBoxesResults_;
+  obstacle_msgs::MapInfo obstacleBoxesResults_;
 
   //! Camera related parameters.
   int frameWidth_;
   int frameHeight_;
+  size_t disp_size, Width, Height;
 
+  //! Lookup Table
+  double **xDirectionPosition;
+  double **yDirectionPosition;
+  double *depthTable;
   bool isReceiveDepth;
   bool blnFirstFrame;
 
@@ -205,11 +220,10 @@ private:
   network *net_;
   image buff_[3];
   image buffLetter_[3];
-//  image buff_rgb[3];
   int buffId_[3];
   int buffIndex_ = 0;
   IplImage * ipl_;
-  float fps_ = 0;
+  double fps_ = 0;
   float demoThresh_ = 0;
   float demoHier_ = .5;
   int running_ = 0;
