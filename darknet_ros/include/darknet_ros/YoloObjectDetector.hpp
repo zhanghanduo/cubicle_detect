@@ -34,7 +34,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <image_geometry/stereo_camera_model.h>
 #include <image_geometry/pinhole_camera_model.h>
-// OpenCv
+// OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
@@ -45,6 +45,7 @@
 #include <darknet_ros_msgs/BoundingBox.h>
 #include <darknet_ros_msgs/CheckForObjectsAction.h>
 #include "darknet_ros/Blob.h"
+//#include "../../src/track_kalman.hpp"
 #include "darknet_ros/DepthObjectDetector.h"
 #include "utils/timing.h"
 #include "utils/hog.h"
@@ -157,6 +158,24 @@ private:
    */
   void DefineLUTs();
 
+  void Tracking();
+
+  void matchCurrentFrameBlobsToExistingBlobs();
+
+  void CreateMsg();
+
+  void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex);
+
+  void addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs);
+
+    inline int distanceBetweenPoints(cv::Point point1, cv::Point point2){
+
+        int intX = abs(point1.x - point2.x);
+
+        int intY = abs(point1.y - point2.y);
+
+        return intX*intX + intY*intY;
+    };
 
     //! Typedefs.
   typedef actionlib::SimpleActionServer<darknet_ros_msgs::CheckForObjectsAction> CheckForObjectsActionServer;
@@ -303,8 +322,12 @@ private:
   cv::Rect left_roi_, right_roi_;
   cv::Mat disparityFrame;
   Detection* mpDetection;
+//  Tracker_optflow tracker_flow;
   std::thread* mpDepth_gen_run;
   int output_verbose;
+    int intIndexOfLeastDistance;
+
+    double dblLeastDistance;
 };
 
 } /* namespace darknet_ros*/

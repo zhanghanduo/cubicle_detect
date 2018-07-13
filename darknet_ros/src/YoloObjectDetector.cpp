@@ -54,7 +54,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
-//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -571,7 +571,7 @@ void *YoloObjectDetector::detectInThread()
 
         // define 2D bounding box
         // BoundingBox must be 1% size of frame (3.2x2.4 pixels)
-        if (BoundingBox_width > 0.02 && BoundingBox_height > 0.02) {
+        if (BoundingBox_width > 0.08 && BoundingBox_height > 0.08) {
           roiBoxes_[count].x = x_center;
           roiBoxes_[count].y = y_center;
           roiBoxes_[count].w = BoundingBox_width;
@@ -802,25 +802,30 @@ void *YoloObjectDetector::publishInThread()
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 2));  // find 5x5 median
                 if(dis!=0) {
                     // Hog features
-                                        
+                    cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+                    cv::Mat roi = left_rectified(rect).clone();
+                    cv::resize(roi, roi, cv::Size(15, 15));
+                    std::vector<float> hog_feature;
+                    hog_descriptor -> computeHOG(hog_feature, roi);
+
                     std::vector<cv::Point3f> cent_2d, cent_3d;
-                    obstacle_msgs::obs outputObs;
-                    outputObs.classes = classLabels_[i];
+                    Blob outputObs(cv::Rect(xmin, ymin, xmax - xmin, ymax - ymin));
+//                    obstacle_msgs::obs outputObs;
+                    outputObs.category = classLabels_[i];
                     outputObs.probability = rosBoxes_[i][j].prob;
-                    outputObs.centerPos.x = xDirectionPosition[center_c_][dis];
-                    outputObs.centerPos.y = yDirectionPosition[center_r_][dis];
-                    outputObs.centerPos.z = depthTable[dis];
-                    float xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                    outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
+                    outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
+                    outputObs.position_3d[2] = depthTable[dis];
+                    double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
                     xmin_3d = xDirectionPosition[xmin][dis];
                     xmax_3d = xDirectionPosition[xmax][dis];
                     ymin_3d = yDirectionPosition[ymin][dis];
                     ymax_3d = yDirectionPosition[ymax][dis];
-//                    outputObs.diameter = rosBoxes_[i][j].w * frameWidth_;
-//                    outputObs.height = rosBoxes_[i][j].h * frameHeight_;
                     outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                     outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                    //TODO: Histogram
-                    obstacleBoxesResults_.obsData.push_back(outputObs);
+                    outputObs.obsHog = hog_feature;
+//                    obstacleBoxesResults_.obsData.push_back(outputObs);
+                    currentFrameBlobs.push_back(outputObs);
                 }
 
             }
@@ -836,15 +841,27 @@ void *YoloObjectDetector::publishInThread()
         }
       }
     }
-    boundingBoxesResults_.header.stamp = ros::Time::now();
-    boundingBoxesResults_.header.frame_id = "detection";
-    boundingBoxesResults_.image_header = imageHeader_;
-    boundingBoxesPublisher_.publish(boundingBoxesResults_);
+    if(isReceiveDepth) {
 
-    obstacleBoxesResults_.header.stamp = ros::Time::now();
-    obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
-    obstacleBoxesResults_.image_header = imageHeader_;
-    obstaclePublisher_.publish(obstacleBoxesResults_);
+        Tracking();
+        CreateMsg();
+
+        currentFrameBlobs.clear();
+
+        obstacleBoxesResults_.header.stamp = ros::Time::now();
+        obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
+        obstacleBoxesResults_.image_header = imageHeader_;
+        obstacleBoxesResults_.num = obstacleBoxesResults_.obsData.size();
+        obstaclePublisher_.publish(obstacleBoxesResults_);
+        obstacleBoxesResults_.obsData.clear();
+
+        isReceiveDepth = false;
+    }
+
+//    boundingBoxesResults_.header.stamp = ros::Time::now();
+//    boundingBoxesResults_.header.frame_id = "detection";
+//    boundingBoxesResults_.image_header = imageHeader_;
+//    boundingBoxesPublisher_.publish(boundingBoxesResults_);
   } else {
     std_msgs::Int8 msg;
     msg.data = 0;
@@ -864,6 +881,138 @@ void *YoloObjectDetector::publishInThread()
   }
 
   return nullptr;
+}
+
+void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
+
+    for (auto &existingBlob : blobs) {
+
+        existingBlob.blnCurrentMatchFoundOrNewBlob = false;
+
+        existingBlob.blnAlreadyTrackedInThisFrame = false;
+
+        existingBlob.predictNextPosition();
+    }
+
+    for (auto &currentFrameBlob : currentFrameBlobs) {
+
+        int intIndexOfLeastDistance = 0;
+        dblLeastDistance = 100000.0;
+
+        for (unsigned int j = 0; j < blobs.size(); ++ j) {
+
+            if (blobs[j].blnStillBeingTracked) {
+
+                int dblDistance = distanceBetweenPoints(currentFrameBlob.centerPositions.back(), blobs[j].predictedNextPosition);
+
+                if (dblDistance < dblLeastDistance) {
+
+                    dblLeastDistance = dblDistance;
+
+                    intIndexOfLeastDistance = j;
+                }
+            }
+        }
+
+        if ( (dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.4)) ) &&
+             (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
+
+            double hog_dist = cv::norm(currentFrameBlob.obsHog,blobs[intIndexOfLeastDistance].obsHog, cv::NORM_L2);
+//            std::cout<<"hog_dist :"<<hog_dist<<std::endl;
+            if (hog_dist<0.5) {
+                addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+            } else {
+                addNewBlob(currentFrameBlob, blobs);
+            }
+
+        } else {
+
+            addNewBlob(currentFrameBlob, blobs);
+        }
+    }
+
+    for (auto &existingBlob : blobs) {
+
+        if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
+
+            existingBlob.intNumOfConsecutiveFramesWithoutAMatch ++;
+        }
+
+        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 10) {
+
+            existingBlob.blnStillBeingTracked = false;
+        }
+    }
+}
+
+void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex) {
+
+    existingBlobs[intIndex].currentBoundingRect = currentFrameBlob.currentBoundingRect;
+
+    existingBlobs[intIndex].centerPositions.push_back(currentFrameBlob.centerPositions.back());
+
+    existingBlobs[intIndex].dblCurrentDiagonalSize = currentFrameBlob.dblCurrentDiagonalSize;
+
+    existingBlobs[intIndex].dblCurrentAspectRatio = currentFrameBlob.dblCurrentAspectRatio;
+//    existingBlobs[intIndex].max_disparity = currentFrameBlob.max_disparity;
+    existingBlobs[intIndex].obsPoints = currentFrameBlob.obsPoints;
+    existingBlobs[intIndex].obsHog = currentFrameBlob.obsHog;
+
+    existingBlobs[intIndex].blnStillBeingTracked = true;
+
+    existingBlobs[intIndex].blnCurrentMatchFoundOrNewBlob = true;
+
+    existingBlobs[intIndex].blnAlreadyTrackedInThisFrame = true;
+
+    existingBlobs[intIndex].counter = currentFrameBlob.counter +1;
+}
+
+void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs) {
+
+    currentFrameBlob.blnCurrentMatchFoundOrNewBlob = true;
+
+    currentFrameBlob.blnStillBeingTracked = true;
+
+    existingBlobs.push_back(currentFrameBlob);
+}
+
+void YoloObjectDetector::Tracking (){
+
+    if (blnFirstFrame) {
+
+        blnFirstFrame = false;
+
+        for (auto &currentFrameBlob : currentFrameBlobs) {
+
+            blobs.push_back(currentFrameBlob);
+        }
+    } else { matchCurrentFrameBlobsToExistingBlobs(); }
+}
+
+void YoloObjectDetector::CreateMsg(){
+
+    for (unsigned long int i = 0; i < blobs.size(); i++) {
+
+        if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
+
+            obstacle_msgs::obs tmpObs;
+
+            tmpObs.identityID = i;
+
+            tmpObs.centerPos.x = blobs[i].position_3d[0];
+            tmpObs.centerPos.y = blobs[i].position_3d[1];
+            tmpObs.centerPos.z = blobs[i].position_3d[2];
+            tmpObs.diameter = blobs[i].diameter;
+            tmpObs.height = blobs[i].height;
+
+            tmpObs.counter = blobs[i].counter;
+            tmpObs.classes = blobs[i].category;
+            tmpObs.probability = blobs[i].probability;
+//            tmpObs.histogram = blobs[i].obsHog;
+
+            obstacleBoxesResults_.obsData.push_back(tmpObs);
+        }
+    }
 }
 
 
