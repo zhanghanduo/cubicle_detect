@@ -12,9 +12,9 @@ actions:
 publishers:
 
   obstacle_boxes:
-    topic: /cubicle_detection/long_map_msg
+    topic: /cubicle_detection/wide_map_msg
     queue_size: 1
-    frame_id: long_obs
+    frame_id: wide_obs
 
   object_detector:
     topic: /cubicle_detection/found_object
@@ -33,6 +33,6 @@ publishers:
 
 image_view:
 
-  enable_opencv: true
+  enable_opencv: false
   wait_key_delay: 3
   enable_console_output: true

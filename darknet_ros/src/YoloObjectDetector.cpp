@@ -54,7 +54,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
-//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -802,7 +802,12 @@ void *YoloObjectDetector::publishInThread()
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 2));  // find 5x5 median
                 if(dis!=0) {
                     // Hog features
-                                        
+                    cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+                    cv::Mat roi = left_rectified(rect).clone();
+                    cv::resize(roi, roi, cv::Size(15, 15));
+                    std::vector<float> hog_feature;
+                    hog_descriptor -> computeHOG(hog_feature, roi);
+
                     std::vector<cv::Point3f> cent_2d, cent_3d;
                     obstacle_msgs::obs outputObs;
                     outputObs.classes = classLabels_[i];
@@ -819,7 +824,7 @@ void *YoloObjectDetector::publishInThread()
 //                    outputObs.height = rosBoxes_[i][j].h * frameHeight_;
                     outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                     outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                    //TODO: Histogram
+                    outputObs.histogram = hog_feature;
                     obstacleBoxesResults_.obsData.push_back(outputObs);
                 }
 
@@ -836,10 +841,10 @@ void *YoloObjectDetector::publishInThread()
         }
       }
     }
-    boundingBoxesResults_.header.stamp = ros::Time::now();
-    boundingBoxesResults_.header.frame_id = "detection";
-    boundingBoxesResults_.image_header = imageHeader_;
-    boundingBoxesPublisher_.publish(boundingBoxesResults_);
+//    boundingBoxesResults_.header.stamp = ros::Time::now();
+//    boundingBoxesResults_.header.frame_id = "detection";
+//    boundingBoxesResults_.image_header = imageHeader_;
+//    boundingBoxesPublisher_.publish(boundingBoxesResults_);
 
     obstacleBoxesResults_.header.stamp = ros::Time::now();
     obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
