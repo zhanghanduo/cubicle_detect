@@ -7,6 +7,8 @@ namespace darknet_ros {
 
     Blob::Blob(cv::Rect _BBoxRect) {
 
+        counter = 0;
+
         currentBoundingRect = _BBoxRect;
 
         cv::Point currentCenter;
@@ -55,12 +57,12 @@ namespace darknet_ros {
             int sumOfXChanges = ((centerPositions[2].x - centerPositions[1].x) * 2) +
                                 ((centerPositions[1].x - centerPositions[0].x) * 1);
 
-            int deltaX = (int)round((float)sumOfXChanges / 3.0);
+            auto deltaX = (int)round((float)sumOfXChanges / 3.0);
 
             int sumOfYChanges = ((centerPositions[2].y - centerPositions[1].y) * 2) +
                                 ((centerPositions[1].y - centerPositions[0].y) * 1);
 
-            int deltaY = (int)round((float)sumOfYChanges / 3.0);
+            auto deltaY = (int)round((float)sumOfYChanges / 3.0);
 
             predictedNextPosition.x = centerPositions.back().x + deltaX;
             predictedNextPosition.y = centerPositions.back().y + deltaY;
@@ -72,13 +74,13 @@ namespace darknet_ros {
                                 ((centerPositions[2].x - centerPositions[1].x) * 2) +
                                 ((centerPositions[1].x - centerPositions[0].x) * 1);
 
-            int deltaX = (int)round((float)sumOfXChanges / 6.0);
+            auto deltaX = (int)round((float)sumOfXChanges / 6.0);
 
             int sumOfYChanges = ((centerPositions[3].y - centerPositions[2].y) * 3) +
                                 ((centerPositions[2].y - centerPositions[1].y) * 2) +
                                 ((centerPositions[1].y - centerPositions[0].y) * 1);
 
-            int deltaY = (int)round((float)sumOfYChanges / 6.0);
+            auto deltaY = (int)round((float)sumOfYChanges / 6.0);
 
             predictedNextPosition.x = centerPositions.back().x + deltaX;
             predictedNextPosition.y = centerPositions.back().y + deltaY;
@@ -91,14 +93,14 @@ namespace darknet_ros {
                                 ((centerPositions[numPositions - 3].x - centerPositions[numPositions - 4].x) * 2) +
                                 ((centerPositions[numPositions - 4].x - centerPositions[numPositions - 5].x) * 1);
 
-            int deltaX = (int)round((float)sumOfXChanges / 10.0);
+            auto deltaX = (int)round((float)sumOfXChanges / 10.0);
 
             int sumOfYChanges = ((centerPositions[numPositions - 1].y - centerPositions[numPositions - 2].y) * 4) +
                                 ((centerPositions[numPositions - 2].y - centerPositions[numPositions - 3].y) * 3) +
                                 ((centerPositions[numPositions - 3].y - centerPositions[numPositions - 4].y) * 2) +
                                 ((centerPositions[numPositions - 4].y - centerPositions[numPositions - 5].y) * 1);
 
-            int deltaY = (int)round((float)sumOfYChanges / 10.0);
+            auto deltaY = (int)round((float)sumOfYChanges / 10.0);
 
             predictedNextPosition.x = centerPositions.back().x + deltaX;
             predictedNextPosition.y = centerPositions.back().y + deltaY;

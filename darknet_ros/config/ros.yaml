@@ -12,9 +12,9 @@ actions:
 publishers:
 
   obstacle_boxes:
-    topic: /cubicle_detection/wide_map_msg
-    queue_size: 1
-    frame_id: wide_obs
+    topic: /cubicle_detection/long_map_msg
+    queue_size: 4
+    frame_id: long_obs
 
   object_detector:
     topic: /cubicle_detection/found_object

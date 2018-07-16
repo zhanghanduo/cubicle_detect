@@ -36,6 +36,8 @@ set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
 message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
+find_package(easy_profiler REQUIRED)
+
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -97,6 +99,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
+set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.3.0/release)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
@@ -185,6 +188,8 @@ if (CUDA_FOUND)
           src/Blob.cpp
           src/data.cpp
           src/hog.cpp
+#          src/track_kalman.hpp
+#          src/track.hpp
 
     ${DARKNET_PATH}/src/activation_layer.c        ${DARKNET_PATH}/src/im2col.c
     ${DARKNET_PATH}/src/activations.c             ${DARKNET_PATH}/src/image.c
@@ -236,6 +241,7 @@ if (CUDA_FOUND)
           ${VisionWorks_LIBRARIES}
           ${VisionWorks-NVXIO_LIBRARIES}
           stereo_matching_fast
+          easy_profiler
           )
 
   cuda_add_executable(${PROJECT_NAME}
