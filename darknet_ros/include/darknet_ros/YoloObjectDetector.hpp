@@ -268,6 +268,7 @@ private:
   int fullScreen_;
   char *demoPrefix_;
 
+  ros::Time image_time_;
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
   cv::Mat left_rectified, right_rectified;
@@ -325,9 +326,8 @@ private:
 //  Tracker_optflow tracker_flow;
   std::thread* mpDepth_gen_run;
   int output_verbose;
-    int intIndexOfLeastDistance;
-
-    double dblLeastDistance;
+  int intIndexOfLeastDistance;
+  double dblLeastDistance;
 };
 
 } /* namespace darknet_ros*/
