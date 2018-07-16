@@ -147,7 +147,7 @@ private:
 
     std::vector<double> depth;
 
-    std::string disparity_frame;
+//    std::string disparity_frame;
 
 //    ros::Time image_time;
 //    std_msgs::Header image_header;

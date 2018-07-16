@@ -23,13 +23,13 @@ int main(int argc, char** argv) {
 
   std::string image_left_topic, image_right_topic, image_left_info, image_right_info;
 
-  image_left_topic = "/wide/left/image_raw";
+  image_left_topic = "/long/left/image_rect";
 
-  image_right_topic = "/wide/right/image_raw";
+  image_right_topic = "/long/right/image_rect";
 
-  image_left_info = "/wide/left/camera_info";
+  image_left_info = "/long/left/camera_info";
 
-  image_right_info = "/wide/right/camera_info";
+  image_right_info = "/long/right/camera_info";
 
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 

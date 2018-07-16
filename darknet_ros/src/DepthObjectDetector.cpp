@@ -42,12 +42,12 @@ Detection::Detection(YoloObjectDetector* pYolo, ros::NodeHandle n):
         mbStopRequested(false),
         mbFinishRequested_(false)
 {
-    disparity_frame = "/disparity_id";
+//    disparity_frame = "/disparity_id";
     Height = 844; //422;
     Width = 1280; //640;
     disp_size = 128; //64;
     min_disparity = 12; //6;
-    Scale = 1; //1
+    Scale = 2; //1
 
     /***** Read Params from external configurations *****/
 

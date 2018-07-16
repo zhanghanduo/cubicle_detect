@@ -210,9 +210,11 @@ private:
   size_t disp_size, Width, Height;
 
   //! Lookup Table
-  double **xDirectionPosition;
-  double **yDirectionPosition;
-  double *depthTable;
+//  double **xDirectionPosition;
+//  double **yDirectionPosition;
+  double xDirectionPosition[1280][129] ={{}};
+  double yDirectionPosition[844][129] ={{}};
+  double depthTable[129] = {};
   bool isReceiveDepth;
   bool blnFirstFrame;
 

@@ -53,6 +53,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   init();
 
+//  DefineLUTs();
+
   mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
   hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
@@ -65,7 +67,7 @@ YoloObjectDetector::~YoloObjectDetector()
     isNodeRunning_ = false;
   }
   yoloThread_.join();
-  free(depthTable);
+//  free(depthTable);
   free(xDirectionPosition);
   free(yDirectionPosition);
   free(cfg);
@@ -144,16 +146,17 @@ void YoloObjectDetector::init()
   Width = static_cast<size_t>(mpDetection->Width);
   Height = static_cast<size_t>(mpDetection->Height);
 
-  int ii;
-  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
-  for(ii = 0; ii < Width; ii++)
-      xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
-  yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
-  for(ii = 0; ii < Height; ii++)
-      yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+//  int ii;
+//  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
+//  for(ii = 0; ii < Width; ii++)
+//      xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+//
+//  yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
+//  for(ii = 0; ii < Height; ii++)
+//      yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
-  depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+//  depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
 
   // Threshold of object detection.
@@ -194,8 +197,8 @@ void YoloObjectDetector::init()
   yoloThread_ = std::thread(&YoloObjectDetector::yolo, this);
 
   // Initialize publisher and subscriber.
-  std::string cameraTopicName;
-  int cameraQueueSize;
+//  std::string cameraTopicName;
+//  int cameraQueueSize;
   std::string objectDetectorTopicName;
   int objectDetectorQueueSize;
   bool objectDetectorLatch;
@@ -208,9 +211,9 @@ void YoloObjectDetector::init()
   std::string obstacleBoxesTopicName;
   int obstacleBoxesQueueSize;
 
-  nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName,
-                    std::string("/camera/image_raw"));
-  nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
+//  nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName,
+//                    std::string("/camera/image_raw"));
+//  nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
                     std::string("found_object"));
   nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
@@ -225,9 +228,9 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
   nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
-                    std::string("obstacle"));
+                    std::string("/cubicle_detection/long_map_msg"));
   nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("obstacle"));
+  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("long_obs"));
 
   objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
                                                            objectDetectorQueueSize,
@@ -242,7 +245,7 @@ void YoloObjectDetector::init()
                                                                        detectionImageQueueSize,
                                                                        detectionImageLatch);
   nodeHandle_.param<bool>("use_grey", use_grey, false);
-  nodeHandle_.param<int>("scale", Scale, 2);
+  nodeHandle_.param<int>("scale", Scale, 1);
 
   // Action servers.
   std::string checkForObjectsActionName;
@@ -350,7 +353,7 @@ void YoloObjectDetector::DefineLUTs() {
     depthTable[0] =0;
     for( int i = 1; i < disp_size+1; ++i){
         depthTable[i]=focal*stereo_baseline_/i; //Y*dx/B
-//      std::cout<<"i: "<<uDispThresh[i]<<"; ";
+//      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
     }
 
 }
@@ -806,7 +809,11 @@ void *YoloObjectDetector::publishInThread()
             if ((xmin > 2) &&(ymin > 2)) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 1));  // find 3x3 median
+//                std::cout << "dis: " << dis << std::endl;
                 if(dis!=0) {
+//                    ROS_WARN("center 2D\ncol: %d| row: %d", center_c_, center_r_);
+//                    ROS_WARN("min 2D\ncol: %d| row: %d", xmin, ymin);
+//                    ROS_WARN("max 2D\ncol: %d| row: %d", xmax, ymax);
                     // Hog features
                     cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
                     cv::Mat roi = left_rectified(rect).clone();
@@ -822,11 +829,15 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
                     outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
                     outputObs.position_3d[2] = depthTable[dis];
+//                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
+//                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
                     double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
                     xmin_3d = xDirectionPosition[xmin][dis];
                     xmax_3d = xDirectionPosition[xmax][dis];
                     ymin_3d = yDirectionPosition[ymin][dis];
                     ymax_3d = yDirectionPosition[ymax][dis];
+//                    ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
+//                    ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
                     outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                     outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
                     outputObs.obsHog = hog_feature;
