@@ -795,7 +795,7 @@ void *YoloObjectDetector::publishInThread()
 
     for (int i = 0; i < numClasses_; i++) {
       if (rosBoxCounter_[i] > 0) {
-        darknet_ros_msgs::BoundingBox boundingBox;
+//        darknet_ros_msgs::BoundingBox boundingBox;
 
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
           auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);     //2D column
@@ -806,7 +806,7 @@ void *YoloObjectDetector::publishInThread()
           auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
-            if ((xmin > 2) &&(ymin > 2)) {
+            if ((xmin > 2) &&(ymin > 2) &&(isReceiveDepth)) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 1));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
@@ -843,8 +843,10 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.obsHog = hog_feature;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
                     currentFrameBlobs.push_back(outputObs);
+                    Tracking();
+                    CreateMsg();
                 }
-
+                isReceiveDepth = false;
             }
 
 //          boundingBox.Class = classLabels_[i];
@@ -858,18 +860,6 @@ void *YoloObjectDetector::publishInThread()
         }
       }
     }
-    if(isReceiveDepth) {
-
-        Tracking();
-        CreateMsg();
-
-        isReceiveDepth = false;
-
-      obstacleBoxesResults_.header.stamp = ros::Time::now();
-      obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
-      obstacleBoxesResults_.image_header = imageHeader_;
-      obstaclePublisher_.publish(obstacleBoxesResults_);
-    }
 
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
@@ -880,6 +870,13 @@ void *YoloObjectDetector::publishInThread()
     msg.data = 0;
     objectPublisher_.publish(msg);
   }
+
+  obstacleBoxesResults_.header.stamp = image_time_;
+  obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
+  obstacleBoxesResults_.real_header.stamp = ros::Time::now();
+  obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
+  obstaclePublisher_.publish(obstacleBoxesResults_);
+
   if (isCheckingForObjects()) {
     ROS_DEBUG("[YoloObjectDetector] check for objects in image.");
     darknet_ros_msgs::CheckForObjectsResult objectsActionResult;
