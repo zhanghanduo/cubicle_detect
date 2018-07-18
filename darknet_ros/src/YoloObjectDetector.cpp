@@ -51,6 +51,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   mpDetection = new Detection(this, nodeHandle_);
 
+  nullHog.assign(36, 0.0);
+
   init();
 
 //  DefineLUTs();
@@ -830,9 +832,10 @@ void *YoloObjectDetector::publishInThread()
                     // Hog features
                     cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
                     cv::Mat roi = left_rectified(rect).clone();
-                    cv::resize(roi, roi, cv::Size(15, 15));
+                    cv::resize(roi, roi, cv::Size(22, 22));
                     std::vector<float> hog_feature;
                     hog_descriptor -> computeHOG(hog_feature, roi);
+//                    ROS_WARN("hog_size: %d", hog_feature.size());
 
                     std::vector<cv::Point3f> cent_2d, cent_3d;
                     Blob outputObs(cv::Rect(xmin, ymin, xmax - xmin, ymax - ymin));
@@ -857,7 +860,7 @@ void *YoloObjectDetector::publishInThread()
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
                     currentFrameBlobs.push_back(outputObs);
 
-                    ROS_WARN("cata: %s, depth: %f", outputObs.category.c_str(), depthTable[dis]);
+//                    ROS_WARN("cata: %s, depth: %f", outputObs.category.c_str(), depthTable[dis]);
 //                    Tracking();
 //                    CreateMsg();
                 }
@@ -878,6 +881,7 @@ void *YoloObjectDetector::publishInThread()
     }
       Tracking();
       CreateMsg();
+    roiBoxes_[0].num = 0;
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
 //    boundingBoxesResults_.image_header = imageHeader_;
@@ -886,6 +890,7 @@ void *YoloObjectDetector::publishInThread()
     std_msgs::Int8 msg;
     msg.data = 0;
     objectPublisher_.publish(msg);
+//    std::cout << "************************************************num 0" << std::endl;
   }
 
   obstacleBoxesResults_.header.stamp = image_time_;
@@ -928,46 +933,89 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
     for (auto &currentFrameBlob : currentFrameBlobs) {
 
-        int intIndexOfLeastDistance = 0;
-        dblLeastDistance = 100000.0;
+      int intIndexOfLeastDistance = -1;
+//        int intIndexOfLeastHogDis = -1;
+      dblLeastDistance = 100000.0;
+//        hogLeastDistance = 100000.0;
 
-        for (unsigned int j = 0; j < blobs.size(); ++ j) {
+      for (unsigned int j = 0; j < blobs.size(); ++j) {
 
-            if (blobs[j].blnStillBeingTracked) {
+        if (blobs[j].blnStillBeingTracked) {
 
-                int dblDistance = distanceBetweenPoints(currentFrameBlob.centerPositions.back(), blobs[j].predictedNextPosition);
+          if (currentFrameBlob.category == blobs[j].category) {
+            ////*--------------HOG FEATURE----------------------*////
+//                    double hogDistance = cv::norm(currentFrameBlob.obsHog, blobs[j].obsHog, cv::NORM_L2);
+//
+//
+//                    if (hogDistance < hogLeastDistance) {
+//
+//                        hogLeastDistance = hogDistance;
+//
+//                        intIndexOfLeastHogDis = j;
+//                    }
+            ////*--------------HOG FEATURE----------------------*////
 
-                if (dblDistance < dblLeastDistance) {
 
-                    dblLeastDistance = dblDistance;
 
-                    intIndexOfLeastDistance = j;
-                }
+            ////*--------------POSITION----------------------*////
+            int dblDistance = distanceBetweenPoints(currentFrameBlob.centerPositions.back(),
+                                                    blobs[j].predictedNextPosition);
+
+            if (dblDistance < dblLeastDistance) {
+
+              dblLeastDistance = dblDistance;
+
+              intIndexOfLeastDistance = j;
             }
+
+
+          }
+
+
         }
+      }
+//        std::cout << "hogdis: " << hogLeastDistance <<", category: "<< currentFrameBlob.category<< std::endl;
+//
+//        // TODO: hog feature to replace diagonalsize!
+////*--------------HOG FEATURE----------------------*////
+//      if(intIndexOfLeastHogDis != -1){
+//        double hogSelf = cv::norm(currentFrameBlob.obsHog, nullHog, cv::NORM_L2);
+//        std::cout << "hogSelf: " << hogSelf <<", category: "<< currentFrameBlob.category<< std::endl;
+//
+//        if( (hogLeastDistance < hogSelf * 0.2) && (!blobs[intIndexOfLeastHogDis].blnAlreadyTrackedInThisFrame)) {
+//          addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastHogDis);
+//
+//        }else{
+//          addNewBlob(currentFrameBlob, blobs);
+//        }
+//      } else{
+//        addNewBlob(currentFrameBlob, blobs);
+//      }
+////*--------------HOG FEATURE----------------------*////
 
-        // TODO: hog feature to replace diagonalsize!
-        if ( (dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.4)) ) &&
-             (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
 
-            double hog_dist = cv::norm(currentFrameBlob.obsHog, blobs[intIndexOfLeastDistance].obsHog, cv::NORM_L2);
-            if (currentFrameBlob.category == blobs[intIndexOfLeastDistance].category) {
-                addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
-            } else {
-                addNewBlob(currentFrameBlob, blobs);
-            }
-//            addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+
+
+      if (intIndexOfLeastDistance != -1) {
+        if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.4))) &&
+            (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
+
+          addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+
         } else {
-
-            addNewBlob(currentFrameBlob, blobs);
+          addNewBlob(currentFrameBlob, blobs);
         }
+      } else {
+        addNewBlob(currentFrameBlob, blobs);
+      }
     }
+
 
   for (auto &existingBlob : blobs) {
       if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
       existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
     }
-    if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 35) {
+    if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 100) {
       existingBlob.blnStillBeingTracked = false;
 //      blobs.erase(blobs.begin() + i);
     }

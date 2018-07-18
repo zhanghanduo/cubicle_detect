@@ -331,6 +331,9 @@ private:
   int output_verbose;
   int intIndexOfLeastDistance;
   double dblLeastDistance;
+  double hogLeastDistance;
+  std::vector<float> nullHog;
+
 };
 
 } /* namespace darknet_ros*/
