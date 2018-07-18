@@ -240,6 +240,7 @@ private:
 
   network *net_;
   image buff_[3];
+//  image buff_d[3];
   image buffLetter_[3];
   int buffId_[3];
   int buffIndex_ = 0;

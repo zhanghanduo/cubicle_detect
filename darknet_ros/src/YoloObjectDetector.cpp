@@ -333,6 +333,8 @@ void YoloObjectDetector::getDepth(cv::Mat &depthFrame) {
 
 void YoloObjectDetector::DefineLUTs() {
 
+  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f", u0, v0, focal, stereo_baseline_);
+
     for (int r=0; r<Width; r++) {
         xDirectionPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
@@ -399,6 +401,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       origLeft = cv::Mat(cam_image1->image, left_roi_);
 
       origRight = cv::Mat(cam_image2->image, right_roi_);
+
       camImageOrig = cv::Mat(cv_rgb->image.clone(), left_roi_);
     }
     {
@@ -468,7 +471,8 @@ bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
   if (detectionImagePublisher_.getNumSubscribers() < 1)
     return false;
   cv_bridge::CvImage cvImage;
-  cvImage.header.stamp = ros::Time::now();
+//  cvImage.header.stamp = ros::Time::now();
+  cvImage.header.stamp = image_time_;
   cvImage.header.frame_id = "detection_image";
   cvImage.encoding = sensor_msgs::image_encodings::BGR8;
   cvImage.image = detectionImage;
@@ -584,7 +588,7 @@ void *YoloObjectDetector::detectInThread()
 
         // define 2D bounding box
         // BoundingBox must be 1% size of frame (3.2x2.4 pixels)
-        if (BoundingBox_width > 0.08 && BoundingBox_height > 0.04) {
+        if (BoundingBox_width > 0.02 && BoundingBox_height > 0.02) {
           roiBoxes_[count].x = x_center;
           roiBoxes_[count].y = y_center;
           roiBoxes_[count].w = BoundingBox_width;
@@ -625,7 +629,9 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread()
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-//  cv::imshow("disparity_map",disparityFrame * 256 / disp_size);
+//  cv::imshow("disparity_map",disparityFrame); // * 256 / disp_size);
+//  cv::imshow("left_rect", origLeft);
+//  cv::imshow("right_rect", origRight);
   int c = cvWaitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
@@ -772,10 +778,10 @@ bool YoloObjectDetector::isNodeRunning()
 void *YoloObjectDetector::publishInThread()
 {
   // Publish image.
-//  cv::Mat cvImage = cv::cvarrToMat(ipl_);
-//  if (!publishDetectionImage(cv::Mat(cvImage))) {
-//    ROS_DEBUG("Detection image has not been broadcasted.");
-//  }
+  cv::Mat cvImage = cv::cvarrToMat(ipl_);
+  if (!publishDetectionImage(cv::Mat(cvImage))) {
+    ROS_DEBUG("Detection image has not been broadcasted.");
+  }
 
   // Publish bounding boxes and detection result.
   int num = roiBoxes_[0].num;
@@ -806,11 +812,18 @@ void *YoloObjectDetector::publishInThread()
           auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
-            if ((xmin > 2) &&(ymin > 2) &&(isReceiveDepth)) {
+            if ((xmin > 2) &&(ymin > 2)) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 1));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
                 if(dis!=0) {
+
+                    if(dis < 12){
+
+                        ROS_WARN("dis: %d", dis);
+                        cv::Mat win_ = disparityFrame(cv::Rect(center_c_ - 1, center_r_-1, 3,3));
+                        std::cout << "mat: " << win_ << std::endl;
+                    }
 //                    ROS_WARN("center 2D\ncol: %d| row: %d", center_c_, center_r_);
 //                    ROS_WARN("min 2D\ncol: %d| row: %d", xmin, ymin);
 //                    ROS_WARN("max 2D\ncol: %d| row: %d", xmax, ymax);
@@ -843,9 +856,12 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.obsHog = hog_feature;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
                     currentFrameBlobs.push_back(outputObs);
-                    Tracking();
-                    CreateMsg();
+
+                    ROS_WARN("cata: %s, depth: %f", outputObs.category.c_str(), depthTable[dis]);
+//                    Tracking();
+//                    CreateMsg();
                 }
+
                 isReceiveDepth = false;
             }
 
@@ -860,7 +876,8 @@ void *YoloObjectDetector::publishInThread()
         }
       }
     }
-
+      Tracking();
+      CreateMsg();
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
 //    boundingBoxesResults_.image_header = imageHeader_;
@@ -929,16 +946,17 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
             }
         }
 
+        // TODO: hog feature to replace diagonalsize!
         if ( (dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.4)) ) &&
              (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
 
             double hog_dist = cv::norm(currentFrameBlob.obsHog, blobs[intIndexOfLeastDistance].obsHog, cv::NORM_L2);
-            if (hog_dist<0.45) {
+            if (currentFrameBlob.category == blobs[intIndexOfLeastDistance].category) {
                 addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
             } else {
                 addNewBlob(currentFrameBlob, blobs);
             }
-            addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+//            addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
         } else {
 
             addNewBlob(currentFrameBlob, blobs);
@@ -949,7 +967,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
       if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
       existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
     }
-    if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 9) {
+    if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 35) {
       existingBlob.blnStillBeingTracked = false;
 //      blobs.erase(blobs.begin() + i);
     }
@@ -977,6 +995,8 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].blnAlreadyTrackedInThisFrame = true;
 
     existingBlobs[intIndex].counter = currentFrameBlob.counter + 1;
+
+    existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch =0;
 }
 
 void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs) {
@@ -1001,6 +1021,21 @@ void YoloObjectDetector::Tracking (){
 }
 
 void YoloObjectDetector::CreateMsg(){
+
+    cv::Mat output = camImageOrig.clone();
+    for (long int i = 0; i < blobs.size(); i++) {
+//            if (blobs[i].blnStillBeingTracked == true) {
+        if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
+            cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+            for(int j=0; j<blobs[i].obsPoints.size();j++){
+                output.at<cv::Vec3b>(blobs[i].obsPoints[j].x, blobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
+            }
+            std::ostringstream str;
+            str << blobs[i].position_3d[2] <<"m, ID="<<i;
+            cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
+        }
+    }
+    cv::imshow("debug", output);
 
     for (unsigned long int i = 0; i < blobs.size(); i++) {
 
