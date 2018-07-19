@@ -51,7 +51,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   mpDetection = new Detection(this, nodeHandle_);
 
-  nullHog.assign(36, 0.0);
+//  nullHog.assign(36, 0.0);
 
   init();
 

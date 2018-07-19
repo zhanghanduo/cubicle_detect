@@ -332,7 +332,7 @@ private:
   int intIndexOfLeastDistance;
   double dblLeastDistance;
   double hogLeastDistance;
-  std::vector<float> nullHog;
+//  std::vector<float> nullHog;
 
 };
 
