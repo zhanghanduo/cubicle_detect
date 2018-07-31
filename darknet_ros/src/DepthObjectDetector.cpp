@@ -207,14 +207,15 @@ void Detection::GenerateDisparityMap(){
 
     isDepthNew = true;
 
+//    VisualizeResults();
     mMutexDepth.unlock();
 }
 
 void Detection::VisualizeResults() {
 
-    cv::imshow("disparity_map",disparity_map*256/disp_size);
+    cv::imshow("disparity_map",disparity_map);
 
-    cv::waitKey(1);
+    cv::waitKey(0);
 }
 
 void *Detection::disparityInThread() {

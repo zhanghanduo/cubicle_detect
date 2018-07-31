@@ -19,6 +19,8 @@
 #include <mutex>
 #include <map>
 
+#include <fstream>
+
 // ROS
 #include <ros/ros.h>
 #include <std_msgs/Header.h>
@@ -333,6 +335,14 @@ private:
   double dblLeastDistance;
   double hogLeastDistance;
 //  std::vector<float> nullHog;
+
+
+    std::ofstream file;
+    std::string file_name;
+    std::string img_name;
+    char s[30];
+    char im[30];
+    int frame_num;
 
 };
 

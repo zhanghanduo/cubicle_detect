@@ -60,6 +60,9 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
   hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+  img_name = ros::package::getPath("cubicle_detect") + "/evaluation/f000.png";
+  file_name = ros::package::getPath("cubicle_detect") + "/evaluation/f000.txt";
+  frame_num = 0;
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -415,7 +418,12 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
       mpDetection -> getImage(left_rectified, right_rectified);
   }
-
+    frame_num ++;
+    sprintf(s, "f%03d.txt", frame_num);
+    sprintf(im, "f%03d.png", frame_num);
+    file_name = ros::package::getPath("cubicle_detect") + "/evaluation/" + s;
+    img_name = ros::package::getPath("cubicle_detect") + "/evaluation/" + im;
+    file.open(file_name.c_str(), std::ios::trunc|std::ios::out);
 }
 
 void YoloObjectDetector::checkForObjectsActionGoalCB()
@@ -547,11 +555,24 @@ void *YoloObjectDetector::detectInThread()
   float *X = buffLetter_[(buffIndex_ + 2) % 3].data;
   network_predict(*net_, X);
 
+//  int size_of_array = sizeof(ss)/sizeof(ss[0]);
+//
+//
+//  for (int i=0; i < size_of_array; i++){
+//      printf("%lf\n", ss[i]);
+//  }
+//  printf("output array size: %d\n\n", size_of_array);
+
   image display = buff_[(buffIndex_ + 2) % 3];
   int nboxes = 0;
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 1);
+
+//  printf("nbox before size: %d\n\n", nboxes);
+
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
+
+//  printf("nbox after size: %d\n\n", nboxes);
   draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes
 
   if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
@@ -631,10 +652,11 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread()
 {
   show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-//  cv::imshow("disparity_map",disparityFrame); // * 256 / disp_size);
+  // cv::imshow("disparity_map",disparityFrame); // * 256 / disp_size);
 //  cv::imshow("left_rect", origLeft);
 //  cv::imshow("right_rect", origRight);
-  int c = cvWaitKey(waitKeyDelay_);
+//  int c = cvWaitKey(waitKeyDelay_);
+  int c = cv::waitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
       demoDone_ = 1;
@@ -747,9 +769,16 @@ void YoloObjectDetector:: yolo()
       sprintf(name, "%s_%08d", demoPrefix_, count);
       save_image(buff_[(buffIndex_ + 1) % 3], name);
     }
+
+
     fetch_thread.join();
     detect_thread.join();
-    ++count;
+
+//    if(!disparityFrame.empty()) {
+//        cv::imshow("disparity_map", disparityFrame);
+//        cv::waitKey(0);
+//    }
+      ++count;
     if (!isNodeRunning()) {
       demoDone_ = true;
     }
@@ -814,10 +843,18 @@ void *YoloObjectDetector::publishInThread()
           auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
-            if ((xmin > 2) &&(ymin > 2)) {
+//          int median_kernel = std::min(xmax - xmin, ymax - ymin);
+
+            if ((xmin > 2) &&(ymin > 2)  ) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
-                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, 1));  // find 3x3 median
+//                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
+                cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+                cv::Mat roi_dis = disparityFrame(rect).clone();
+                double max,min;
+                cv::minMaxLoc(roi_dis, &min, &max);
+
+                int dis = static_cast<int>(max);
                 if(dis!=0) {
 
                     if(dis < 12){
@@ -830,7 +867,6 @@ void *YoloObjectDetector::publishInThread()
 //                    ROS_WARN("min 2D\ncol: %d| row: %d", xmin, ymin);
 //                    ROS_WARN("max 2D\ncol: %d| row: %d", xmax, ymax);
                     // Hog features
-                    cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
                     cv::Mat roi = left_rectified(rect).clone();
                     cv::resize(roi, roi, cv::Size(22, 22));
                     std::vector<float> hog_feature;
@@ -845,8 +881,13 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
                     outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
                     outputObs.position_3d[2] = depthTable[dis];
+                    outputObs.xmin = xmin;
+                    outputObs.xmax = xmax;
+                    outputObs.ymin = ymin;
+                    outputObs.ymax = ymax;
 //                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
 //                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
+
                     double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
                     xmin_3d = xDirectionPosition[xmin][dis];
                     xmax_3d = xDirectionPosition[xmax][dis];
@@ -857,6 +898,7 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                     outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
                     outputObs.obsHog = hog_feature;
+                    outputObs.disparity = dis;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
                     currentFrameBlobs.push_back(outputObs);
 
@@ -1032,8 +1074,11 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].dblCurrentDiagonalSize = currentFrameBlob.dblCurrentDiagonalSize;
 
 //    existingBlobs[intIndex].dblCurrentAspectRatio = currentFrameBlob.dblCurrentAspectRatio;
-//    existingBlobs[intIndex].max_disparity = currentFrameBlob.max_disparity;
-    existingBlobs[intIndex].obsPoints = currentFrameBlob.obsPoints;
+    existingBlobs[intIndex].disparity = currentFrameBlob.disparity;
+//    existingBlobs[intIndex].obsPoints = currentFrameBlob.obsPoints;
+
+    existingBlobs[intIndex].position_3d = currentFrameBlob.position_3d;
+
     existingBlobs[intIndex].obsHog = currentFrameBlob.obsHog;
 
     existingBlobs[intIndex].blnStillBeingTracked = true;
@@ -1075,15 +1120,17 @@ void YoloObjectDetector::CreateMsg(){
 //            if (blobs[i].blnStillBeingTracked == true) {
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
             cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-            for(int j=0; j<blobs[i].obsPoints.size();j++){
-                output.at<cv::Vec3b>(blobs[i].obsPoints[j].x, blobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
-            }
+//            for(int j=0; j<blobs[i].obsPoints.size();j++){
+//                output.at<cv::Vec3b>(blobs[i].obsPoints[j].x, blobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
+//            }
             std::ostringstream str;
-            str << blobs[i].position_3d[2] <<"m, ID="<<i;
+            str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
             cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
         }
     }
     cv::imshow("debug", output);
+
+    file.open(file_name.c_str(), std::ios::app);
 
     for (unsigned long int i = 0; i < blobs.size(); i++) {
 
@@ -1105,9 +1152,21 @@ void YoloObjectDetector::CreateMsg(){
 //            tmpObs.histogram = blobs[i].obsHog;
 
             obstacleBoxesResults_.obsData.push_back(tmpObs);
+
+
+//            ROS_WARN("center ID: %d | type: %s\nx: %f| y: %f| z: %f \n", i, tmpObs.classes,
+//                    tmpObs.centerPos.x, tmpObs.centerPos.y, tmpObs.centerPos.z);
+
+
+            ////*--------------Generate Evaluation files----------------------*////
+            file << i <<  " " << blobs[i].xmin << " " << blobs[i].ymin << " "
+            << blobs[i].xmax << " " << blobs[i].ymax << " " << blobs[i].category << std::endl;
         }
     }
-}
 
+    file.close();
+
+    cv::imwrite(img_name, left_rectified);
+}
 
 } /* namespace darknet_ros*/

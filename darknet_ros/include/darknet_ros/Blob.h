@@ -27,6 +27,8 @@ namespace darknet_ros {
         double startY, endY;                    //3D coordinated with respect to left camera
         double startX, endX;                    //3D coordinated with respect to left camera
 
+        double xmin, xmax, ymin, ymax;          // 2D bounding box coordinate
+
         cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
 
         std::vector<cv::Point> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
@@ -35,7 +37,7 @@ namespace darknet_ros {
 
         std::string category;
 
-//        double disparity;
+        int disparity;
 
         cv::Point predictedNextPosition;
 
