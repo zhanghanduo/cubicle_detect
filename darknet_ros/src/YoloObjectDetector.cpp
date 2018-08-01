@@ -595,7 +595,7 @@ void *YoloObjectDetector::detectInThread()
   float nms = .45;
 
   layer l = net_->layers[net_->n - 1];
-  float *X = buffLetter_[(buffIndex_ + 2) % 3].data;
+  float *X = buffLetter_[buffIndex_].data;
   network_predict(*net_, X);
 
 //  int size_of_array = sizeof(ss)/sizeof(ss[0]);
@@ -606,7 +606,7 @@ void *YoloObjectDetector::detectInThread()
 //  }
 //  printf("output array size: %d\n\n", size_of_array);
 
-  image display = buff_[(buffIndex_ + 2) % 3];
+  image display = buff_[buffIndex_ ];
   int nboxes = 0;
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 1);
@@ -687,17 +687,17 @@ void *YoloObjectDetector::fetchInThread()
 
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
 
-  buff_cv_l_[(buffIndex_ + 2) % 3] = left_rectified.clone();
-  buff_cv_r_[(buffIndex_ + 2) % 3] = right_rectified.clone();
+//  buff_cv_l_[(buffIndex_ + 2) % 3] = left_rectified.clone();
+//  buff_cv_r_[(buffIndex_ + 2) % 3] = right_rectified.clone();
 
-  disparityFrame = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+  disparityFrame = getDepth(left_rectified, right_rectified);
 
   return nullptr;
 }
 
 void *YoloObjectDetector::displayInThread()
 {
-  show_image_cv(buff_[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
+  show_image_cv(buff_[buffIndex_], "YOLO V3", ipl_);
   // cv::imshow("disparity_map",disparityFrame); // * 256 / disp_size);
 //  cv::imshow("left_rect", origLeft);
 //  cv::imshow("right_rect", origRight);
@@ -754,8 +754,8 @@ void YoloObjectDetector:: yolo()
     std::this_thread::sleep_for(wait_duration);
   }
 
-  std::thread detect_thread;
-  std::thread fetch_thread;
+//  std::thread detect_thread;
+//  std::thread fetch_thread;
 //  std::thread depth_detect_thread;
 
   srand(2222222);
@@ -795,9 +795,15 @@ void YoloObjectDetector:: yolo()
   demoTime_ = what_time_is_it_now();
 
   while (!demoDone_) {
-    buffIndex_ = (buffIndex_ + 1) % 3;
-    fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
-    detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+//    buffIndex_ = (buffIndex_ + 1) % 3;
+
+
+//    fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
+//    detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+
+    fetchInThread();
+
+    detectInThread();
 
     if (!demoPrefix_) {
       fps_ = 1./(what_time_is_it_now() - demoTime_);
@@ -809,12 +815,12 @@ void YoloObjectDetector:: yolo()
     } else {
       char name[256];
       sprintf(name, "%s_%08d", demoPrefix_, count);
-      save_image(buff_[(buffIndex_ + 1) % 3], name);
+      save_image(buff_[buffIndex_], name);
     }
 
-
-    fetch_thread.join();
-    detect_thread.join();
+//
+//    fetch_thread.join();
+//    detect_thread.join();
 
 
 
@@ -1211,7 +1217,7 @@ void YoloObjectDetector::CreateMsg(){
 
     file.close();
 
-    cv::imwrite(img_name, buff_cv_l_[(buffIndex_ + 1) % 3]);
+    cv::imwrite(img_name, left_rectified);
 }
 
 bool YoloObjectDetector::read(StereoMatching::StereoMatchingParams &config){
