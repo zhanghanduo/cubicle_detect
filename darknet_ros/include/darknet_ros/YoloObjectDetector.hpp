@@ -48,11 +48,29 @@
 #include <darknet_ros_msgs/CheckForObjectsAction.h>
 #include "darknet_ros/Blob.h"
 //#include "../../src/track_kalman.hpp"
-#include "darknet_ros/DepthObjectDetector.h"
+//#include "darknet_ros/DepthObjectDetector.h"
+#include "darknet_ros/stereo_matching.h"
 #include "utils/timing.h"
 #include "utils/hog.h"
+// Obstacle ros msgs
+#include <obstacle_msgs/MapInfo.h>
+#include <obstacle_msgs/obs.h>
+#include <obstacle_msgs/point3.h>
 // Darknet.
 #ifdef GPU
+// VisionWorks
+#include <NVX/nvx.h>
+#include <NVX/nvx_timer.hpp>
+#include <NVX/nvx_opencv_interop.hpp>
+#include <NVXIO/Application.hpp>
+#include <NVXIO/ConfigParser.hpp>
+#include <NVXIO/FrameSource.hpp>
+#include <NVXIO/Render.hpp>
+#include <NVXIO/SyncTimer.hpp>
+#include <NVXIO/Utility.hpp>
+#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
+
 #include "cuda_runtime.h"
 #include "curand.h"
 #include "cublas_v2.h"
@@ -113,7 +131,7 @@ class YoloObjectDetector
   * Callback of camera.
   * @param[in] msg image pointer.
   */
-  void getDepth(cv::Mat &depthFrame);
+  cv::Mat getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame);
 
 private:
    /*!
@@ -209,7 +227,7 @@ private:
   //! Camera related parameters.
   int frameWidth_;
   int frameHeight_;
-  size_t disp_size, Width, Height;
+  int disp_size, Width, Height;
 
   //! Lookup Table
 //  double **xDirectionPosition;
@@ -228,7 +246,7 @@ private:
 
   obstacle_msgs::obs obstacles;
 
-  Util::CPPTimer timer_yolo, timer_1, timer_2;
+//  Util::CPPTimer timer_yolo, timer_1, timer_2;
 
   Util::HOGFeatureDescriptor* hog_descriptor;
 
@@ -242,13 +260,12 @@ private:
 
   network *net_;
   image buff_[3];
-//  image buff_d[3];
   image buffLetter_[3];
+  cv::Mat buff_cv_l_[3];
+  cv::Mat buff_cv_r_[3];
   int buffId_[3];
   int buffIndex_ = 0;
 
-//  int disId_[2];
-//  int disIndex_ = 0;
   IplImage * ipl_;
   double fps_ = 0;
   float demoThresh_ = 0;
@@ -302,6 +319,8 @@ private:
 
   void *displayInThread();
 
+  void *trackingInThread();
+
   void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
                     char **names, int classes,
                     int delay, char *prefix, int avg_frames, float hier, int w, int h,
@@ -337,11 +356,32 @@ private:
 //  std::vector<float> nullHog;
 
 
+// Disparity
+
+    bool read(StereoMatching::StereoMatchingParams &config);
+
+    vx_status createMatFromImage(cv::Mat &mat, vx_image image);
+
+    vx_image createImageFromMat(vx_context context, const cv::Mat & mat);
+
+    std::mutex mMutexDepth;
+    bool isDepthNew;
+
+    vx_image vxiLeft_U8, vxiRight_U8, vxiLeft, vxiRight, vxiDisparity;
+    nvxio::ContextGuard context;
+    StereoMatching::StereoMatchingParams params;
+    StereoMatching::ImplementationType implementationType = StereoMatching::HIGH_LEVEL_API;
+    std::unique_ptr<StereoMatching> stereo;
+
+    std::vector<double> depth;
+    int min_disparity;
+// Disparity
+
     std::ofstream file;
     std::string file_name;
     std::string img_name;
-    char s[30];
-    char im[30];
+    char s[20];
+    char im[20];
     int frame_num;
 
 };

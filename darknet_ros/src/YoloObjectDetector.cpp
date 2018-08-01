@@ -38,9 +38,9 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
       rosBoxes_(0),
       rosBoxCounter_(0),
       use_grey(false),
-      isReceiveDepth(false),
       blnFirstFrame(true),
-      globalframe(0)
+      globalframe(0),
+      isDepthNew(false)
 {
   ROS_INFO("[ObstacleDetector] Node started.");
 
@@ -49,7 +49,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
     ros::requestShutdown();
   }
 
-  mpDetection = new Detection(this, nodeHandle_);
+//  mpDetection = new Detection(this, nodeHandle_);
 
 //  nullHog.assign(36, 0.0);
 
@@ -57,7 +57,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
 //  DefineLUTs();
 
-  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
+//  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
   hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
   img_name = ros::package::getPath("cubicle_detect") + "/evaluation/f000.png";
@@ -147,10 +147,16 @@ void YoloObjectDetector::init()
 
   // Look up table initialization
   u0 = 0;
-  disp_size = static_cast<size_t>(mpDetection->disp_size);
-  Width = static_cast<size_t>(mpDetection->Width);
-  Height = static_cast<size_t>(mpDetection->Height);
 
+    nodeHandle_.param<int>("min_disparity", min_disparity, 12);
+    nodeHandle_.param<int>("disparity_scope", disp_size, 128);
+    nodeHandle_.param<int>("image_width", Width, 640);
+    nodeHandle_.param<int>("image_height", Height, 422);
+    nodeHandle_.param<bool>("use_grey", use_grey, false);
+    nodeHandle_.param<int>("scale", Scale, 1);
+
+    Width /= Scale;
+    Height /= Scale;
 
 //  int ii;
 //  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
@@ -249,9 +255,6 @@ void YoloObjectDetector::init()
   detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
                                                                        detectionImageQueueSize,
                                                                        detectionImageLatch);
-  nodeHandle_.param<bool>("use_grey", use_grey, false);
-  nodeHandle_.param<int>("scale", Scale, 1);
-
   // Action servers.
   std::string checkForObjectsActionName;
   nodeHandle_.param("actions/camera_reading/topic", checkForObjectsActionName,
@@ -263,6 +266,25 @@ void YoloObjectDetector::init()
   checkForObjectsActionServer_->registerPreemptCallback(
       boost::bind(&YoloObjectDetector::checkForObjectsActionPreemptCB, this));
   checkForObjectsActionServer_->start();
+
+    printf("width: %d | height: %d\n", Width, Height);
+
+    vxiLeft = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_RGB);
+    NVXIO_CHECK_REFERENCE(vxiLeft); // NOLINT
+    vxiRight = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_RGB);
+    NVXIO_CHECK_REFERENCE(vxiRight); // NOLINT
+
+    vxiDisparity = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_U8);
+    NVXIO_CHECK_REFERENCE(vxiDisparity); // NOLINT
+
+    stereo = std::unique_ptr<StereoMatching>(StereoMatching::createStereoMatching
+                                                     (context, params, implementationType, vxiLeft, vxiRight, vxiDisparity));
+    if (!read(params)) {
+        std::cout <<"Failed to open config file "<< std::endl;
+    }
+
+    vxDirective(context, VX_DIRECTIVE_ENABLE_PERFORMANCE);
+    vxRegisterLogCallback(context, &nvxio::stdoutLogCallback, vx_false_e);
 }
 
 void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
@@ -327,13 +349,33 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
 }
 
-void YoloObjectDetector::getDepth(cv::Mat &depthFrame) {
+cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
-  depthFrame.copyTo(disparityFrame);
+    cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
 
-//    disparityFrame.convertTo(doubleFrame, CV_32FC1);
+    vxiLeft_U8 = createImageFromMat(context, leftFrame);
+    vxuColorConvert(context, vxiLeft_U8, vxiLeft);
+    vxiRight_U8 = createImageFromMat(context, rightFrame);
+    vxuColorConvert(context, vxiRight_U8, vxiRight);
+    stereo->run();
+    createMatFromImage(disparity_SGBM, vxiDisparity);
 
-  isReceiveDepth = true;
+    vxSwapImageHandle(vxiLeft_U8, nullptr, nullptr, 1);
+    vxSwapImageHandle(vxiRight_U8, nullptr, nullptr, 1);
+    vxReleaseImage(&vxiLeft_U8);
+    vxReleaseImage(&vxiRight_U8);
+
+    // Filter out remote disparity
+    for (int r=0; r<disparity_SGBM.rows; r++) {
+        for (int c=0; c<disparity_SGBM.cols; c++) {
+            if (disparity_SGBM.at<uchar>(r,c) < min_disparity) {
+                disparity_SGBM.at<uchar>(r,c) = 0;
+            }
+        }
+    }
+
+    isDepthNew = true;
+    return disparity_SGBM;
 }
 
 void YoloObjectDetector::DefineLUTs() {
@@ -416,7 +458,8 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
       cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
       cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
-      mpDetection -> getImage(left_rectified, right_rectified);
+
+//      mpDetection -> getImage(left_rectified, right_rectified);
   }
     frame_num ++;
     sprintf(s, "f%03d.txt", frame_num);
@@ -568,11 +611,8 @@ void *YoloObjectDetector::detectInThread()
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 1);
 
-//  printf("nbox before size: %d\n\n", nboxes);
-
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
 
-//  printf("nbox after size: %d\n\n", nboxes);
   draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes
 
   if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
@@ -646,6 +686,12 @@ void *YoloObjectDetector::fetchInThread()
     rgbgr_image(buff_[buffIndex_]);
 
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
+
+  buff_cv_l_[(buffIndex_ + 2) % 3] = left_rectified.clone();
+  buff_cv_r_[(buffIndex_ + 2) % 3] = right_rectified.clone();
+
+  disparityFrame = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+
   return nullptr;
 }
 
@@ -729,9 +775,6 @@ void YoloObjectDetector:: yolo()
   buff_[0] = ipl_to_image(ROS_img);
   buff_[1] = copy_image(buff_[0]);
   buff_[2] = copy_image(buff_[0]);
-//  buffLetter_[0] = resize_image(buff_[0], net_->w, net_->h);
-//  buffLetter_[1] = resize_image(buff_[1], net_->w, net_->h);
-//  buffLetter_[2] = resize_image(buff_[2], net_->w, net_->h);
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
@@ -755,7 +798,6 @@ void YoloObjectDetector:: yolo()
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
-//    depth_detect_thread = std::thread(&Detection::disparityInThread, mpDetection);
 
     if (!demoPrefix_) {
       fps_ = 1./(what_time_is_it_now() - demoTime_);
@@ -774,6 +816,8 @@ void YoloObjectDetector:: yolo()
     fetch_thread.join();
     detect_thread.join();
 
+
+
 //    if(!disparityFrame.empty()) {
 //        cv::imshow("disparity_map", disparityFrame);
 //        cv::waitKey(0);
@@ -790,7 +834,6 @@ IplImage* YoloObjectDetector::getIplImage()
 {
   boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
   auto * ROS_img = new IplImage(camImageCopy_);
-//  IplImage* ROS_img = new IplImage(left_rectified);
   return ROS_img;
 }
 
@@ -907,7 +950,6 @@ void *YoloObjectDetector::publishInThread()
 //                    CreateMsg();
                 }
 
-                isReceiveDepth = false;
             }
 
 //          boundingBox.Class = classLabels_[i];
@@ -921,9 +963,12 @@ void *YoloObjectDetector::publishInThread()
         }
       }
     }
+
+        // TODO: wait until isDepth_new to be true
+
       Tracking();
       CreateMsg();
-    roiBoxes_[0].num = 0;
+      roiBoxes_[0].num = 0;
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
 //    boundingBoxesResults_.image_header = imageHeader_;
@@ -1166,7 +1211,90 @@ void YoloObjectDetector::CreateMsg(){
 
     file.close();
 
-    cv::imwrite(img_name, left_rectified);
+    cv::imwrite(img_name, buff_cv_l_[(buffIndex_ + 1) % 3]);
+}
+
+bool YoloObjectDetector::read(StereoMatching::StereoMatchingParams &config){
+    config.min_disparity = 0;
+    config.max_disparity = disp_size;
+
+    // discontinuity penalties
+    config.P1 = 8;
+    config.P2 = 109;
+    // SAD window size
+    config.sad = 5;
+    // Census Transform window size
+    config.ct_win_size = 3;
+    // Hamming cost window size
+    config.hc_win_size = 1;
+    // BT-cost clip value
+    config.bt_clip_value = 31;
+    // validation threshold
+    config.max_diff = 32000; // cross-check
+    config.uniqueness_ratio = 0;
+    config.scanlines_mask = 85;
+    config.flags = 2;
+
+    return true;
+}
+
+vx_status YoloObjectDetector::createMatFromImage(cv::Mat &mat, vx_image image) {
+    vx_status status = VX_SUCCESS;
+    vx_uint32 width = 0;
+    vx_uint32 height = 0;
+    vx_df_image format = VX_DF_IMAGE_VIRT;
+    int cv_format = CV_8U;
+    vx_size planes = 0;
+
+    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_WIDTH, &width, sizeof(width));
+    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_HEIGHT, &height, sizeof(height));
+    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_FORMAT, &format, sizeof(format));
+    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_PLANES, &planes, sizeof(planes));
+
+    switch (format){
+        case VX_DF_IMAGE_U8:
+            cv_format = CV_8U;
+            break;
+        case VX_DF_IMAGE_S16:
+            cv_format = CV_16S;
+            break;
+        case VX_DF_IMAGE_RGB:
+            cv_format = CV_8UC3;
+            break;
+        default:
+            return VX_ERROR_INVALID_FORMAT;
+    }
+
+    vx_rectangle_t rect{ 0, 0, width, height };
+    vx_uint8 *src[4] = {nullptr, nullptr, nullptr, nullptr };
+    vx_uint32 p;
+    void *ptr = nullptr;
+    vx_imagepatch_addressing_t addr[4] = { 0, 0, 0, 0 };
+    vx_uint32 y = 0u;
+
+    for (p = 0u; (p < (int)planes); p++){
+        vxAccessImagePatch(image, &rect, p, &addr[p], (void **)&src[p], VX_READ_ONLY);
+        size_t len = addr[p].stride_x * (addr[p].dim_x * addr[p].scale_x) / VX_SCALE_UNITY;
+        for (y = 0; y < height; y += addr[p].step_y){
+            ptr = vxFormatImagePatchAddress2d(src[p], 0, y - rect.start_y, &addr[p]);
+            memcpy(mat.data + y * mat.step, ptr, len);
+        }
+    }
+
+    for (p = 0u; p < (int)planes; p++){
+        vxCommitImagePatch(image, &rect, p, &addr[p], src[p]);
+    }
+
+    return status;
+}
+
+vx_image YoloObjectDetector::createImageFromMat(vx_context context, const cv::Mat & mat) {
+    vx_imagepatch_addressing_t patch = { (vx_uint32)mat.cols, (vx_uint32)mat.rows,
+                                         (vx_int32)mat.elemSize(), (vx_int32)mat.step,
+                                         VX_SCALE_UNITY, VX_SCALE_UNITY,1u, 1u };
+    auto *ptr = (void*)mat.ptr();
+    vx_df_image format = nvx_cv::convertCVMatTypeToVXImageFormat(mat.type());
+    return vxCreateImageFromHandle(context, format, &patch, (void **)&ptr, VX_IMPORT_TYPE_HOST);
 }
 
 } /* namespace darknet_ros*/

@@ -184,7 +184,7 @@ if (CUDA_FOUND)
   cuda_add_library(${PROJECT_NAME}_lib
           src/YoloObjectDetector.cpp
           src/image_interface.c
-          src/DepthObjectDetector.cpp
+#          src/DepthObjectDetector.cpp
           src/Blob.cpp
           src/data.cpp
           src/hog.cpp
