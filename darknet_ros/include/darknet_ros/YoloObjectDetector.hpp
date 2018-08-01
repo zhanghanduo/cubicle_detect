@@ -286,6 +286,7 @@ private:
   RosBox_ *roiBoxes_;
   bool viewImage_;
   bool enableConsoleOutput_;
+  bool enableEvaluation_;
   int waitKeyDelay_;
   int fullScreen_;
   char *demoPrefix_;

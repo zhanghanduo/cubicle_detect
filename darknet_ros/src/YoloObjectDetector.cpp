@@ -60,8 +60,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
   hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
-  img_name = ros::package::getPath("cubicle_detect") + "/evaluation/f000.png";
-  file_name = ros::package::getPath("cubicle_detect") + "/evaluation/f000.txt";
+  img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
+  file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
   frame_num = 0;
 }
 
@@ -114,6 +114,7 @@ bool YoloObjectDetector::readParameters()
   nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
   nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
   nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
+  nodeHandle_.param("image_view/eval", enableEvaluation_, false);
 
   // Check if Xserver is running on Linux.
   if (XOpenDisplay(nullptr)) {
@@ -461,12 +462,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
 
 //      mpDetection -> getImage(left_rectified, right_rectified);
   }
-    frame_num ++;
-    sprintf(s, "f%03d.txt", frame_num);
-    sprintf(im, "f%03d.png", frame_num);
-    file_name = ros::package::getPath("cubicle_detect") + "/evaluation/" + s;
-    img_name = ros::package::getPath("cubicle_detect") + "/evaluation/" + im;
-    file.open(file_name.c_str(), std::ios::trunc|std::ios::out);
+
 }
 
 void YoloObjectDetector::checkForObjectsActionGoalCB()
@@ -924,10 +920,6 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
                     outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
                     outputObs.position_3d[2] = depthTable[dis];
-                    outputObs.xmin = xmin;
-                    outputObs.xmax = xmax;
-                    outputObs.ymin = ymin;
-                    outputObs.ymax = ymax;
 //                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
 //                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
 
@@ -1160,7 +1152,7 @@ void YoloObjectDetector::Tracking (){
 
 void YoloObjectDetector::CreateMsg(){
 
-    cv::Mat output = camImageOrig.clone();
+    cv::Mat output = camImageCopy_.clone();
     for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
@@ -1175,43 +1167,70 @@ void YoloObjectDetector::CreateMsg(){
     }
     cv::imshow("debug", output);
 
+    frame_num ++;
+    if(enableEvaluation_){
+    sprintf(s, "f%03d.txt", frame_num);
+    sprintf(im, "f%03d.png", frame_num);
+    file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;
+    img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
+
     file.open(file_name.c_str(), std::ios::app);
+    }
+
+    int cate = 0;
 
     for (unsigned long int i = 0; i < blobs.size(); i++) {
 
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
 
-            obstacle_msgs::obs tmpObs;
+            if((blobs[i].category == "car") || (blobs[i].category == "bus")|| (blobs[i].category == "motor")
+                || (blobs[i].category == "truck")  || (blobs[i].category == "rider") || (blobs[i].category == "person")
+                || (blobs[i].category == "train") ) {
 
-            tmpObs.identityID = i;
+                if(enableEvaluation_){
+                    if((blobs[i].category == "car") || (blobs[i].category == "bus")|| (blobs[i].category == "motor")
+                       || (blobs[i].category == "truck")  || (blobs[i].category == "rider")
+                       || (blobs[i].category == "train") )
+                        cate = 0;
+                    else if(blobs[i].category == "person")
+                        cate = 1;
+                }
+                obstacle_msgs::obs tmpObs;
 
-            tmpObs.centerPos.x = blobs[i].position_3d[0];
-            tmpObs.centerPos.y = blobs[i].position_3d[1];
-            tmpObs.centerPos.z = blobs[i].position_3d[2];
-            tmpObs.diameter = blobs[i].diameter;
-            tmpObs.height = blobs[i].height;
+                tmpObs.identityID = i;
 
-            tmpObs.counter = blobs[i].counter;
-            tmpObs.classes = blobs[i].category;
-            tmpObs.probability = blobs[i].probability;
+                tmpObs.centerPos.x = blobs[i].position_3d[0];
+                tmpObs.centerPos.y = blobs[i].position_3d[1];
+                tmpObs.centerPos.z = blobs[i].position_3d[2];
+                tmpObs.diameter = blobs[i].diameter;
+                tmpObs.height = blobs[i].height;
+
+                tmpObs.counter = blobs[i].counter;
+                tmpObs.classes = blobs[i].category;
+                tmpObs.probability = blobs[i].probability;
 //            tmpObs.histogram = blobs[i].obsHog;
 
-            obstacleBoxesResults_.obsData.push_back(tmpObs);
+                obstacleBoxesResults_.obsData.push_back(tmpObs);
 
 
 //            ROS_WARN("center ID: %d | type: %s\nx: %f| y: %f| z: %f \n", i, tmpObs.classes,
 //                    tmpObs.centerPos.x, tmpObs.centerPos.y, tmpObs.centerPos.z);
 
 
-            ////*--------------Generate Evaluation files----------------------*////
-            file << i <<  " " << blobs[i].xmin << " " << blobs[i].ymin << " "
-            << blobs[i].xmax << " " << blobs[i].ymax << " " << blobs[i].category << std::endl;
+                ////*--------------Generate Evaluation files----------------------*////
+                if(enableEvaluation_){
+                    file << i << " " << blobs[i].currentBoundingRect.x << " " << blobs[i].currentBoundingRect.y << " "
+                         << blobs[i].currentBoundingRect.x + blobs[i].currentBoundingRect.width << " " <<
+                         blobs[i].currentBoundingRect.y + blobs[i].currentBoundingRect.height << " " << cate
+                         << std::endl;
+                }
+            }
         }
     }
-
-    file.close();
-
-    cv::imwrite(img_name, buff_cv_l_[(buffIndex_ + 1) % 3]);
+    if(enableEvaluation_){
+        file.close();
+        cv::imwrite(img_name, camImageCopy_);
+    }
 }
 
 bool YoloObjectDetector::read(StereoMatching::StereoMatchingParams &config){
