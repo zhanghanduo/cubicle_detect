@@ -209,10 +209,6 @@ void YoloObjectDetector::init()
                 0, nullptr, 1, 0.5, 0, 0, 0, 0);
   yoloThread_ = std::thread(&YoloObjectDetector::yolo, this);
 
-    disparityFrame[buffIndex_ ] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
-    disparityFrame[buffIndex_ + 1] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
-    disparityFrame[buffIndex_ + 2] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
-
   // Initialize publisher and subscriber.
 //  std::string cameraTopicName;
 //  int cameraQueueSize;
@@ -783,6 +779,9 @@ void YoloObjectDetector:: yolo()
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
+    disparityFrame[buffIndex_ ] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
+    disparityFrame[buffIndex_ + 1] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
+    disparityFrame[buffIndex_ + 2] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
   ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
 
   int count = 0;
@@ -893,7 +892,7 @@ void *YoloObjectDetector::publishInThread()
 
           int median_kernel = std::min(xmax - xmin, ymax - ymin);
 
-            if ((xmin > 2) &&(ymin > 2)  ) {
+            if ((xmin > 2) &&(ymin > 2) && (counter>2) ) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
