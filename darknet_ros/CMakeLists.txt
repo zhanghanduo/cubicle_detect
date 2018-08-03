@@ -36,8 +36,6 @@ set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
 message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
-find_package(easy_profiler REQUIRED)
-
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -241,7 +239,6 @@ if (CUDA_FOUND)
           ${VisionWorks_LIBRARIES}
           ${VisionWorks-NVXIO_LIBRARIES}
           stereo_matching_fast
-          easy_profiler
           )
 
   cuda_add_executable(${PROJECT_NAME}

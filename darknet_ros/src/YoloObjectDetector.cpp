@@ -888,7 +888,7 @@ void *YoloObjectDetector::publishInThread()
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
-//                cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+                cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
 //                cv::Mat roi_dis = disparityFrame(rect).clone();
 //                double max,min;
 //                cv::minMaxLoc(roi_dis, &min, &max);

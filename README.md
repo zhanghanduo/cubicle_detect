@@ -73,6 +73,11 @@ In order to use your own detection objects you need to provide your weights and 
     catkin_workspace/src/darknet_ros/darknet_ros/yolo_network_config/weights/
     catkin_workspace/src/darknet_ros/darknet_ros/yolo_network_config/cfg/
 
+Download BDD trained weight:
+
+```
+wget https://entuedu-my.sharepoint.com/:u:/g/personal/hzhang032_e_ntu_edu_sg/ETEhLBRKDJlIgBINsJa48X8BjJO1ghSNOl1yoaqGcSwVxw?e=wWlPYb
+```
 In addition, you need to create your config file for ROS where you define the names of the detection objects. You need to include it inside:
 
     catkin_workspace/src/darknet_ros/darknet_ros/config/
