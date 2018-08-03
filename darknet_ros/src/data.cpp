@@ -49,11 +49,16 @@ namespace Util {
 
             for( j = x - h; j < x + h; ++ j){
 
+                if(p[j]==0) continue;
+
                 array.push_back((double)p[j]);
             }
         }
 
-        return (median(array));
+        if(!array.empty())
+            return (median(array));
+        else
+            return 0;
     }
 //
 //    double median( cv::Mat channel )

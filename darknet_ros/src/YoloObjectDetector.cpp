@@ -779,9 +779,12 @@ void YoloObjectDetector:: yolo()
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-    disparityFrame[buffIndex_ ] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
-    disparityFrame[buffIndex_ + 1] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
-    disparityFrame[buffIndex_ + 2] = cv::Mat(Width, Height, CV_8UC1, cv::Scalar(100));
+    disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+    disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+    disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+    buff_cv_l_[0] = camImageCopy_.clone();
+    buff_cv_l_[1] = camImageCopy_.clone();
+    buff_cv_l_[2] = camImageCopy_.clone();
   ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
 
   int count = 0;
@@ -892,7 +895,9 @@ void *YoloObjectDetector::publishInThread()
 
           int median_kernel = std::min(xmax - xmin, ymax - ymin);
 
-            if ((xmin > 2) &&(ymin > 2) && (counter>2) ) {
+            // if ((xmin > 2) &&(ymin > 2) && (counter>2) ) {
+          if ((counter>2) ) {
+
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
                 auto dis = static_cast<int>(Util::median_mat(disparityFrame[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
@@ -948,8 +953,13 @@ void *YoloObjectDetector::publishInThread()
 //                    ROS_WARN("cata: %s, depth: %f", outputObs.category.c_str(), depthTable[dis]);
 //                    Tracking();
 //                    CreateMsg();
+                } else {
+                  std::string classname = classLabels_[i];
+                  ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
                 }
 
+            } else {
+              ROS_WARN("*********************************************************");
             }
 
 //          boundingBox.Class = classLabels_[i];
@@ -964,8 +974,13 @@ void *YoloObjectDetector::publishInThread()
       }
     }
 
-        // TODO: wait until isDepth_new to be true
+    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
+    for (long int i = 0; i < currentFrameBlobs.size(); i++) {
+      cv::rectangle(beforeTracking, currentFrameBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+    }
+    cv::imshow("beforeTracking", beforeTracking);
 
+        // TODO: wait until isDepth_new to be true
       Tracking();
       CreateMsg();
       roiBoxes_[0].num = 0;
@@ -1161,7 +1176,7 @@ void YoloObjectDetector::Tracking (){
 void YoloObjectDetector::CreateMsg(){
 
     cv::Mat output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
-    cv::Mat output = camImageCopy_.clone();
+    cv::Mat output = buff_cv_l_[(buffIndex_ + 1) % 3].clone();//camImageCopy_.clone();
 
     for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
@@ -1179,6 +1194,7 @@ void YoloObjectDetector::CreateMsg(){
     }
     cv::imshow("debug", output);
     cv::imshow("disparity", output1);
+    // cv::waitKey(0);
 
     frame_num ++;
     if(enableEvaluation_){
