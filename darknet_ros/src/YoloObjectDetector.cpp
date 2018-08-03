@@ -779,18 +779,12 @@ void YoloObjectDetector:: yolo()
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-<<<<<<< HEAD
     disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
     disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
     disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
     buff_cv_l_[0] = camImageCopy_.clone();
     buff_cv_l_[1] = camImageCopy_.clone();
     buff_cv_l_[2] = camImageCopy_.clone();
-=======
-    disparityFrame[buffIndex_ ] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(1));
-    disparityFrame[buffIndex_ + 1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(1));
-    disparityFrame[buffIndex_ + 2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(1));
->>>>>>> 1c99b27907779020db862965dda342846f2d74f7
   ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
 
   int count = 0;
