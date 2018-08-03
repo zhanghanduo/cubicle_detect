@@ -263,6 +263,7 @@ private:
   image buffLetter_[3];
   cv::Mat buff_cv_l_[3];
   cv::Mat buff_cv_r_[3];
+  cv::Mat disparityFrame[3];
   int buffId_[3];
   int buffIndex_ = 0;
 
@@ -346,7 +347,6 @@ private:
                               const sensor_msgs::CameraInfoConstPtr&right_info);
 
   cv::Rect left_roi_, right_roi_;
-  cv::Mat disparityFrame;
   Detection* mpDetection;
 //  Tracker_optflow tracker_flow;
   std::thread* mpDepth_gen_run;
@@ -383,7 +383,7 @@ private:
     std::string img_name;
     char s[20];
     char im[20];
-    int frame_num;
+    int frame_num, counter;
 
 };
 

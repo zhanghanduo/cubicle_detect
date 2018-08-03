@@ -148,6 +148,7 @@ void YoloObjectDetector::init()
 
   // Look up table initialization
   u0 = 0;
+  counter = 0;
 
     nodeHandle_.param<int>("min_disparity", min_disparity, 12);
     nodeHandle_.param<int>("disparity_scope", disp_size, 128);
@@ -207,6 +208,10 @@ void YoloObjectDetector::init()
   setupNetwork(cfg, weights, data, thresh, detectionNames, numClasses_,
                 0, nullptr, 1, 0.5, 0, 0, 0, 0);
   yoloThread_ = std::thread(&YoloObjectDetector::yolo, this);
+
+    disparityFrame[buffIndex_ ] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
+    disparityFrame[buffIndex_ + 1] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
+    disparityFrame[buffIndex_ + 2] = cv::Mat(100, 100, CV_8UC1, cv::Scalar(5));
 
   // Initialize publisher and subscriber.
 //  std::string cameraTopicName;
@@ -424,7 +429,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
       cv_rgb = cam_image1;
     }
     else {
-      cv_rgb = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::BGR8);
+      cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
     }
 
     image_time_ = image1->header.stamp;
@@ -683,11 +688,15 @@ void *YoloObjectDetector::fetchInThread()
 
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
 
-  buff_cv_l_[(buffIndex_ + 2) % 3] = left_rectified.clone();
-  buff_cv_r_[(buffIndex_ + 2) % 3] = right_rectified.clone();
+  buff_cv_l_[(buffIndex_)] = left_rectified.clone();
+  buff_cv_r_[(buffIndex_)] = right_rectified.clone();
 
-  disparityFrame = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+  if(counter > 2) {
 
+      disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+  }
+
+  counter ++;
   return nullptr;
 }
 
@@ -886,7 +895,7 @@ void *YoloObjectDetector::publishInThread()
 
             if ((xmin > 2) &&(ymin > 2)  ) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
-                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
+                auto dis = static_cast<int>(Util::median_mat(disparityFrame[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
                 cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
 //                cv::Mat roi_dis = disparityFrame(rect).clone();
@@ -899,14 +908,14 @@ void *YoloObjectDetector::publishInThread()
                     if(dis < 12){
 
                         ROS_WARN("dis: %d", dis);
-                        cv::Mat win_ = disparityFrame(cv::Rect(center_c_ - 1, center_r_-1, 3,3));
-                        std::cout << "mat: " << win_ << std::endl;
+//                        cv::Mat win_ = disparityFrame[(buffIndex_ + 1) % 3](cv::Rect(center_c_ - 1, center_r_-1, 3,3));
+//                        std::cout << "mat: " << win_ << std::endl;
                     }
 //                    ROS_WARN("center 2D\ncol: %d| row: %d", center_c_, center_r_);
 //                    ROS_WARN("min 2D\ncol: %d| row: %d", xmin, ymin);
 //                    ROS_WARN("max 2D\ncol: %d| row: %d", xmax, ymax);
                     // Hog features
-                    cv::Mat roi = left_rectified(rect).clone();
+                    cv::Mat roi = buff_cv_l_[(buffIndex_ + 1) % 3](rect).clone();
                     cv::resize(roi, roi, cv::Size(22, 22));
                     std::vector<float> hog_feature;
                     hog_descriptor -> computeHOG(hog_feature, roi);
@@ -1152,20 +1161,25 @@ void YoloObjectDetector::Tracking (){
 
 void YoloObjectDetector::CreateMsg(){
 
+    cv::Mat output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
     cv::Mat output = camImageCopy_.clone();
+
     for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
             cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
 //            for(int j=0; j<blobs[i].obsPoints.size();j++){
 //                output.at<cv::Vec3b>(blobs[i].obsPoints[j].x, blobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
 //            }
             std::ostringstream str;
             str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
             cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
+            cv::putText(output1, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(255, 250, 255));
         }
     }
     cv::imshow("debug", output);
+    cv::imshow("disparity", output1);
 
     frame_num ++;
     if(enableEvaluation_){
