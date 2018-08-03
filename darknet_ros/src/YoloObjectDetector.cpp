@@ -882,18 +882,18 @@ void *YoloObjectDetector::publishInThread()
           auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
           auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
 
-//          int median_kernel = std::min(xmax - xmin, ymax - ymin);
+          int median_kernel = std::min(xmax - xmin, ymax - ymin);
 
             if ((xmin > 2) &&(ymin > 2)  ) {
 //                auto dis = (int)disparityFrame.at<uchar>(center_r_, center_c_);
-//                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
+                auto dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
 //                std::cout << "dis: " << dis << std::endl;
-                cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
-                cv::Mat roi_dis = disparityFrame(rect).clone();
-                double max,min;
-                cv::minMaxLoc(roi_dis, &min, &max);
+//                cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+//                cv::Mat roi_dis = disparityFrame(rect).clone();
+//                double max,min;
+//                cv::minMaxLoc(roi_dis, &min, &max);
 
-                int dis = static_cast<int>(max);
+//                int dis = static_cast<int>(max);
                 if(dis!=0) {
 
                     if(dis < 12){
