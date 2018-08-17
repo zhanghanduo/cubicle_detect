@@ -19,7 +19,7 @@
   <!--<include file="$(find undistort_images)/launch/stereo_kitti.launch" />-->
 
   <!-- Start darknet and ros wrapper -->
-  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_kitti" output="screen" launch-prefix="$(arg launch_prefix)">
+  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />

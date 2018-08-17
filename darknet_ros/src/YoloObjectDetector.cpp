@@ -409,62 +409,106 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
-void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
-                                        const sensor_msgs::ImageConstPtr &image2,
-                                        const sensor_msgs::CameraInfoConstPtr& left_info,
-                                        const sensor_msgs::CameraInfoConstPtr& right_info){
-  ROS_DEBUG("[ObstacleDetector] Stereo images received.");
+    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
+                                            const sensor_msgs::ImageConstPtr &image2,
+                                            const sensor_msgs::CameraInfoConstPtr& left_info,
+                                            const sensor_msgs::CameraInfoConstPtr& right_info){
+        ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
-  cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
+        // std::cout<<"Debug starting cameraCallBack"<<std::endl;
 
-  try {
-    cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
-    cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+        cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
 
-    if(use_grey) {
-      cv_rgb = cam_image1;
-    }
-    else {
-      cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
-    }
+        try {
+            cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
+            cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
 
-    image_time_ = image1->header.stamp;
-    imageHeader_ = image1->header;
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
+            if(use_grey) {
+                cv_rgb = cam_image1;
+            }
+            else {
+                cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
+            }
 
-  if(u0 == 0) {
-      loadCameraCalibration(left_info, right_info);
-      DefineLUTs();
-  }
+            image_time_ = image1->header.stamp;
+            imageHeader_ = image1->header;
+        } catch (cv_bridge::Exception& e) {
+            ROS_ERROR("cv_bridge exception: %s", e.what());
+            return;
+        }
 
-  if (cam_image1) {
-      frameWidth_ = cam_image1->image.size().width;
-      frameHeight_ = cam_image1->image.size().height;
-      frameWidth_ = frameWidth_ / Scale;
-      frameHeight_ = frameHeight_ / Scale;
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-      origLeft = cv::Mat(cam_image1->image, left_roi_);
+        if(u0 == 0) {
+            loadCameraCalibration(left_info, right_info);
+            DefineLUTs();
+        }
 
-      origRight = cv::Mat(cam_image2->image, right_roi_);
+        // std::cout<<"Debug inside cameraCallBack after DefineLUTs"<<std::endl;
 
-      camImageOrig = cv::Mat(cv_rgb->image.clone(), left_roi_);
-    }
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
-      imageStatus_ = true;
-    }
-      cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
-      cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
-      cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
+        if (cam_image1) {
+            // std::cout<<"Debug inside cameraCallBack starting first image callback"<<std::endl;
+
+            frameWidth_ = cam_image1->image.size().width;
+            // std::cout<<"Debug inside cameraCallBack reading image width "<<frameWidth_<<std::endl;
+            frameHeight_ = cam_image1->image.size().height;
+            frameWidth_ = frameWidth_ / Scale;
+            frameHeight_ = frameHeight_ / Scale;
+            // std::cout<<"Debug inside cameraCallBack scaling image height "<<frameHeight_<<std::endl;
+            {
+                boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
+                origLeft = cam_image1->image;//cv::Mat(cam_image1->image, left_roi_);
+
+                origRight = cam_image2->image;//cv::Mat(cam_image2->image, right_roi_);
+
+                camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
+            }
+            {
+                boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
+                imageStatus_ = true;
+            }
+
+            // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
+
+            cv::Mat left_resized, right_resized, camImageResized;
+            cv::resize(origLeft, left_resized, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(origRight, right_resized, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(camImageOrig, camImageResized, cv::Size(frameWidth_, frameHeight_));
+            // cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
+            // cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
+            // cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
+
+            // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
+
+            int widthMiss = frameWidth_%4;
+            int heightMiss = frameHeight_%4;
+
+            cv::Mat left_widthAdj, right_widthAdj, camImageWidthAdj;
+
+            if (widthMiss>0) {
+                copyMakeBorder( left_resized, left_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
+                copyMakeBorder( right_resized, right_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
+                copyMakeBorder( camImageResized, camImageWidthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+            } else {
+                left_widthAdj = left_resized.clone();
+                right_widthAdj = right_resized.clone();
+                camImageWidthAdj = camImageResized.clone();
+            }
+
+            // cv::Mat left_heightAdj, right_heightAdj, camImageHeightAdj;
+
+            if (heightMiss>0) {
+                copyMakeBorder( left_widthAdj, left_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
+                copyMakeBorder( right_widthAdj, right_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
+                copyMakeBorder( camImageWidthAdj, camImageCopy_, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+            } else {
+                left_rectified = left_widthAdj.clone();
+                right_rectified = right_widthAdj.clone();
+                camImageCopy_ = camImageWidthAdj.clone();
+            }
 
 //      mpDetection -> getImage(left_rectified, right_rectified);
-  }
+        }
 
-}
+    }
 
 void YoloObjectDetector::checkForObjectsActionGoalCB()
 {
@@ -1258,7 +1302,7 @@ void YoloObjectDetector::CreateMsg(){
     }
     if(enableEvaluation_){
         file.close();
-        cv::imwrite(img_name, camImageCopy_);
+        cv::imwrite(img_name, buff_cv_l_[(buffIndex_ + 1) % 3]);
     }
 }
 

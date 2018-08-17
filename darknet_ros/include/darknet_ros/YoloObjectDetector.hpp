@@ -48,7 +48,6 @@
 #include <darknet_ros_msgs/CheckForObjectsAction.h>
 #include "darknet_ros/Blob.h"
 //#include "../../src/track_kalman.hpp"
-//#include "darknet_ros/DepthObjectDetector.h"
 #include "darknet_ros/stereo_matching.h"
 #include "utils/timing.h"
 #include "utils/hog.h"
