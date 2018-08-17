@@ -215,26 +215,16 @@ void YoloObjectDetector::init()
   std::string objectDetectorTopicName;
   int objectDetectorQueueSize;
   bool objectDetectorLatch;
-  std::string boundingBoxesTopicName;
-  int boundingBoxesQueueSize;
-  bool boundingBoxesLatch;
   std::string detectionImageTopicName;
   int detectionImageQueueSize;
   bool detectionImageLatch;
   std::string obstacleBoxesTopicName;
   int obstacleBoxesQueueSize;
 
-//  nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName,
-//                    std::string("/camera/image_raw"));
-//  nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
                     std::string("found_object"));
   nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/latch", objectDetectorLatch, false);
-  nodeHandle_.param("publishers/bounding_boxes/topic", boundingBoxesTopicName,
-                    std::string("bounding_boxes"));
-  nodeHandle_.param("publishers/bounding_boxes/queue_size", boundingBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/bounding_boxes/latch", boundingBoxesLatch, false);
   nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
                     std::string("detection_image"));
   nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
@@ -248,8 +238,6 @@ void YoloObjectDetector::init()
   objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
                                                            objectDetectorQueueSize,
                                                            objectDetectorLatch);
-  boundingBoxesPublisher_ = nodeHandle_pub.advertise<darknet_ros_msgs::BoundingBoxes>(
-      boundingBoxesTopicName, boundingBoxesQueueSize, boundingBoxesLatch);
 
   obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
           obstacleBoxesTopicName, obstacleBoxesQueueSize);
@@ -257,17 +245,6 @@ void YoloObjectDetector::init()
   detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
                                                                        detectionImageQueueSize,
                                                                        detectionImageLatch);
-  // Action servers.
-  std::string checkForObjectsActionName;
-  nodeHandle_.param("actions/camera_reading/topic", checkForObjectsActionName,
-                    std::string("check_for_objects"));
-  checkForObjectsActionServer_.reset(
-      new CheckForObjectsActionServer(nodeHandle_, checkForObjectsActionName, false));
-  checkForObjectsActionServer_->registerGoalCallback(
-      boost::bind(&YoloObjectDetector::checkForObjectsActionGoalCB, this));
-  checkForObjectsActionServer_->registerPreemptCallback(
-      boost::bind(&YoloObjectDetector::checkForObjectsActionPreemptCB, this));
-  checkForObjectsActionServer_->start();
 
     printf("width: %d | height: %d\n", Width, Height);
 
@@ -509,56 +486,6 @@ void YoloObjectDetector::DefineLUTs() {
         }
 
     }
-
-void YoloObjectDetector::checkForObjectsActionGoalCB()
-{
-  ROS_DEBUG("[YoloObjectDetector] Start check for objects action.");
-
-  boost::shared_ptr<const darknet_ros_msgs::CheckForObjectsGoal> imageActionPtr =
-      checkForObjectsActionServer_->acceptNewGoal();
-  sensor_msgs::Image imageAction = imageActionPtr->image;
-
-  cv_bridge::CvImagePtr cam_image;
-
-  try {
-    cam_image = cv_bridge::toCvCopy(imageAction, sensor_msgs::image_encodings::BGR8);
-  } catch (cv_bridge::Exception& e) {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-
-  if (cam_image) {
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-      camImageCopy_ = cam_image->image.clone();
-    }
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexActionStatus_);
-      actionId_ = imageActionPtr->id;
-    }
-    {
-      boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
-      imageStatus_ = true;
-    }
-    frameWidth_ = cam_image->image.size().width;
-    frameHeight_ = cam_image->image.size().height;
-    frameHeight_ = cam_image->image.size().height;
-    frameWidth_ /= Scale;
-    frameHeight_ /= Scale;
-  }
-}
-
-void YoloObjectDetector::checkForObjectsActionPreemptCB()
-{
-  ROS_DEBUG("[YoloObjectDetector] Preempt check for objects action.");
-  checkForObjectsActionServer_->setPreempted();
-}
-
-bool YoloObjectDetector::isCheckingForObjects() const
-{
-  return (ros::ok() && checkForObjectsActionServer_->isActive()
-      && !checkForObjectsActionServer_->isPreemptRequested());
-}
 
 bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
 {
@@ -926,8 +853,6 @@ void *YoloObjectDetector::publishInThread()
 
     for (int i = 0; i < numClasses_; i++) {
       if (rosBoxCounter_[i] > 0) {
-//        darknet_ros_msgs::BoundingBox boundingBox;
-
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
           auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);     //2D column
           auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * frameHeight_);    //2D row
@@ -977,6 +902,10 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
                     outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
                     outputObs.position_3d[2] = depthTable[dis];
+                    outputObs.xmin = xmin;
+                    outputObs.xmax = xmax;
+                    outputObs.ymin = ymin;
+                    outputObs.ymax = ymax;
 //                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
 //                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
 
@@ -1005,14 +934,6 @@ void *YoloObjectDetector::publishInThread()
             } else {
               ROS_WARN("*********************************************************");
             }
-
-//          boundingBox.Class = classLabels_[i];
-//          boundingBox.probability = rosBoxes_[i][j].prob;
-//          boundingBox.xmin = xmin;
-//          boundingBox.ymin = ymin;
-//          boundingBox.xmax = xmax;
-//          boundingBox.ymax = ymax;
-//          boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
 
         }
       }
@@ -1045,14 +966,6 @@ void *YoloObjectDetector::publishInThread()
   obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
   obstaclePublisher_.publish(obstacleBoxesResults_);
 
-  if (isCheckingForObjects()) {
-    ROS_DEBUG("[YoloObjectDetector] check for objects in image.");
-    darknet_ros_msgs::CheckForObjectsResult objectsActionResult;
-    objectsActionResult.id = buffId_[0];
-    objectsActionResult.bounding_boxes = boundingBoxesResults_;
-    checkForObjectsActionServer_->setSucceeded(objectsActionResult, "Send bounding boxes.");
-  }
-  boundingBoxesResults_.bounding_boxes.clear();
   obstacleBoxesResults_.obsData.clear();
   obstacleBoxesResults_.segsData.clear();
   for (int i = 0; i < numClasses_; i++) {
@@ -1179,7 +1092,11 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
 
 //    existingBlobs[intIndex].dblCurrentAspectRatio = currentFrameBlob.dblCurrentAspectRatio;
     existingBlobs[intIndex].disparity = currentFrameBlob.disparity;
-//    existingBlobs[intIndex].obsPoints = currentFrameBlob.obsPoints;
+
+    existingBlobs[intIndex].xmin = currentFrameBlob.xmin;
+    existingBlobs[intIndex].xmax = currentFrameBlob.xmax;
+    existingBlobs[intIndex].ymin = currentFrameBlob.ymin;
+    existingBlobs[intIndex].ymax = currentFrameBlob.ymax;
 
     existingBlobs[intIndex].position_3d = currentFrameBlob.position_3d;
 
@@ -1277,6 +1194,10 @@ void YoloObjectDetector::CreateMsg(){
                 tmpObs.centerPos.z = blobs[i].position_3d[2];
                 tmpObs.diameter = blobs[i].diameter;
                 tmpObs.height = blobs[i].height;
+                tmpObs.xmin = blobs[i].xmin;
+                tmpObs.ymin = blobs[i].ymin;
+                tmpObs.xmax = blobs[i].xmax;
+                tmpObs.ymax = blobs[i].ymax;
 
                 tmpObs.counter = blobs[i].counter;
                 tmpObs.classes = blobs[i].category;

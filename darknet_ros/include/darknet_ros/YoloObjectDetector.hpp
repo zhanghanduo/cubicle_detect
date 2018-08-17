@@ -43,9 +43,6 @@
 #include <cv_bridge/cv_bridge.h>
 
 // darknet_ros_msgs
-#include <darknet_ros_msgs/BoundingBoxes.h>
-#include <darknet_ros_msgs/BoundingBox.h>
-#include <darknet_ros_msgs/CheckForObjectsAction.h>
 #include "darknet_ros/Blob.h"
 //#include "../../src/track_kalman.hpp"
 #include "darknet_ros/stereo_matching.h"
@@ -151,22 +148,6 @@ private:
   void init();
 
   /*!
-   * Check for objects action goal callback.
-   */
-  void checkForObjectsActionGoalCB();
-
-  /*!
-   * Check for objects action preempt callback.
-   */
-  void checkForObjectsActionPreemptCB();
-
-  /*!
-   * Check if a preempt for the check for objects action has been requested.
-   * @return false if preempt has been requested or inactive.
-   */
-  bool isCheckingForObjects() const;
-
-  /*!
    * Publishes the detection image.
    * @return true if successful.
    */
@@ -196,19 +177,12 @@ private:
         return intX*intX + intY*intY;
     };
 
-    //! Typedefs.
-  typedef actionlib::SimpleActionServer<darknet_ros_msgs::CheckForObjectsAction> CheckForObjectsActionServer;
-  typedef std::shared_ptr<CheckForObjectsActionServer> CheckForObjectsActionServerPtr;
-
   //! ROS node handle.
   ros::NodeHandle nodeHandle_, nodeHandle_pub;
 
   //! Class labels.
   int numClasses_;
   std::vector<std::string> classLabels_;
-
-  //! Check for objects action server.
-  CheckForObjectsActionServerPtr checkForObjectsActionServer_;
 
   //! ROS subscriber and publisher.
   ros::Publisher objectPublisher_;
@@ -220,7 +194,6 @@ private:
   //! Detected objects.
   std::vector<std::vector<RosBox_> > rosBoxes_;
   std::vector<int> rosBoxCounter_;
-  darknet_ros_msgs::BoundingBoxes boundingBoxesResults_;
   obstacle_msgs::MapInfo obstacleBoxesResults_;
 
   //! Camera related parameters.

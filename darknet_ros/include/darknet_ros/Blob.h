@@ -24,8 +24,7 @@ namespace darknet_ros {
         std::vector<float> obsHog;              //Record the hog features of a single blob
 
         double depth, diameter, height, probability;
-        double startY, endY;                    //3D coordinated with respect to left camera
-        double startX, endX;                    //3D coordinated with respect to left camera
+        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
 
         cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
 
