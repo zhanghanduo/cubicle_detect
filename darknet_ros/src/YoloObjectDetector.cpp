@@ -455,8 +455,10 @@ void YoloObjectDetector::DefineLUTs() {
 
             // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
 
-            int widthMiss = frameWidth_%4;
-            int heightMiss = frameHeight_%4;
+//            int widthMiss = frameWidth_%4;
+//            int heightMiss = frameHeight_%4;
+            int widthMiss = 0;
+            int heightMiss = 0;
 
             cv::Mat left_widthAdj, right_widthAdj, camImageWidthAdj;
 
@@ -1135,25 +1137,30 @@ void YoloObjectDetector::Tracking (){
 }
 
 void YoloObjectDetector::CreateMsg(){
+    cv::Mat color_out;
 
     cv::Mat output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
-    cv::Mat output = buff_cv_l_[(buffIndex_ + 1) % 3].clone();//camImageCopy_.clone();
+    cv::Mat output = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
+    if(output.type() == CV_8UC1)
+        cv::cvtColor(output, color_out, CV_GRAY2RGB);
+    else
+        color_out = output;
 
     for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
-            cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+            cv::rectangle(color_out, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
             cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
 //            for(int j=0; j<blobs[i].obsPoints.size();j++){
 //                output.at<cv::Vec3b>(blobs[i].obsPoints[j].x, blobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
 //            }
             std::ostringstream str;
             str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
-            cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
+            cv::putText(color_out, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
             cv::putText(output1, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(255, 250, 255));
         }
     }
-    cv::imshow("debug", output);
+    cv::imshow("debug", color_out);
     cv::imshow("disparity", output1);
     // cv::waitKey(0);
 
