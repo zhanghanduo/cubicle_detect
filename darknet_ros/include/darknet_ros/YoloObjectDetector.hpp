@@ -107,12 +107,14 @@ class YoloObjectDetector
   * Callback of camera.
   * @param[in] msg image pointer.
   */
-  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2,
-                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info,
+  void cameraCallback(const sensor_msgs::ImageConstPtr &image,
+                      const sensor_msgs::CameraInfoConstPtr& info,
                       const stereo_msgs::DisparityImageConstPtr& disparity);
 
   int globalframe, Scale;
   double stereo_baseline_, u0, v0, focal;
+
+  std::string type2str(int type);
 
   /*!
   * Callback of camera.
@@ -225,7 +227,7 @@ private:
   image buff_[3];
   image buffLetter_[3];
   cv::Mat buff_cv_l_[3];
-  cv::Mat buff_cv_r_[3];
+//  cv::Mat buff_cv_r_[3];
   cv::Mat disparityFrame[3];
   int buffId_[3];
   int buffIndex_ = 0;
@@ -257,8 +259,8 @@ private:
 
   ros::Time image_time_;
   std_msgs::Header imageHeader_;
-  cv::Mat camImageCopy_, origLeft, origRight, camImageOrig, disparity_image;
-  cv::Mat left_rectified, right_rectified, disparity_resized;
+  cv::Mat camImageCopy_, camImageOrig, disparity_image;
+  cv::Mat disparity_resized, disparity_float;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
@@ -301,13 +303,12 @@ private:
 
   void *publishInThread();
 
-  bool use_grey;
+//  bool use_grey;
 
   /**
    * @brief compute stereo baseline, ROI's and FOV's from camera calibration messages.
    */
-  void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
-                              const sensor_msgs::CameraInfoConstPtr&right_info);
+  void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&info);
 
   cv::Rect left_roi_, right_roi_;
   Detection* mpDetection;

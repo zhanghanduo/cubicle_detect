@@ -30,6 +30,29 @@ char *weights;
 char *data;
 char **detectionNames;
 
+    std::string YoloObjectDetector::type2str(int type) {
+        std::string r;
+
+        uchar depth = type & CV_MAT_DEPTH_MASK;
+        uchar chans = 1 + (type >> CV_CN_SHIFT);
+
+        switch ( depth ) {
+            case CV_8U:  r = "8U"; break;
+            case CV_8S:  r = "8S"; break;
+            case CV_16U: r = "16U"; break;
+            case CV_16S: r = "16S"; break;
+            case CV_32S: r = "32S"; break;
+            case CV_32F: r = "32F"; break;
+            case CV_64F: r = "64F"; break;
+            default:     r = "User"; break;
+        }
+
+        r += "C";
+        r += (chans+'0');
+
+        return r;
+    }
+
 YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
     : nodeHandle_(nh),
       nodeHandle_pub(nh_p),
@@ -37,7 +60,6 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
       classLabels_(0),
       rosBoxes_(0),
       rosBoxCounter_(0),
-      use_grey(false),
       blnFirstFrame(true),
       globalframe(0),
       isDepthNew(false)
@@ -154,7 +176,6 @@ void YoloObjectDetector::init()
     nodeHandle_.param<int>("disparity_scope", disp_size, 128);
     nodeHandle_.param<int>("image_width", Width, 1280);
     nodeHandle_.param<int>("image_height", Height, 720);
-    nodeHandle_.param<bool>("use_grey", use_grey, false);
     nodeHandle_.param<int>("scale", Scale, 1);
 
     Width /= Scale;
@@ -250,66 +271,27 @@ void YoloObjectDetector::init()
 
 }
 
-void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
-                                               const sensor_msgs::CameraInfoConstPtr &right_info) {
+void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &info) {
 
   ROS_INFO_STREAM("init calibration");
 
   // Check if a valid calibration exists
-  if (left_info->K[0] == 0.0) {
+  if (info->K[0] == 0.0) {
     ROS_ERROR("The camera is not calibrated");
     return;
   }
 
-  sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*left_info);
-  sensor_msgs::CameraInfoPtr right_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*right_info);
+  sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*info);
   left_info_copy->header.frame_id = "stereo";
-  right_info_copy->header.frame_id = "stereo";
 
-  // Get Stereo Camera Model from Camera Info message
-  image_geometry::StereoCameraModel stereoCameraModel;
-  stereoCameraModel.fromCameraInfo(left_info_copy, right_info_copy);
-
-  // Get PinHole Camera Model from the Stereo Camera Model
-  const image_geometry::PinholeCameraModel &cameraLeft = stereoCameraModel.left();
-  const image_geometry::PinholeCameraModel &cameraRight = stereoCameraModel.right();
-
-//    double data[16] = { 1, 0, 0, -left_info->P[2]/Scale, 0, 1, 0, -left_info->P[6]/Scale, 0, 0, 0, left_info->P[0], 0};
-//    double data[16] = { 1, 0, 0, -322.94284058, 0, 1, 0, -232.25880432, 0, 0, 0, 922.9965, 0, 0, 0.001376324, 0};
-//    Q = cv::Mat(4, 4, CV_64F, data);
-
-  // Get rectify intrinsic Matrix (is the same for both cameras because they are rectified)
-  cv::Mat projectionLeft = cv::Mat(cameraLeft.projectionMatrix());
-  cv::Matx33d intrinsicLeft = projectionLeft(cv::Rect(0, 0, 3, 3));
-  cv::Mat projectionRight = cv::Mat(cameraRight.projectionMatrix());
-  cv::Matx33d intrinsicRight = projectionRight(cv::Rect(0, 0, 3, 3));
-
-  u0 = left_info->K[2];
-  v0 = left_info->K[5];
-  focal = left_info->K[0];
-
-  assert(intrinsicLeft == intrinsicRight);
-
-  const cv::Matx33d &intrinsic = intrinsicLeft;
+  u0 = info->K[2];
+  v0 = info->K[5];
+  focal = info->K[0];
 
   // Save the baseline
-  stereo_baseline_ = stereoCameraModel.baseline();
+  stereo_baseline_ = 0.12;
   ROS_INFO_STREAM("baseline: " << stereo_baseline_);
-  assert(stereo_baseline_ > 0);
-
-  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
-  left_roi_ = cameraLeft.rawRoi();
-  right_roi_ = cameraRight.rawRoi();
-//    {
-//        double tmp_left, tmp_right;
-//        tmp_left = left_roi_.height;
-//        left_roi_.height = left_roi_.width;
-//        left_roi_.width = tmp_left;
-//        tmp_left = right_roi_.height;
-//        right_roi_.height = right_roi_.width;
-//        right_roi_.width = tmp_left;
-//    }
-
+//  assert(stereo_baseline_ > 0);
 }
 
 void YoloObjectDetector::DefineLUTs() {
@@ -341,55 +323,45 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
-    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& image1,
-                                            const sensor_msgs::ImageConstPtr& image2,
-                                            const sensor_msgs::CameraInfoConstPtr& left_info,
-                                            const sensor_msgs::CameraInfoConstPtr& right_info,
+    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& image,
+                                            const sensor_msgs::CameraInfoConstPtr& info,
                                             const stereo_msgs::DisparityImageConstPtr& disparity){
 //        ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
         cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb, disp_input;
 
         try {
-            cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
-            cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
-            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::MONO8);
+            cv_rgb = cv_bridge::toCvShare(image, sensor_msgs::image_encodings::BGR8);
+            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::TYPE_32FC1);
 
-            if(use_grey) {
-                cv_rgb = cam_image1;
-            }
-            else {
-                cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
-            }
+//            cv::Mat disp_img = cv::Mat(disp_input->image.size(), CV_8UC1);
+//            cv::convertScaleAbs(disp_input->image, disp_img, 100, 0.0);
 
-            image_time_ = image1->header.stamp;
-            imageHeader_ = image1->header;
+            image_time_ = image->header.stamp;
+            imageHeader_ = image->header;
         } catch (cv_bridge::Exception& e) {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
 
         if(u0 == 0) {
-            loadCameraCalibration(left_info, right_info);
+            loadCameraCalibration(info);
             DefineLUTs();
         }
 
         // std::cout<<"Debug inside cameraCallBack after DefineLUTs"<<std::endl;
 
-        if (cam_image1) {
+        if (cv_rgb) {
             // std::cout<<"Debug inside cameraCallBack starting first image callback"<<std::endl;
 
-            frameWidth_ = cam_image1->image.size().width;
+            frameWidth_ = cv_rgb->image.size().width;
             // std::cout<<"Debug inside cameraCallBack reading image width "<<frameWidth_<<std::endl;
-            frameHeight_ = cam_image1->image.size().height;
+            frameHeight_ = cv_rgb->image.size().height;
             frameWidth_ = frameWidth_ / Scale;
             frameHeight_ = frameHeight_ / Scale;
             // std::cout<<"Debug inside cameraCallBack scaling image height "<<frameHeight_<<std::endl;
             {
                 boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-                origLeft = cam_image1->image;//cv::Mat(cam_image1->image, left_roi_);
-
-                origRight = cam_image2->image;//cv::Mat(cam_image2->image, right_roi_);
 
                 camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
 
@@ -402,11 +374,14 @@ void YoloObjectDetector::DefineLUTs() {
 
             // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
 
-            cv::Mat left_resized, right_resized, camImageResized, disp_resized;
-            cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
             cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(disparity_image, disparity_resized, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(disparity_image, disparity_float, cv::Size(frameWidth_, frameHeight_));
+
+            disparity_float.convertTo(disparity_resized, CV_8UC1, 255, 0);
+
+//            std::string ty =  type2str( disparity_resized.type() );
+//            ROS_WARN("Type: %s \n", ty.c_str());
+
          }
 
     }
@@ -574,13 +549,13 @@ void *YoloObjectDetector::fetchInThread()
     boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
     buffId_[buffIndex_] = actionId_;
   }
-  if(!use_grey)
-    rgbgr_image(buff_[buffIndex_]);
+
+  rgbgr_image(buff_[buffIndex_]);
 
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
 
-  buff_cv_l_[(buffIndex_)] = left_rectified.clone();
-  buff_cv_r_[(buffIndex_)] = right_rectified.clone();
+  buff_cv_l_[(buffIndex_)] = camImageCopy_;
+//  buff_cv_r_[(buffIndex_)] = right_rectified.clone();
 
   if(counter > 2) {
 
@@ -863,7 +838,7 @@ void *YoloObjectDetector::publishInThread()
       }
     }
 
-    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
+    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3];
     for (auto &currentFrameBlob : currentFrameBlobs) {
       cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
     }
@@ -871,7 +846,7 @@ void *YoloObjectDetector::publishInThread()
 
         // TODO: wait until isDepth_new to be true
       Tracking();
-      CreateMsg();
+
       roiBoxes_[0].num = 0;
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
@@ -883,6 +858,8 @@ void *YoloObjectDetector::publishInThread()
     objectPublisher_.publish(msg);
 //    std::cout << "************************************************num 0" << std::endl;
   }
+
+  CreateMsg();
 
   obstacleBoxesResults_.header.stamp = image_time_;
   obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
