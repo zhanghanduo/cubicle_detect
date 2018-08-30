@@ -97,7 +97,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.3.0/release)
+set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.2.0/release)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
@@ -109,8 +109,8 @@ find_package(catkin REQUIRED
         geometry_msgs
         image_geometry
         std_msgs
+        stereo_msgs
         actionlib
-        darknet_ros_msgs
         obstacle_msgs
         image_transport
         eigen_conversions
@@ -118,13 +118,10 @@ find_package(catkin REQUIRED
         tf
         )
 
-
 # Enable OPENCV in darknet
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
 
-FIND_PACKAGE(VisionWorks REQUIRED)
-FIND_PACKAGE(VisionWorks-NVXIO REQUIRED)
 find_package(Eigen3 3.1.0 REQUIRED)
 
 catkin_package(
@@ -138,11 +135,11 @@ catkin_package(
         actionlib
         rospy
         std_msgs
+        stereo_msgs
         geometry_msgs
         image_geometry
         message_filters
         obstacle_msgs
-        darknet_ros_msgs
         image_transport
   DEPENDS
         Boost
@@ -154,12 +151,8 @@ include_directories(
         include
         ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
-        ${VisionWorks_INCLUDE_DIRS}
-        ${VisionWorks-NVXIO_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
 )
-
-add_library(stereo_matching_fast src/stereo_matching.cpp)
 
 if (CUDA_FOUND)
 
@@ -228,16 +221,13 @@ if (CUDA_FOUND)
           cudart
           cublas
           curand
-          #    cudnn
+          cudnn
           ${Boost_LIBRARIES}
           ${catkin_LIBRARIES}
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
           ${CUDA_nppi_LIBRARY}
-          ${VisionWorks_LIBRARIES}
-          ${VisionWorks-NVXIO_LIBRARIES}
-          stereo_matching_fast
           )
 
   cuda_add_executable(${PROJECT_NAME}
@@ -251,7 +241,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME}_lib
-        darknet_ros_msgs_generate_messages_cpp
         obstacle_msgs_generate_messages_cpp
 )
 

@@ -26,10 +26,6 @@
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="image_left_topic"      value="/long/left/image_rect" />
-    <param name="image_right_topic"     value="/long/right/image_rect" />
-    <param name="image_info_left"       value="/long/left/camera_info" />
-    <param name="image_info_right"      value="/long/right/camera_info" />
     <param name="image_height"          value="844" />
     <param name="image_width"           value="1280" />
     <param name="scale"                 value="2" />

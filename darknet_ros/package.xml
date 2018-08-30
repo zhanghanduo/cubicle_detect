@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>cubicle_detect</name>
-  <version>1.1.4</version>
+  <version>1.1.5</version>
   <description>ROS package to use YOLO and stereo images for obstacle mapping
     and (future) 3D bounding boxes, using CUDA C++.</description>
   <maintainer email="hzhang032@e.ntu.edu.sg">Zhang Handuo</maintainer>
@@ -25,17 +25,14 @@
   <build_depend>message_filters</build_depend>
   <build_depend>image_geometry</build_depend>
   <build_depend>obstacle_msgs</build_depend>
-  <build_depend>darknet_ros_msgs</build_depend>
   <build_depend>tf</build_depend>
-  <build_depend>VisionWorks</build_depend>
-  <build_depend>VisionWorks-NVXIO</build_depend>
+  <build_depend>stereo_msgs</build_depend>
   <!--<build_depend>pcl_ros</build_depend>-->
 
   <run_depend>boost</run_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>image_geometry</run_depend>
   <run_depend>obstacle_msgs</run_depend>
-  <run_depend>darknet_ros_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>OpenCV</run_depend>
@@ -48,8 +45,7 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>tf</run_depend>
-  <run_depend>VisionWorks</run_depend>
-  <run_depend>VisionWorks-NVXIO</run_depend>
+  <run_depend>stereo_msgs</run_depend>
   <!--<run_depend>pcl_ros</run_depend>-->
 
   <!-- Test dependencies -->

@@ -152,8 +152,8 @@ void YoloObjectDetector::init()
 
     nodeHandle_.param<int>("min_disparity", min_disparity, 12);
     nodeHandle_.param<int>("disparity_scope", disp_size, 128);
-    nodeHandle_.param<int>("image_width", Width, 640);
-    nodeHandle_.param<int>("image_height", Height, 422);
+    nodeHandle_.param<int>("image_width", Width, 1280);
+    nodeHandle_.param<int>("image_height", Height, 720);
     nodeHandle_.param<bool>("use_grey", use_grey, false);
     nodeHandle_.param<int>("scale", Scale, 1);
 
@@ -248,22 +248,6 @@ void YoloObjectDetector::init()
 
     printf("width: %d | height: %d\n", Width, Height);
 
-    vxiLeft = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_RGB);
-    NVXIO_CHECK_REFERENCE(vxiLeft); // NOLINT
-    vxiRight = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_RGB);
-    NVXIO_CHECK_REFERENCE(vxiRight); // NOLINT
-
-    vxiDisparity = vxCreateImage(context, static_cast<vx_uint32>(Width), static_cast<vx_uint32>(Height), VX_DF_IMAGE_U8);
-    NVXIO_CHECK_REFERENCE(vxiDisparity); // NOLINT
-
-    stereo = std::unique_ptr<StereoMatching>(StereoMatching::createStereoMatching
-                                                     (context, params, implementationType, vxiLeft, vxiRight, vxiDisparity));
-    if (!read(params)) {
-        std::cout <<"Failed to open config file "<< std::endl;
-    }
-
-    vxDirective(context, VX_DIRECTIVE_ENABLE_PERFORMANCE);
-    vxRegisterLogCallback(context, &nvxio::stdoutLogCallback, vx_false_e);
 }
 
 void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
@@ -328,35 +312,6 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
 }
 
-cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
-
-    cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
-
-    vxiLeft_U8 = createImageFromMat(context, leftFrame);
-    vxuColorConvert(context, vxiLeft_U8, vxiLeft);
-    vxiRight_U8 = createImageFromMat(context, rightFrame);
-    vxuColorConvert(context, vxiRight_U8, vxiRight);
-    stereo->run();
-    createMatFromImage(disparity_SGBM, vxiDisparity);
-
-    vxSwapImageHandle(vxiLeft_U8, nullptr, nullptr, 1);
-    vxSwapImageHandle(vxiRight_U8, nullptr, nullptr, 1);
-    vxReleaseImage(&vxiLeft_U8);
-    vxReleaseImage(&vxiRight_U8);
-
-    // Filter out remote disparity
-    for (int r=0; r<disparity_SGBM.rows; r++) {
-        for (int c=0; c<disparity_SGBM.cols; c++) {
-            if (disparity_SGBM.at<uchar>(r,c) < min_disparity) {
-                disparity_SGBM.at<uchar>(r,c) = 0;
-            }
-        }
-    }
-
-    isDepthNew = true;
-    return disparity_SGBM;
-}
-
 void YoloObjectDetector::DefineLUTs() {
 
   ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f", u0, v0, focal, stereo_baseline_);
@@ -386,19 +341,19 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
-    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
-                                            const sensor_msgs::ImageConstPtr &image2,
+    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& image1,
+                                            const sensor_msgs::ImageConstPtr& image2,
                                             const sensor_msgs::CameraInfoConstPtr& left_info,
-                                            const sensor_msgs::CameraInfoConstPtr& right_info){
-        ROS_DEBUG("[ObstacleDetector] Stereo images received.");
+                                            const sensor_msgs::CameraInfoConstPtr& right_info,
+                                            const stereo_msgs::DisparityImageConstPtr& disparity){
+//        ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
-        // std::cout<<"Debug starting cameraCallBack"<<std::endl;
-
-        cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
+        cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb, disp_input;
 
         try {
             cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
             cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::MONO8);
 
             if(use_grey) {
                 cv_rgb = cam_image1;
@@ -437,6 +392,8 @@ void YoloObjectDetector::DefineLUTs() {
                 origRight = cam_image2->image;//cv::Mat(cam_image2->image, right_roi_);
 
                 camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
+
+                disparity_image = disp_input->image;
             }
             {
                 boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
@@ -445,47 +402,12 @@ void YoloObjectDetector::DefineLUTs() {
 
             // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
 
-            cv::Mat left_resized, right_resized, camImageResized;
-            cv::resize(origLeft, left_resized, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(origRight, right_resized, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(camImageOrig, camImageResized, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
-
-            // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
-
-//            int widthMiss = frameWidth_%4;
-//            int heightMiss = frameHeight_%4;
-            int widthMiss = 0;
-            int heightMiss = 0;
-
-            cv::Mat left_widthAdj, right_widthAdj, camImageWidthAdj;
-
-            if (widthMiss>0) {
-                copyMakeBorder( left_resized, left_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( right_resized, right_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( camImageResized, camImageWidthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
-            } else {
-                left_widthAdj = left_resized.clone();
-                right_widthAdj = right_resized.clone();
-                camImageWidthAdj = camImageResized.clone();
-            }
-
-            // cv::Mat left_heightAdj, right_heightAdj, camImageHeightAdj;
-
-            if (heightMiss>0) {
-                copyMakeBorder( left_widthAdj, left_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( right_widthAdj, right_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( camImageWidthAdj, camImageCopy_, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
-            } else {
-                left_rectified = left_widthAdj.clone();
-                right_rectified = right_widthAdj.clone();
-                camImageCopy_ = camImageWidthAdj.clone();
-            }
-
-//      mpDetection -> getImage(left_rectified, right_rectified);
-        }
+            cv::Mat left_resized, right_resized, camImageResized, disp_resized;
+            cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(disparity_image, disparity_resized, cv::Size(frameWidth_, frameHeight_));
+         }
 
     }
 
@@ -662,7 +584,7 @@ void *YoloObjectDetector::fetchInThread()
 
   if(counter > 2) {
 
-      disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+      disparityFrame[(buffIndex_ + 2) % 3] = disparity_resized;
   }
 
   counter ++;
@@ -942,8 +864,8 @@ void *YoloObjectDetector::publishInThread()
     }
 
     cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
-    for (long int i = 0; i < currentFrameBlobs.size(); i++) {
-      cv::rectangle(beforeTracking, currentFrameBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+    for (auto &currentFrameBlob : currentFrameBlobs) {
+      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
     }
     cv::imshow("beforeTracking", beforeTracking);
 
@@ -1232,89 +1154,6 @@ void YoloObjectDetector::CreateMsg(){
         file.close();
         cv::imwrite(img_name, buff_cv_l_[(buffIndex_ + 1) % 3]);
     }
-}
-
-bool YoloObjectDetector::read(StereoMatching::StereoMatchingParams &config){
-    config.min_disparity = 0;
-    config.max_disparity = disp_size;
-
-    // discontinuity penalties
-    config.P1 = 8;
-    config.P2 = 109;
-    // SAD window size
-    config.sad = 5;
-    // Census Transform window size
-    config.ct_win_size = 3;
-    // Hamming cost window size
-    config.hc_win_size = 1;
-    // BT-cost clip value
-    config.bt_clip_value = 31;
-    // validation threshold
-    config.max_diff = 32000; // cross-check
-    config.uniqueness_ratio = 0;
-    config.scanlines_mask = 85;
-    config.flags = 2;
-
-    return true;
-}
-
-vx_status YoloObjectDetector::createMatFromImage(cv::Mat &mat, vx_image image) {
-    vx_status status = VX_SUCCESS;
-    vx_uint32 width = 0;
-    vx_uint32 height = 0;
-    vx_df_image format = VX_DF_IMAGE_VIRT;
-    int cv_format = CV_8U;
-    vx_size planes = 0;
-
-    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_WIDTH, &width, sizeof(width));
-    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_HEIGHT, &height, sizeof(height));
-    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_FORMAT, &format, sizeof(format));
-    vxQueryImage(image, VX_IMAGE_ATTRIBUTE_PLANES, &planes, sizeof(planes));
-
-    switch (format){
-        case VX_DF_IMAGE_U8:
-            cv_format = CV_8U;
-            break;
-        case VX_DF_IMAGE_S16:
-            cv_format = CV_16S;
-            break;
-        case VX_DF_IMAGE_RGB:
-            cv_format = CV_8UC3;
-            break;
-        default:
-            return VX_ERROR_INVALID_FORMAT;
-    }
-
-    vx_rectangle_t rect{ 0, 0, width, height };
-    vx_uint8 *src[4] = {nullptr, nullptr, nullptr, nullptr };
-    vx_uint32 p;
-    void *ptr = nullptr;
-    vx_imagepatch_addressing_t addr[4] = { 0, 0, 0, 0 };
-    vx_uint32 y = 0u;
-
-    for (p = 0u; (p < (int)planes); p++){
-        vxAccessImagePatch(image, &rect, p, &addr[p], (void **)&src[p], VX_READ_ONLY);
-        size_t len = addr[p].stride_x * (addr[p].dim_x * addr[p].scale_x) / VX_SCALE_UNITY;
-        for (y = 0; y < height; y += addr[p].step_y){
-            ptr = vxFormatImagePatchAddress2d(src[p], 0, y - rect.start_y, &addr[p]);
-            memcpy(mat.data + y * mat.step, ptr, len);
-        }
-    }
-
-    for (p = 0u; p < (int)planes; p++){
-        vxCommitImagePatch(image, &rect, p, &addr[p], src[p]);
-    }
-
-    return status;
-}
-
-vx_image YoloObjectDetector::createImageFromMat(vx_context context, const cv::Mat & mat) {
-    vx_imagepatch_addressing_t patch = { (vx_uint32)mat.cols, (vx_uint32)mat.rows,
-                                         (vx_int32)mat.elemSize(), (vx_int32)mat.step,
-                                         VX_SCALE_UNITY, VX_SCALE_UNITY,1u, 1u };
-    auto *ptr = (void*)mat.ptr();
-    vx_df_image format = nvx_cv::convertCVMatTypeToVXImageFormat(mat.type());
-    return vxCreateImageFromHandle(context, format, &patch, (void **)&ptr, VX_IMPORT_TYPE_HOST);
 }
 
 } /* namespace darknet_ros*/
