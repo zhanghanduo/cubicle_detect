@@ -287,11 +287,6 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   u0 = info->K[2];
   v0 = info->K[5];
   focal = info->K[0];
-
-  // Save the baseline
-  stereo_baseline_ = 0.12;
-  ROS_INFO_STREAM("baseline: " << stereo_baseline_);
-//  assert(stereo_baseline_ > 0);
 }
 
 void YoloObjectDetector::DefineLUTs() {
@@ -332,10 +327,7 @@ void YoloObjectDetector::DefineLUTs() {
 
         try {
             cv_rgb = cv_bridge::toCvShare(image, sensor_msgs::image_encodings::BGR8);
-            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::TYPE_32FC1);
-
-//            cv::Mat disp_img = cv::Mat(disp_input->image.size(), CV_8UC1);
-//            cv::convertScaleAbs(disp_input->image, disp_img, 100, 0.0);
+            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::TYPE_8UC1);
 
             image_time_ = image->header.stamp;
             imageHeader_ = image->header;
@@ -345,6 +337,7 @@ void YoloObjectDetector::DefineLUTs() {
         }
 
         if(u0 == 0) {
+            stereo_baseline_ = disparity->T;
             loadCameraCalibration(info);
             DefineLUTs();
         }
@@ -375,9 +368,9 @@ void YoloObjectDetector::DefineLUTs() {
             // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
 
             cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(disparity_image, disparity_float, cv::Size(frameWidth_, frameHeight_));
+            cv::resize(disparity_image, disparity_resized, cv::Size(frameWidth_, frameHeight_));
 
-            disparity_float.convertTo(disparity_resized, CV_8UC1, 255, 0);
+//            disparity_float.convertTo(disparity_resized, CV_8UC1, 255, 0);
 
 //            std::string ty =  type2str( disparity_resized.type() );
 //            ROS_WARN("Type: %s \n", ty.c_str());
@@ -838,11 +831,12 @@ void *YoloObjectDetector::publishInThread()
       }
     }
 
-    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3];
-    for (auto &currentFrameBlob : currentFrameBlobs) {
-      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-    }
-    cv::imshow("beforeTracking", beforeTracking);
+    // TODO: for debugging
+//    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3];
+//    for (auto &currentFrameBlob : currentFrameBlobs) {
+//      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+//    }
+//    cv::imshow("beforeTracking", beforeTracking);
 
         // TODO: wait until isDepth_new to be true
       Tracking();
