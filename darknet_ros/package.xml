@@ -25,7 +25,6 @@
   <build_depend>message_filters</build_depend>
   <build_depend>image_geometry</build_depend>
   <build_depend>obstacle_msgs</build_depend>
-  <build_depend>darknet_ros_msgs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>VisionWorks</build_depend>
   <build_depend>VisionWorks-NVXIO</build_depend>
@@ -35,7 +34,6 @@
   <run_depend>actionlib</run_depend>
   <run_depend>image_geometry</run_depend>
   <run_depend>obstacle_msgs</run_depend>
-  <run_depend>darknet_ros_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>OpenCV</run_depend>

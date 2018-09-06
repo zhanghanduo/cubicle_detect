@@ -110,7 +110,6 @@ find_package(catkin REQUIRED
         image_geometry
         std_msgs
         actionlib
-        darknet_ros_msgs
         obstacle_msgs
         image_transport
         eigen_conversions
@@ -142,7 +141,6 @@ catkin_package(
         image_geometry
         message_filters
         obstacle_msgs
-        darknet_ros_msgs
         image_transport
   DEPENDS
         Boost
@@ -251,7 +249,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME}_lib
-        darknet_ros_msgs_generate_messages_cpp
         obstacle_msgs_generate_messages_cpp
 )
 

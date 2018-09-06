@@ -583,7 +583,7 @@ void *YoloObjectDetector::detectInThread()
 
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
 
-  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes
+  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes, here I ignore
 
   if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 //    printf("\033[2J");
