@@ -45,7 +45,6 @@
 // darknet_ros_msgs
 #include "darknet_ros/Blob.h"
 //#include "../../src/track_kalman.hpp"
-#include "darknet_ros/stereo_matching.h"
 #include "utils/timing.h"
 #include "utils/hog.h"
 // Obstacle ros msgs
@@ -54,20 +53,14 @@
 #include <obstacle_msgs/point3.h>
 // Darknet.
 #ifdef GPU
-// VisionWorks
-#include <NVX/nvx.h>
-#include <NVX/nvx_timer.hpp>
-#include <NVX/nvx_opencv_interop.hpp>
-#include <NVXIO/Application.hpp>
-#include <NVXIO/ConfigParser.hpp>
-#include <NVXIO/FrameSource.hpp>
-#include <NVXIO/Render.hpp>
-#include <NVXIO/SyncTimer.hpp>
-#include <NVXIO/Utility.hpp>
+// Cuda
+#include "../../sgm/disparity_method.h"
+//#include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
+//#include <device_functions.h>
+//#include "device_launch_parameters.h"
 
-#include "cuda_runtime.h"
 #include "curand.h"
 #include "cublas_v2.h"
 #endif
@@ -331,20 +324,9 @@ private:
 
 // Disparity
 
-    bool read(StereoMatching::StereoMatchingParams &config);
-
-    vx_status createMatFromImage(cv::Mat &mat, vx_image image);
-
-    vx_image createImageFromMat(vx_context context, const cv::Mat & mat);
-
     std::mutex mMutexDepth;
     bool isDepthNew;
 
-    vx_image vxiLeft_U8, vxiRight_U8, vxiLeft, vxiRight, vxiDisparity;
-    nvxio::ContextGuard context;
-    StereoMatching::StereoMatchingParams params;
-    StereoMatching::ImplementationType implementationType = StereoMatching::HIGH_LEVEL_API;
-    std::unique_ptr<StereoMatching> stereo;
 
     std::vector<double> depth;
     int min_disparity;
