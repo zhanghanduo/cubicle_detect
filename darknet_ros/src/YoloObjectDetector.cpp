@@ -55,6 +55,10 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
   init();
 
+  SGM = new disparity_sgm(7, 86);
+
+  SGM->init_disparity_method(7, 86);
+
 //  DefineLUTs();
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
@@ -67,7 +71,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
 YoloObjectDetector::~YoloObjectDetector()
 {
-  {
+  SGM->finish_disparity_method();
+    {
     boost::unique_lock<boost::shared_mutex> lockNodeStatus(mutexNodeStatus_);
     isNodeRunning_ = false;
   }
@@ -315,7 +320,7 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
     float elapsed_time_ms;
     cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
 
-    disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
+    disparity_SGBM = SGM->compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
 
     isDepthNew = true;
     return disparity_SGBM;
@@ -554,8 +559,7 @@ void *YoloObjectDetector::detectInThread()
 //    printf("\033[1;1H");
 //    printf("\nFPS:%.1f\n",fps_);
 //    printf("Objects:\n\n");
-//      printf("FPS:%.1f\n", fps_);
-printf("haha");
+      printf("FPS:%.1f\n", fps_);
   }
 
   // extract the bounding boxes and send them to ROS
@@ -737,7 +741,7 @@ void YoloObjectDetector:: yolo()
     }
   }
 
-//  demoTime_ = what_time_is_it_now();
+  demoTime_ = what_time_is_it_now();
 
   while (!demoDone_) {
     buffIndex_ = (buffIndex_ + 1) % 3;
@@ -745,8 +749,8 @@ void YoloObjectDetector:: yolo()
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
 
     if (!demoPrefix_) {
-//      fps_ = 1./(what_time_is_it_now() - demoTime_);
-//      demoTime_ = what_time_is_it_now();
+      fps_ = 1./(what_time_is_it_now() - demoTime_);
+      demoTime_ = what_time_is_it_now();
       if (viewImage_) {
         displayInThread();
       }
@@ -842,12 +846,11 @@ void *YoloObjectDetector::publishInThread()
 //                int dis = static_cast<int>(max);
                 if(dis!=0) {
 
-                    if(dis < 12){
+//                    if(dis < 12){
 
-                        ROS_WARN("dis too small: %d", dis);
-//                        cv::Mat win_ = disparityFrame[(buffIndex_ + 1) % 3](cv::Rect(center_c_ - 1, center_r_-1, 3,3));
-//                        std::cout << "mat: " << win_ << std::endl;
-                    }
+//                        ROS_WARN("dis too small: %d", dis);
+//                    }
+
 //                    ROS_WARN("center 2D\ncol: %d| row: %d", center_c_, center_r_);
 //                    ROS_WARN("min 2D\ncol: %d| row: %d", xmin, ymin);
 //                    ROS_WARN("max 2D\ncol: %d| row: %d", xmax, ymax);
@@ -907,7 +910,7 @@ void *YoloObjectDetector::publishInThread()
     for (long int i = 0; i < currentFrameBlobs.size(); i++) {
       cv::rectangle(beforeTracking, currentFrameBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
     }
-    cv::imshow("beforeTracking", beforeTracking);
+//    cv::imshow("beforeTracking", beforeTracking);
 
         // TODO: wait until isDepth_new to be true
       Tracking();

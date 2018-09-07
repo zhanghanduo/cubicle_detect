@@ -171,7 +171,7 @@ if (CUDA_FOUND)
       message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
   endif()
 
-  cuda_add_library(${PROJECT_NAME}_lib
+  cuda_add_library(${PROJECT_NAME}_lib STATIC
           src/YoloObjectDetector.cpp
           src/image_interface.c
           src/Blob.cpp
@@ -226,7 +226,7 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${PROJECT_SOURCE_DIR}/sgm/lib/libstereo_sgm.so
+          ${PROJECT_SOURCE_DIR}/sgm/lib/libstereo_sgm.a
           )
 
   cuda_add_executable(${PROJECT_NAME}

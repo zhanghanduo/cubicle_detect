@@ -339,6 +339,8 @@ private:
     char im[20];
     int frame_num, counter;
 
+    disparity_sgm* SGM;
+
 };
 
 } /* namespace darknet_ros*/
