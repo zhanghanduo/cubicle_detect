@@ -7,7 +7,9 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="12"/>
+  <arg name="image_topic"                default="/zed/left/image_rect_color"/>
+  <arg name="image_info"                 default="/zed/left/camera_info"/>
+  <arg name="disparity_topic"            default="/zed/disparity/disparity_image"/>
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
@@ -20,12 +22,14 @@
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
-    <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
+    <param name="image_topic"           value="$(arg image_topic)" />
+    <param name="image_info"            value="$(arg image_info)" />
+    <param name="disparity_topic"       value="$(arg disparity_topic)" />
     <param name="scale"                 value="1" />
   </node>
 
-  <include file="$(find zed_wrapper)/launch/zed_camera.launch">
+  <include file="$(find zed_wrapper)/launch/zed.launch">
   </include>
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->

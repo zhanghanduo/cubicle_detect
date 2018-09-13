@@ -1,0 +1,2 @@
+/usr/bin/ar qc libstereo_sgm.a  CMakeFiles/stereo_sgm.dir/stereo_sgm_generated_median_filter.cu.o CMakeFiles/stereo_sgm.dir/stereo_sgm_generated_hamming_cost.cu.o CMakeFiles/stereo_sgm.dir/stereo_sgm_generated_disparity_method.cu.o CMakeFiles/stereo_sgm.dir/stereo_sgm_generated_debug.cu.o CMakeFiles/stereo_sgm.dir/stereo_sgm_generated_costs.cu.o
+/usr/bin/ranlib libstereo_sgm.a

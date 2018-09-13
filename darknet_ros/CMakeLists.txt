@@ -227,7 +227,7 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${CUDA_nppi_LIBRARY}
+#          ${CUDA_nppi_LIBRARY}
           )
 
   cuda_add_executable(${PROJECT_NAME}

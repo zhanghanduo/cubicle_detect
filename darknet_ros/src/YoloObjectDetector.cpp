@@ -172,7 +172,6 @@ void YoloObjectDetector::init()
   u0 = 0;
   counter = 0;
 
-    nodeHandle_.param<int>("min_disparity", min_disparity, 12);
     nodeHandle_.param<int>("disparity_scope", disp_size, 128);
     nodeHandle_.param<int>("image_width", Width, 1280);
     nodeHandle_.param<int>("image_height", Height, 720);
@@ -327,8 +326,10 @@ void YoloObjectDetector::DefineLUTs() {
 
         try {
             cv_rgb = cv_bridge::toCvShare(image, sensor_msgs::image_encodings::BGR8);
-            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::TYPE_8UC1);
+            disp_input = cv_bridge::toCvCopy(disparity->image, sensor_msgs::image_encodings::TYPE_32FC1);
 
+            max_disparity = disparity->max_disparity;
+            min_disparity = disparity->min_disparity;
             image_time_ = image->header.stamp;
             imageHeader_ = image->header;
         } catch (cv_bridge::Exception& e) {
@@ -358,7 +359,10 @@ void YoloObjectDetector::DefineLUTs() {
 
                 camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
 
-                disparity_image = disp_input->image;
+                disparity_float = disp_input->image;
+                disparity_float.convertTo(disparity_image, CV_8U, 255.0 / (max_disparity - min_disparity),
+                        -255.0 * min_disparity / (max_disparity - min_disparity));
+
             }
             {
                 boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
@@ -642,12 +646,12 @@ void YoloObjectDetector:: yolo()
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-    disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    buff_cv_l_[0] = camImageCopy_.clone();
-    buff_cv_l_[1] = camImageCopy_.clone();
-    buff_cv_l_[2] = camImageCopy_.clone();
+  disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+  disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+  disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+  buff_cv_l_[0] = camImageCopy_.clone();
+  buff_cv_l_[1] = camImageCopy_.clone();
+  buff_cv_l_[2] = camImageCopy_.clone();
   ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
 
   int count = 0;

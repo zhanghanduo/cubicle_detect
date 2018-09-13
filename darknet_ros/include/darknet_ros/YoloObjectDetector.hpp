@@ -326,7 +326,7 @@ private:
     bool isDepthNew;
 
     std::vector<double> depth;
-    int min_disparity;
+    float min_disparity, max_disparity;
 // Disparity
 
     std::ofstream file;
