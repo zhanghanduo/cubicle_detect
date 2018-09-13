@@ -360,8 +360,8 @@ void YoloObjectDetector::DefineLUTs() {
                 camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
 
                 disparity_float = disp_input->image;
-                disparity_float.convertTo(disparity_image, CV_8U, 255.0 / (max_disparity - min_disparity),
-                        -255.0 * min_disparity / (max_disparity - min_disparity));
+                disparity_float.convertTo(disparity_image, CV_8U, 255.0 / (max_disparity - min_disparity), - min_disparity);
+//                        -255.0 * min_disparity / (max_disparity - min_disparity));
 
             }
             {
@@ -776,7 +776,7 @@ void *YoloObjectDetector::publishInThread()
 
                     if(dis < 12){
 
-                        ROS_WARN("dis: %d", dis);
+//                        ROS_WARN("dis: %d", dis);
 //                        cv::Mat win_ = disparityFrame[(buffIndex_ + 1) % 3](cv::Rect(center_c_ - 1, center_r_-1, 3,3));
 //                        std::cout << "mat: " << win_ << std::endl;
                     }
@@ -822,10 +822,11 @@ void *YoloObjectDetector::publishInThread()
 //                    ROS_WARN("cata: %s, depth: %f", outputObs.category.c_str(), depthTable[dis]);
 //                    Tracking();
 //                    CreateMsg();
-                } else {
-                  std::string classname = classLabels_[i];
-                  ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
                 }
+//                else {
+//                  std::string classname = classLabels_[i];
+//                  ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
+//                }
 
             } else {
               ROS_WARN("*********************************************************");
