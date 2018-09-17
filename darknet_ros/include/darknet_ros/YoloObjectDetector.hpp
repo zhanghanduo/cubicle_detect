@@ -26,6 +26,7 @@
 #include <std_msgs/Header.h>
 #include <std_msgs/Int8.h>
 #include <stereo_msgs/DisparityImage.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
@@ -109,7 +110,7 @@ class YoloObjectDetector
   */
   void cameraCallback(const sensor_msgs::ImageConstPtr &image,
                       const sensor_msgs::CameraInfoConstPtr& info,
-                      const stereo_msgs::DisparityImageConstPtr& disparity);
+                      const boost::shared_ptr<const sensor_msgs::PointCloud2>& ptCloud);
 
   int globalframe, Scale;
   double stereo_baseline_, u0, v0, focal;
@@ -156,6 +157,11 @@ private:
   void matchCurrentFrameBlobsToExistingBlobs();
 
   void CreateMsg();
+   /*!
+   * Accesss pointcloud with input of column and row
+   * @return output of x,y,z position
+   */
+  cv::Point3d accessPoint(int col, int row, sensor_msgs::PointCloud2 &point_cloud);
 
   void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex);
 
@@ -261,6 +267,7 @@ private:
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, camImageOrig, disparity_image;
   cv::Mat disparity_resized, disparity_float;
+  cv::Mat depth_float;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
@@ -320,6 +327,7 @@ private:
   double hogLeastDistance;
 //  std::vector<float> nullHog;
 
+  sensor_msgs::PointCloud2 point_cloud_;
 
 // Disparity
 

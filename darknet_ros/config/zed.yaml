@@ -36,5 +36,5 @@ image_view:
   enable_opencv: true
   wait_key_delay: 3
   enable_console_output: true
-  eval: true
-  disparity_far: 10
+  eval: false
+  disparity_far: 15

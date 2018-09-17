@@ -60,6 +60,35 @@ namespace Util {
         else
             return 0;
     }
+
+//    double median_mat_float (cv::Mat& I, int x, int y, int h){
+//
+//        // For efficiency did not assert whether x and y border issue lying in the image plane!!
+//
+//        std::vector<double> array;
+//
+//        // accept only char type matrices
+//        CV_Assert(I.depth() == CV_32F);
+//
+//        int i,j;
+//        uchar* p;
+//
+//        for ( i = y - h; i < y + h; ++ i){
+//
+//            for( j = (x - h) ; j < (x + h) ; ++j ){
+//
+//                if(I.at<float>(i,j)[2] == 0) continue;
+//
+//                array.push_back((double)I.at<float>(i,j)[2]);
+//            }
+//        }
+//
+//
+//        if(!array.empty())
+//            return (median(array));
+//        else
+//            return 0;
+//    }
 //
 //    double median( cv::Mat channel )
 //    {

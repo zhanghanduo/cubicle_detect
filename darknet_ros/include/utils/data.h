@@ -26,5 +26,7 @@ namespace Util {
     */
     double median_mat (cv::Mat& I, int x, int y, int h);
 
+    double median_mat_float (cv::Mat& I, int x, int y, int h);
+
 }
 #endif //PROJECT_DATA_H
