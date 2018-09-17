@@ -999,7 +999,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
 
       if (intIndexOfLeastDistance != -1) {
-        if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.5))) &&
+        if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.41))) &&
             (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
 
           addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
