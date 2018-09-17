@@ -1,33 +1,33 @@
 subscribers:
 
   camera_reading:
-    topic: /long/left/image_rect
+    topic: /zed/left/image_rect_color
     queue_size: 1
 
 actions:
 
   camera_reading:
-    name: /cubicle_detection/check_for_objects
+    name: /zed/check_for_objects
 
 publishers:
 
   obstacle_boxes:
-    topic: /long/map_msg
+    topic: /zed/map_msg
     queue_size: 4
-    frame_id: long_obs
+    frame_id: zed_obs
 
   object_detector:
-    topic: /cubicle_detection/found_object
+    topic: /zed/found_object
     queue_size: 1
     latch: false
 
   bounding_boxes:
-    topic: /cubicle_detection/bounding_boxes
+    topic: /zed/bounding_boxes
     queue_size: 1
     latch: false
 
   detection_image:
-    topic: /cubicle_detection/detection_image
+    topic: /zed/detection_image
     queue_size: 1
     latch: true
 
@@ -36,5 +36,5 @@ image_view:
   enable_opencv: true
   wait_key_delay: 3
   enable_console_output: true
-  eval: false
-  disparity_far: 12
+  eval: true
+  disparity_far: 10

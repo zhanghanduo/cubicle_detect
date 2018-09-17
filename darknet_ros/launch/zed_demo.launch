@@ -13,7 +13,7 @@
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
-  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
+  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/zed.yaml"/>
   <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_bdd.yaml"/>
 
   <!-- Start darknet and ros wrapper -->
@@ -29,8 +29,8 @@
     <param name="scale"                 value="1" />
   </node>
 
-  <include file="$(find zed_wrapper)/launch/zed.launch">
-  </include>
+  <!--<include file="$(find zed_wrapper)/launch/zed.launch">-->
+  <!--</include>-->
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

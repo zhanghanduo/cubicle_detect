@@ -331,10 +331,12 @@ private:
 
     std::ofstream file;
     std::string file_name;
-    std::string img_name;
+    std::string img_name, img_name2;
+    cv::Mat cvImage;
     char s[20];
     char im[20];
     int frame_num, counter;
+    int disparity_far;
 
 };
 
