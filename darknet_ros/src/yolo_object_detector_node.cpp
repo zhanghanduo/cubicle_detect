@@ -23,14 +23,14 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh_pub;
   ros::NodeHandle nodeHandle("~");
 
-  std::string image_topic, image_info, disparity_topic, pointcloud_topic;
+  std::string image_topic, image_info, pointcloud_topic; //,disparity_topic;
 
 
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 
   nodeHandle.param<std::string>("image_topic", image_topic, "/rgb/image_rect_color");
   nodeHandle.param<std::string>("image_info", image_info, "/rgb/camera_info");
-  nodeHandle.param<std::string>("disparity_topic", disparity_topic, "/disparity/disparity_image");
+//  nodeHandle.param<std::string>("disparity_topic", disparity_topic, "/disparity/disparity_image");
   nodeHandle.param<std::string>("pointcloud_topic", pointcloud_topic, "/zed/point_cloud/cloud_registered");
 
   Subscriber<sensor_msgs::Image> image_sub(nh_pub, image_topic, 10);
