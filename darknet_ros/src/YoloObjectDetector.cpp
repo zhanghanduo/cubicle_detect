@@ -923,15 +923,6 @@ void *YoloObjectDetector::publishInThread()
 
 void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
-//    for (auto &existingBlob : blobs) {
-//
-//        existingBlob.blnCurrentMatchFoundOrNewBlob = false;
-//
-//        existingBlob.blnAlreadyTrackedInThisFrame = false;
-//
-//        existingBlob.predictNextPosition();
-//    }
-
 //    std::list<Blob>::iterator blobList;
 //    for(blobList = blobs.begin(); blobList != blobs.end();)
 
@@ -939,7 +930,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
       int intIndexOfLeastDistance = -1;
 //        int intIndexOfLeastHogDis = -1;
-      dblLeastDistance = 10000.0;
+      dblLeastDistance = 100000.0;
 //        hogLeastDistance = 100000.0;
 
       for (unsigned int j = 0; j < blobs.size(); ++j) {
@@ -971,8 +962,6 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
               intIndexOfLeastDistance = j;
             }
-
-
           }
 
 
@@ -997,19 +986,29 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 //      }
 ////*--------------HOG FEATURE----------------------*////
 
+//      if (intIndexOfLeastDistance != -1) {
+//        if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.41))) &&
+//            (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
+//
+//          addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+//
+//        } else {
+//          addNewBlob(currentFrameBlob, blobs);
+//        }
+//      } else {
+//        addNewBlob(currentFrameBlob, blobs);
+//      }
+        if (intIndexOfLeastDistance != -1) {
+            if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.41))) &&
+                (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
+                addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
+            }
+            else {
+                RemoveOutlier(currentFrameBlob, blobs, 24);
+            }
+        } else
+            RemoveOutlier(currentFrameBlob, blobs, 24);
 
-      if (intIndexOfLeastDistance != -1) {
-        if ((dblLeastDistance < (static_cast<int>(currentFrameBlob.dblCurrentDiagonalSize * 1.41))) &&
-            (!blobs[intIndexOfLeastDistance].blnAlreadyTrackedInThisFrame)) {
-
-          addBlobToExistingBlobs(currentFrameBlob, blobs, intIndexOfLeastDistance);
-
-        } else {
-          addNewBlob(currentFrameBlob, blobs);
-        }
-      } else {
-        addNewBlob(currentFrameBlob, blobs);
-      }
     }
 //  for (auto &existingBlob : blobs) {
 //      if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
@@ -1050,7 +1049,38 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
 
     existingBlobs[intIndex].counter = currentFrameBlob.counter + 1;
 
-    existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch =0;
+    existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch = 0;
+}
+
+void YoloObjectDetector::RemoveOutlier(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, double dis_threshold){
+
+    int intIndexOfLeastDuplicateDis = -1;
+    double CheckLeastDistance = 1000.0;
+
+    for (unsigned int j = 0; j < existingBlobs.size(); ++j) {
+        if (currentFrameBlob.category == existingBlobs[j].category) {
+            double safeDistance = distanceBetween3DPoints(currentFrameBlob.position_3d,
+                                                          existingBlobs[j].position_3d);
+            if (safeDistance < CheckLeastDistance) {
+
+                CheckLeastDistance = safeDistance;
+
+                intIndexOfLeastDuplicateDis = j;
+            }
+        }
+    }
+    if (intIndexOfLeastDuplicateDis != -1){
+        if ((CheckLeastDistance < dis_threshold)&&(!existingBlobs[intIndexOfLeastDuplicateDis].blnAlreadyTrackedInThisFrame)){
+            ROS_WARN("duplicate 1!");
+            addBlobToExistingBlobs(currentFrameBlob, existingBlobs, intIndexOfLeastDuplicateDis);
+            ROS_WARN("duplicate 2!");
+        } else {
+    //        ROS_WARN("duplicate 1!");
+            addNewBlob(currentFrameBlob, existingBlobs);
+    //        ROS_WARN("duplicate 1!");
+        }
+    } else addNewBlob(currentFrameBlob, existingBlobs);
+
 }
 
 void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs) {
@@ -1065,7 +1095,7 @@ void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &e
 void YoloObjectDetector::Tracking (){
 
     if (blnFirstFrame) {
-        if (currentFrameBlobs.size()>0){
+        if (!currentFrameBlobs.empty()){
             blnFirstFrame = false;
             for (auto &currentFrameBlob : currentFrameBlobs)
                 blobs.push_back(currentFrameBlob);
@@ -1076,7 +1106,7 @@ void YoloObjectDetector::Tracking (){
             existingBlob.blnAlreadyTrackedInThisFrame = false;
             existingBlob.predictNextPosition();
         }
-        if (currentFrameBlobs.size()>0){
+        if (!currentFrameBlobs.empty()){
             matchCurrentFrameBlobsToExistingBlobs();
         } else {
             for (auto &existingBlob : blobs) {

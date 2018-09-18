@@ -167,6 +167,8 @@ private:
 
   void addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs);
 
+  void RemoveOutlier(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, double dis_threshold);
+
     inline int distanceBetweenPoints(cv::Point point1, cv::Point point2){
 
         int intX = abs(point1.x - point2.x);
@@ -174,6 +176,15 @@ private:
         int intY = abs(point1.y - point2.y);
 
         return intX*intX + intY*intY;
+    };
+
+    inline double distanceBetween3DPoints(const cv::Vec3d &point1, const cv::Vec3d &point2){
+
+        double disX = fabs(point1[0] - point2[0]);
+
+        double disZ = fabs(point1[2] - point2[2]);
+
+        return disX*disX + disZ*disZ;
     };
 
   //! ROS node handle.
