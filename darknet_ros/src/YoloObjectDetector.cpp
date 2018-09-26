@@ -312,7 +312,7 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   u0 = info->K[2];
   v0 = info->K[5];
   focal = info->K[0];
-  stereo_baseline_ = 0.12;
+  stereo_baseline_ = - info->P[3]/focal;
 }
 
 void YoloObjectDetector::DefineLUTs() {
@@ -881,11 +881,11 @@ void *YoloObjectDetector::publishInThread()
     }
 
     // TODO: for debugging
-    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3];
-    for (auto &currentFrameBlob : currentFrameBlobs) {
-      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-    }
-    cv::imshow("beforeTracking", beforeTracking);
+//    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3];
+//    for (auto &currentFrameBlob : currentFrameBlobs) {
+//      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+//    }
+//    cv::imshow("beforeTracking", beforeTracking);
 
 
       roiBoxes_[0].num = 0;
@@ -912,7 +912,7 @@ void *YoloObjectDetector::publishInThread()
   obstaclePublisher_.publish(obstacleBoxesResults_);
 
   obstacleBoxesResults_.obsData.clear();
-  obstacleBoxesResults_.segsData.clear();
+//  obstacleBoxesResults_.segsData.clear();
   for (int i = 0; i < numClasses_; i++) {
     rosBoxes_[i].clear();
     rosBoxCounter_[i] = 0;
@@ -1149,7 +1149,7 @@ void YoloObjectDetector::CreateMsg(){
 //            cv::putText(output1, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(255, 250, 255));
         }
     }
-    cv::imshow("debug", color_out);
+//    cv::imshow("debug", color_out);
 //    cv::imshow("disparity", output1);
 
 //    char img2[20];
