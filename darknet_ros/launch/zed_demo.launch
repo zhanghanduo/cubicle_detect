@@ -7,10 +7,6 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="image_topic"                default="/zed/left/image_rect_color"/>
-  <arg name="image_info"                 default="/zed/left/camera_info"/>
-  <!--<arg name="disparity_topic"            default="/zed/disparity/disparity_image"/>-->
-  <arg name="pointcloud_topic"            default="/zed/point_cloud/cloud_registered"/>
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
@@ -24,10 +20,6 @@
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="image_topic"           value="$(arg image_topic)" />
-    <param name="image_info"            value="$(arg image_info)" />
-    <!--<param name="disparity_topic"       value="$(arg disparity_topic)" />-->
-    <param name="pointcloud_topic"       value="$(arg pointcloud_topic)" />
     <param name="scale"                 value="1" />
   </node>
 

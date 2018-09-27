@@ -28,15 +28,15 @@ int main(int argc, char** argv) {
 
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 
-  nodeHandle.param<std::string>("image_topic", image_topic, "/right/image_rect_color");
-  nodeHandle.param<std::string>("image_info", image_info, "/right/camera_info");
+  nodeHandle.param<std::string>("subscribers/camera_reading/topic", image_topic, "/left/image_rect_color");
+  nodeHandle.param<std::string>("subscribers/camera_info/topic", image_info, "/right/camera_info");
 //  nodeHandle.param<std::string>("disparity_topic", disparity_topic, "/disparity/disparity_image");
-  nodeHandle.param<std::string>("pointcloud_topic", pointcloud_topic, "/zed/point_cloud/cloud_registered");
+  nodeHandle.param<std::string>("subscribers/pointcloud_reading/topic", pointcloud_topic, "/zed/point_cloud/cloud_registered");
 
   Subscriber<sensor_msgs::Image> image_sub(nh_pub, image_topic, 10);
   Subscriber<sensor_msgs::CameraInfo> sub_info_(nh_pub, image_info, 10);
 //  Subscriber<stereo_msgs::DisparityImage> disparity_sub(nh_pub, disparity_topic, 10);
-  Subscriber<sensor_msgs::PointCloud2> cloud_sub(nh_pub, "/zed/point_cloud/cloud_registered", 10);
+  Subscriber<sensor_msgs::PointCloud2> cloud_sub(nh_pub, pointcloud_topic, 10);
 
   typedef sync_policies::ApproximateTime<sensor_msgs::Image,
           sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> MySyncPolicy;

@@ -120,8 +120,6 @@ YoloObjectDetector::~YoloObjectDetector()
   }
   yoloThread_.join();
 //  free(depthTable);
-  free(xDirectionPosition);
-  free(yDirectionPosition);
   free(cfg);
   free(weights);
   free(detectionNames);
@@ -306,42 +304,13 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
     return;
   }
 
-  sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*info);
-  left_info_copy->header.frame_id = "stereo";
+//  sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*info);
+//  left_info_copy->header.frame_id = "stereo";
 
   u0 = info->K[2];
   v0 = info->K[5];
   focal = info->K[0];
   stereo_baseline_ = - info->P[3]/focal;
-}
-
-void YoloObjectDetector::DefineLUTs() {
-
-  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f", u0, v0, focal, stereo_baseline_);
-
-    for (int r=0; r<Width; r++) {
-        xDirectionPosition[r][0]=0;
-        for (int c=1; c<disp_size+1; c++) {
-            xDirectionPosition[r][c]=(r-u0)*stereo_baseline_/c;
-//        std::cout<<xDirectionPosition[r][c]<<std::endl;
-        }
-    }
-
-    for (int r=0; r<Height; r++) {
-//    for (int r=300; r<301; r++) {
-        yDirectionPosition[r][0]=0;
-        for (int c=1; c<disp_size+1; c++) {
-            yDirectionPosition[r][c]=(v0-r)*stereo_baseline_/c;
-//      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
-        }
-    }
-
-    depthTable[0] =0;
-    for( int i = 1; i < disp_size+1; ++i){
-        depthTable[i]=focal*stereo_baseline_/i; //Y*dx/B
-//      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
-    }
-
 }
 
 void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& image,

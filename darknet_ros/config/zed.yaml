@@ -4,6 +4,12 @@ subscribers:
     topic: /zed/left/image_rect_color
     queue_size: 1
 
+  camera_info:
+    topic: /zed/right/camera_info
+
+  pointcloud_reading:
+    topic: /zed/point_cloud/cloud_registered
+
 actions:
 
   camera_reading:
