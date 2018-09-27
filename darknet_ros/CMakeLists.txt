@@ -232,7 +232,6 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${CUDA_nppi_LIBRARY}
           ${VisionWorks_LIBRARIES}
           ${VisionWorks-NVXIO_LIBRARIES}
           stereo_matching_fast
