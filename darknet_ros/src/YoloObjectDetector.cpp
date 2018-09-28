@@ -48,18 +48,12 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   if (!CudaInfo() || !readParameters()) {
     ros::requestShutdown();
   }
-
 //  mpDetection = new Detection(this, nodeHandle_);
-
 //  nullHog.assign(36, 0.0);
-
   init();
 
   SGM = new disparity_sgm(7, 86);
-
   SGM->init_disparity_method(7, 86);
-
-//  DefineLUTs();
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
@@ -77,7 +71,7 @@ YoloObjectDetector::~YoloObjectDetector()
     isNodeRunning_ = false;
   }
   yoloThread_.join();
-//  free(depthTable);
+  free(depthTable);
   free(xDirectionPosition);
   free(yDirectionPosition);
   free(cfg);
@@ -152,30 +146,12 @@ void YoloObjectDetector::init()
   std::string weightsModel;
 
   // Look up table initialization
-  u0 = 0;
   counter = 0;
 
-    nodeHandle_.param<int>("min_disparity", min_disparity, 12);
-    nodeHandle_.param<int>("disparity_scope", disp_size, 128);
-    nodeHandle_.param<int>("image_width", Width, 640);
-    nodeHandle_.param<int>("image_height", Height, 422);
-    nodeHandle_.param<bool>("use_grey", use_grey, false);
-    nodeHandle_.param<int>("scale", Scale, 1);
-
-    Width /= Scale;
-    Height /= Scale;
-
-//  int ii;
-//  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
-//  for(ii = 0; ii < Width; ii++)
-//      xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
-//
-//  yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
-//  for(ii = 0; ii < Height; ii++)
-//      yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
-
-//  depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
-
+  nodeHandle_.param<int>("min_disparity", min_disparity, 12);
+  nodeHandle_.param<int>("disparity_scope", disp_size, 128);
+  nodeHandle_.param<bool>("use_grey", use_grey, false);
+  nodeHandle_.param<int>("scale", Scale, 1);
 
   // Threshold of object detection.
   float thresh;
@@ -290,6 +266,11 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   u0 = left_info->K[2];
   v0 = left_info->K[5];
   focal = left_info->K[0];
+  Width = left_info->width;
+  Height = left_info->height;
+
+  Width /= Scale;
+  Height /= Scale;
 
   assert(intrinsicLeft == intrinsicRight);
 
@@ -300,19 +281,20 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   ROS_INFO_STREAM("baseline: " << stereo_baseline_);
   assert(stereo_baseline_ > 0);
 
-  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
-  left_roi_ = cameraLeft.rawRoi();
-  right_roi_ = cameraRight.rawRoi();
-//    {
-//        double tmp_left, tmp_right;
-//        tmp_left = left_roi_.height;
-//        left_roi_.height = left_roi_.width;
-//        left_roi_.width = tmp_left;
-//        tmp_left = right_roi_.height;
-//        right_roi_.height = right_roi_.width;
-//        right_roi_.width = tmp_left;
-//    }
+    int ii;
+    xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
+    for(ii = 0; ii < Width; ii++)
+        xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
 
+    yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
+    for(ii = 0; ii < Height; ii++)
+        yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+
+    depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+//
+//  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
+//  left_roi_ = cameraLeft.rawRoi();
+//  right_roi_ = cameraRight.rawRoi();
 }
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
@@ -328,7 +310,7 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
 void YoloObjectDetector::DefineLUTs() {
 
-  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f", u0, v0, focal, stereo_baseline_);
+  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d", u0, v0, focal, stereo_baseline_, Width);
 
     for (int r=0; r<Width; r++) {
         xDirectionPosition[r][0]=0;
@@ -356,9 +338,9 @@ void YoloObjectDetector::DefineLUTs() {
 }
 
     void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
-                                            const sensor_msgs::ImageConstPtr &image2,
-                                            const sensor_msgs::CameraInfoConstPtr& left_info,
-                                            const sensor_msgs::CameraInfoConstPtr& right_info){
+                                            const sensor_msgs::ImageConstPtr &image2){
+//                                            const sensor_msgs::CameraInfoConstPtr& left_info,
+//                                            const sensor_msgs::CameraInfoConstPtr& right_info){
         ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
         // std::cout<<"Debug starting cameraCallBack"<<std::endl;
@@ -382,13 +364,6 @@ void YoloObjectDetector::DefineLUTs() {
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
-
-        if(u0 == 0) {
-            loadCameraCalibration(left_info, right_info);
-            DefineLUTs();
-        }
-
-        // std::cout<<"Debug inside cameraCallBack after DefineLUTs"<<std::endl;
 
         if (cam_image1) {
             // std::cout<<"Debug inside cameraCallBack starting first image callback"<<std::endl;
@@ -934,7 +909,6 @@ void *YoloObjectDetector::publishInThread()
   obstaclePublisher_.publish(obstacleBoxesResults_);
 
   obstacleBoxesResults_.obsData.clear();
-  obstacleBoxesResults_.segsData.clear();
   for (int i = 0; i < numClasses_; i++) {
     rosBoxes_[i].clear();
     rosBoxCounter_[i] = 0;

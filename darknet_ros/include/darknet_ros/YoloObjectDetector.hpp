@@ -29,11 +29,11 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
 #include <geometry_msgs/Point.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <image_transport/image_transport.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
-#include <sensor_msgs/CameraInfo.h>
 #include <image_geometry/stereo_camera_model.h>
 #include <image_geometry/pinhole_camera_model.h>
 // OpenCV
@@ -110,8 +110,8 @@ class YoloObjectDetector
   * Callback of camera.
   * @param[in] msg image pointer.
   */
-  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2,
-                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
+  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2); //,
+//                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
 
   int globalframe, Scale;
   double stereo_baseline_, u0, v0, focal;
@@ -121,6 +121,22 @@ class YoloObjectDetector
   * @param[in] msg image pointer.
   */
   cv::Mat getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame);
+
+    /**
+     * @brief compute stereo baseline, ROI's and FOV's from camera calibration messages.
+     */
+    void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
+                                const sensor_msgs::CameraInfoConstPtr&right_info);
+
+     /*!
+      * Generate look up table to speed up depth generation.
+      */
+    void DefineLUTs();
+
+    /*!
+     * Initialize the ROS connections.
+     */
+    void init();
 
 private:
    /*!
@@ -136,20 +152,10 @@ private:
   bool readParameters();
 
   /*!
-   * Initialize the ROS connections.
-   */
-  void init();
-
-  /*!
    * Publishes the detection image.
    * @return true if successful.
    */
   bool publishDetectionImage(const cv::Mat& detectionImage);
-
-  /*!
-   * Generate look up table to speed up depth generation.
-   */
-  void DefineLUTs();
 
   void Tracking();
 
@@ -161,14 +167,12 @@ private:
 
   void addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs);
 
-    inline int distanceBetweenPoints(cv::Point point1, cv::Point point2){
+  inline int distanceBetweenPoints(cv::Point point1, cv::Point point2){
 
-        int intX = abs(point1.x - point2.x);
-
-        int intY = abs(point1.y - point2.y);
-
-        return intX*intX + intY*intY;
-    };
+    int intX = abs(point1.x - point2.x);
+    int intY = abs(point1.y - point2.y);
+    return intX*intX + intY*intY;
+  };
 
   //! ROS node handle.
   ros::NodeHandle nodeHandle_, nodeHandle_pub;
@@ -195,12 +199,13 @@ private:
   int disp_size, Width, Height;
 
   //! Lookup Table
-//  double **xDirectionPosition;
-//  double **yDirectionPosition;
-  double xDirectionPosition[1280][129] ={{}};
-  double yDirectionPosition[844][129] ={{}};
-  double depthTable[129] = {};
-  bool isReceiveDepth;
+
+  double **xDirectionPosition;
+  double **yDirectionPosition;
+  double *depthTable;
+//  double xDirectionPosition[1280][129] ={{}};
+//  double yDirectionPosition[844][129] ={{}};
+//  double depthTable[129] = {};
   bool blnFirstFrame;
 
   //! Publisher of the bounding box image.
@@ -305,13 +310,7 @@ private:
 
   bool use_grey;
 
-  /**
-   * @brief compute stereo baseline, ROI's and FOV's from camera calibration messages.
-   */
-  void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
-                              const sensor_msgs::CameraInfoConstPtr&right_info);
-
-  cv::Rect left_roi_, right_roi_;
+//  cv::Rect left_roi_, right_roi_;
   Detection* mpDetection;
 //  Tracker_optflow tracker_flow;
   std::thread* mpDepth_gen_run;

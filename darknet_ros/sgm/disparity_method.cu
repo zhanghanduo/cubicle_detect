@@ -20,25 +20,34 @@
 
 #include "disparity_method.h"
 
-disparity_sgm::disparity_sgm(uint8_t _p1, uint8_t _p2):p1(_p1),p2(_p2){}
-
-disparity_sgm::~disparity_sgm() {}
-
-void disparity_sgm::init_disparity_method(const uint8_t _p1, const uint8_t _p2) {
-    // We are not using shared memory, use L1
-    //CUDA_CHECK_RETURN(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
-    //CUDA_CHECK_RETURN(cudaDeviceSetCacheConfig(cudaFuncCachePreferShared));
-
+disparity_sgm::disparity_sgm(uint8_t _p1, uint8_t _p2):p1(_p1),p2(_p2){
     // Create streams
     CUDA_CHECK_RETURN(cudaStreamCreate(&stream1));
     CUDA_CHECK_RETURN(cudaStreamCreate(&stream2));
     CUDA_CHECK_RETURN(cudaStreamCreate(&stream3));
     first_alloc = true;
-    p1 = _p1;
-    p2 = _p2;
+
     rows = 0;
     cols = 0;
 }
+
+disparity_sgm::~disparity_sgm() {}
+
+//void disparity_sgm::init_disparity_method(const uint8_t _p1, const uint8_t _p2) {
+//    // We are not using shared memory, use L1
+//    //CUDA_CHECK_RETURN(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+//    //CUDA_CHECK_RETURN(cudaDeviceSetCacheConfig(cudaFuncCachePreferShared));
+//
+//    // Create streams
+//    CUDA_CHECK_RETURN(cudaStreamCreate(&stream1));
+//    CUDA_CHECK_RETURN(cudaStreamCreate(&stream2));
+//    CUDA_CHECK_RETURN(cudaStreamCreate(&stream3));
+//    first_alloc = true;
+//    p1 = _p1;
+//    p2 = _p2;
+//    rows = 0;
+//    cols = 0;
+//}
 
 cv::Mat disparity_sgm::compute_disparity_method(cv::Mat left, cv::Mat right, float *elapsed_time_ms) {
     if (cols != left.cols || rows != left.rows) {
