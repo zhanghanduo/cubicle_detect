@@ -99,7 +99,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-set(OpenCV_DIR $ENV{HOME}/softwares/opencv_3.4.1/opencv/release)
+set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.4.3/release)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
@@ -123,7 +123,9 @@ find_package(catkin REQUIRED
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
 
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+message(STATUS "Eigen location: ${EIGEN3_INCLUDE_DIR}")
 
 catkin_package(
   INCLUDE_DIRS

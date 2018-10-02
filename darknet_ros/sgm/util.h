@@ -125,11 +125,11 @@ __inline__ __device__ int shfl_32(int scalarValue, const int lane) {
 	#if FERMI
 		return __emulated_shfl(scalarValue, (uint32_t)lane);
 	#else
-        #if CUDART_VERSION >= 9010
-            return __shfl_sync(0xffffffff, scalarValue, lane);
-        #else
+//        #if CUDART_VERSION >= 9010
+//            return __shfl_sync(0xffffffff, scalarValue, lane);
+//        #else
             return __shfl(scalarValue, lane);
-        #endif
+//        #endif
 	#endif
 }
 
