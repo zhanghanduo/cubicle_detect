@@ -19,28 +19,34 @@ namespace darknet_ros {
 
 //        int max_disparity;
 
-        std::vector<cv::Point2i> obsPoints;     //2D coordinated with respect to the region of interest defined from rectified left image
+//        std::vector<cv::Point3f> keyPoints;
+        double probability;
+//        cv::Mat kpDesc;
+//        cv::MatND nHist;
+        cv::Mat feature_cost;
 
-        std::vector<float> obsHog;              //Record the hog features of a single blob
-
-        double depth, diameter, height, probability;
-        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
+//        std::vector<cv::Point2i> obsPoints;     //2D coordinated with respect to the region of interest defined from rectified left image
+//
+//        std::vector<float> obsHog;              //Record the hog features of a single blob
+//
+//        double depth, diameter, height, probability;
+//        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
 
         cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
 
         std::vector<cv::Point> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
 
-        cv::Vec3d position_3d;
+//        cv::Vec3d position_3d;
 
         std::string category;
 
-        int disparity;
+//        int disparity;
 
         cv::Point predictedNextPosition;
 
         int dblCurrentDiagonalSize;
 
-        double dblCurrentAspectRatio;
+//        double dblCurrentAspectRatio;
 
         bool blnCurrentMatchFoundOrNewBlob;
 

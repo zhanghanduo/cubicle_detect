@@ -7,12 +7,12 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="12"/>
+  <arg name="min_disparity"              default="1"/>
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
   <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
-  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_bdd.yaml"/>
+  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_kitti.yaml"/>
 
   <param name="use_sim_time" value="true" />
   <!--Rectify input stereo images  -->
@@ -30,8 +30,8 @@
     <param name="image_right_topic"     value="/kitti/camera_gray_right/image_raw" />
     <param name="image_info_left"       value="/kitti/camera_gray_left/camera_info" />
     <param name="image_info_right"      value="/kitti/camera_gray_right/camera_info" />
-    <param name="image_height"          value="376" />
-    <param name="image_width"           value="1244" />
+    <param name="image_height"          value="372" />
+    <param name="image_width"           value="1228" />
     <param name="scale"                 value="1" />
   </node>
 

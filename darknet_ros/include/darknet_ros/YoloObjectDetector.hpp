@@ -110,7 +110,7 @@ class YoloObjectDetector
   * Callback of camera.
   * @param[in] msg image pointer.
   */
-  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2); //,
+  void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2, const sensor_msgs::ImageConstPtr &image3); //,
 //                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
 
   int globalframe, Scale;
@@ -155,6 +155,9 @@ private:
    * Publishes the detection image.
    * @return true if successful.
    */
+
+  void processImage();
+
   bool publishDetectionImage(const cv::Mat& detectionImage);
 
   void Tracking();
@@ -207,6 +210,7 @@ private:
 //  double yDirectionPosition[844][129] ={{}};
 //  double depthTable[129] = {};
   bool blnFirstFrame;
+  bool initiated = false;
 
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;
@@ -219,6 +223,8 @@ private:
 //  Util::CPPTimer timer_yolo, timer_1, timer_2;
 
   Util::HOGFeatureDescriptor* hog_descriptor;
+  cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
+  cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
 
   // Yolo running on thread.
   std::thread yoloThread_;
@@ -233,6 +239,7 @@ private:
   image buffLetter_[3];
   cv::Mat buff_cv_l_[3];
   cv::Mat buff_cv_r_[3];
+  cv::Mat buff_cv_rgb_[3];
   cv::Mat disparityFrame[3];
   int buffId_[3];
   int buffIndex_ = 0;
