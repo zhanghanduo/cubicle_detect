@@ -122,7 +122,9 @@ find_package(catkin REQUIRED
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
 
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+message(STATUS "Eigen location: ${EIGEN3_INCLUDE_DIR}")
 
 catkin_package(
   INCLUDE_DIRS
