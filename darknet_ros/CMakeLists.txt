@@ -36,6 +36,8 @@ set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
 message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
+option(LIBSGM_SHARED   "Build a shared library" OFF)
+
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -97,7 +99,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.3.0/release)
+set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.4.3/release)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
@@ -117,14 +119,13 @@ find_package(catkin REQUIRED
         tf
         )
 
-
 # Enable OPENCV in darknet
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
 
-FIND_PACKAGE(VisionWorks REQUIRED)
-FIND_PACKAGE(VisionWorks-NVXIO REQUIRED)
-find_package(Eigen3 3.1.0 REQUIRED)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+message(STATUS "Eigen location: ${EIGEN3_INCLUDE_DIR}")
 
 catkin_package(
   INCLUDE_DIRS
@@ -152,12 +153,8 @@ include_directories(
         include
         ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
-        ${VisionWorks_INCLUDE_DIRS}
-        ${VisionWorks-NVXIO_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
 )
-
-add_library(stereo_matching_fast src/stereo_matching.cpp)
 
 if (CUDA_FOUND)
 
@@ -165,19 +162,18 @@ if (CUDA_FOUND)
     /usr/local/cuda/lib64
   )
 
-      find_cudnn()
-      if(CUDNN_FOUND)
-          include_directories(SYSTEM ${CUDNN_INCLUDE_DIRS})
-          list(APPEND CUDA_LIBRARIES ${CUDNN_LIBRARIES})
-          message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
-          option(CUDNN "Enable CuDNN" ON)
-          add_definitions(-DCUDNN)
-      else()
-          message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
-      endif()
+  find_cudnn()
+  if(CUDNN_FOUND)
+      include_directories(SYSTEM ${CUDNN_INCLUDE_DIRS})
+      list(APPEND CUDA_LIBRARIES ${CUDNN_LIBRARIES})
+      message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
+      option(CUDNN "Enable CuDNN" ON)
+      add_definitions(-DCUDNN)
+  else()
+      message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
+  endif()
 
-
-  cuda_add_library(${PROJECT_NAME}_lib
+  cuda_add_library(${PROJECT_NAME}_lib STATIC
           src/YoloObjectDetector.cpp
           src/image_interface.c
           src/Blob.cpp
@@ -226,15 +222,13 @@ if (CUDA_FOUND)
           cudart
           cublas
           curand
-          #    cudnn
+          cudnn
           ${Boost_LIBRARIES}
           ${catkin_LIBRARIES}
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${VisionWorks_LIBRARIES}
-          ${VisionWorks-NVXIO_LIBRARIES}
-          stereo_matching_fast
+          ${PROJECT_SOURCE_DIR}/sgm/lib/libstereo_sgm.a
           )
 
   cuda_add_executable(${PROJECT_NAME}
