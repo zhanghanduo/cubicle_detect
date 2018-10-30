@@ -1,11 +1,15 @@
-# YOLO V3 for ROS: Real-Time Object Detection for ROS
+# YOLO V3 for ROS: Real-Time Object Detection for stereo images
 
 ## Overview
 
-This is a ROS package developed for object detection in camera images. You only look once (YOLO) is a state-of-the-art, real-time object detection system. In the following ROS package you are able to use YOLO on GPU and CPU. The pre-trained model of the convolutional neural network is able to detect pre-trained classes including the data set from VOC, COCO and BDD100K dataset. 
+This is a ROS package developed for object detection for stereo images. What we are doing is acquire the 3D position of detected objects by using stereo matching.
+You only look once (YOLO) is a state-of-the-art, real-time object detection system. In the following ROS package you are able to use YOLO on GPU and CPU.
+The pre-trained model of the convolutional neural network is able to detect pre-trained classes including the data set from VOC, COCO and BDD100K dataset.
 For more information about YOLO, Darknet, available training data and training YOLO see the following link: [YOLO: Real-Time Object Detection](http://pjreddie.com/darknet/yolo/).
 
-The YOLO packages have been tested under ROS Kinetic and Ubuntu 16.04.
+**Note**: If you just want to run regular monocular image detection using YOLO and ROS, please visit the [darknet_ROS repository](https://github.com/leggedrobotics/darknet_ros).
+
+The YOLO stereo ROS packages have been tested under ROS Kinetic and Ubuntu 16.04.
 
 Thanks to the original author:Author: [Marko Bjelonic](https://sites.google.com/site/bjelonicmarko/). I have to say sorry as I did not fork that repo because the submodule [darknet](https://github.com/zhanghanduo/darknet) has been modified.
 
@@ -32,6 +36,11 @@ This software is built on the Robotic Operating System ([ROS]), which needs to b
 
 - [OpenCV](http://opencv.org/) (computer vision library),
 - [boost](http://www.boost.org/) (c++ library),
+- [obstacle_msgs](https://github.com/zhanghanduo/obstacle_msgs.git)
+
+**Note**: If you encounter such error: `No rule to make target '/opt/ros/kinetic/lib/libopencv_calib3d3.so'`, please modify the `CMakeLists.txt` in `darknet_ros` folder
+and uncomment the line 102: `set(OpenCV_DIR $ENV{HOME}/OPENCV_SOURCE_CODE/release)` with the opencv source code you have placed. release is the folder where your `cmake_install.cmake` lies.
+
 
 ### Building
 
@@ -120,7 +129,7 @@ You can change the names and other parameters of the publishers, subscribers and
 
     Publishes the number of detected objects.
 
-* **`bounding_boxes`** ([darknet_ros_msgs::BoundingBoxes])
+* **`bounding_boxes`** ([obstacle_msgs])
 
     Publishes an array of bounding boxes that gives information of the position and size of the bounding box in pixel coordinates.
 
@@ -128,11 +137,6 @@ You can change the names and other parameters of the publishers, subscribers and
 
     Publishes an image of the detection image including the bounding boxes.
 
-#### Actions
-
-* **`camera_reading`** ([sensor_msgs::Image])
-
-    Sends an action with an image and the result is an array of bounding boxes.
 
 ### Detection related parameters
 
