@@ -515,6 +515,12 @@ void *YoloObjectDetector::detectInThread()
     float ymin = dets[i].bbox.y - dets[i].bbox.h / 2.;
     float ymax = dets[i].bbox.y + dets[i].bbox.h / 2.;
 
+//      0/0---X--->
+//      |
+//      Y
+//      |
+//      v
+
     if (xmin < 0)
       xmin = 0;
     if (ymin < 0)

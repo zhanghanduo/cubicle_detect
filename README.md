@@ -28,10 +28,11 @@ The YOLO V3 methods used in this software are described in the paper:
 
 ### Dependencies
 
-This software is built on the Robotic Operating System ([ROS]), which needs to be [installed](http://wiki.ros.org) first. Additionally, YOLO for ROS depends on following software:
+This software is built on the Robotic Operating System ([ROS]), which needs to be [installed](http://wiki.ros.org) first.
+Additionally, YOLO for ROS depends on following software:
 
 - [OpenCV](http://opencv.org/) (computer vision library),
-- [boost](http://www.boost.org/) (c++ library),
+- [boost](http://www.boost.org/) (C++ library),
 
 ### Building
 

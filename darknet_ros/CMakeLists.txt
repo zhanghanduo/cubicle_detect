@@ -97,8 +97,8 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.2.0/release)
-find_package(OpenCV REQUIRED)
+set(OpenCV_DIR "$ENV{HOME}/softwares/opencv-3.4.0/release")
+find_package(OpenCV 3 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
         COMPONENTS

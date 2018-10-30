@@ -3,11 +3,6 @@
 <launch>
   <!-- Console launch prefix -->
   <arg name="launch_prefix" default=""/>
-  <!--<arg name="svo_file"             default="" />-->
-  <arg name="svo_file"             default="/home/hd/dataset/outdoor.svo" />
-
-  <arg name="resolution"           default="2" /> <!--0=RESOLUTION_HD2K, 1=RESOLUTION_HD1080, 2=RESOLUTION_HD720, 3=RESOLUTION_VGA -->
-  <arg name="frame_rate"           default="15" />
 
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
@@ -28,14 +23,8 @@
     <param name="scale"                 value="1" />
   </node>
 
-  <!--Video Input-->
-  <group ns="zed">
-    <include file="$(find zed_wrapper)/launch/zed_camera.launch">
-      <arg name="svo_file"                value="$(arg svo_file)" />
-      <arg name="resolution"              default="$(arg resolution)" />
-      <arg name="frame_rate"              default="$(arg frame_rate)" />
-    </include>
-  </group>
+  <!--<include file="$(find zed_wrapper)/launch/zed.launch">-->
+  <!--</include>-->
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 
   nodeHandle.param<std::string>("subscribers/camera_reading/topic", image_topic, "/left/image_rect_color");
-  nodeHandle.param<std::string>("subscribers/camera_info/topic", image_info, "/right/camera_info");
+  nodeHandle.param<std::string>("subscribers/camera_info/topic", image_info, "/left/camera_info");
 //  nodeHandle.param<std::string>("disparity_topic", disparity_topic, "/disparity/disparity_image");
   nodeHandle.param<std::string>("subscribers/pointcloud_reading/topic", pointcloud_topic, "/zed/point_cloud/cloud_registered");
 
