@@ -99,7 +99,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-#set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.4.0/release)
+set(OpenCV_DIR $ENV{HOME}/softwares/opencv-3.4.0/release)
 find_package(OpenCV REQUIRED)
 if (${OpenCV_VERSION} MATCHES "3.3.1")
   foreach(__cvcomponent ${OpenCV_LIB_COMPONENTS})
