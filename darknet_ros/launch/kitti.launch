@@ -7,12 +7,13 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
+  <arg name="rgb_data_path"                  default="$(find cubicle_detect)/data"/>
   <arg name="min_disparity"              default="1"/>
   <arg name="disparity_scope"            default="128"/>
 
   <!-- Load parameters -->
   <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
-  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_kitti.yaml"/>
+  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3_mot.yaml"/>
 
   <param name="use_sim_time" value="true" />
   <!--Rectify input stereo images  -->
@@ -24,6 +25,7 @@
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
+    <param name="data_path"           value="$(arg rgb_data_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
     <param name="image_left_topic"      value="/kitti/camera_gray_left/image_raw" />

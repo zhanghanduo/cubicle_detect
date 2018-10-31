@@ -177,6 +177,7 @@ if (CUDA_FOUND)
           src/Blob.cpp
           src/data.cpp
           src/hog.cpp
+          src/Hungarian.cpp
 #          src/track_kalman.hpp
 #          src/track.hpp
 

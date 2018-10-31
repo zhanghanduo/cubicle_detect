@@ -2,3 +2,8 @@ cmake-build-debug/
 
 .idea/
 .vscode/
+darknet_ros/data/
+darknet_ros/data_kitti/
+darknet_ros/data_MOT16/
+darknet_ros/data_MOT17Det/
+darknet_ros/yolo_network_config/weights/

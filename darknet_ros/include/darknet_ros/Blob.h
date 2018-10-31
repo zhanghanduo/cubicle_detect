@@ -32,9 +32,11 @@ namespace darknet_ros {
 //        double depth, diameter, height, probability;
 //        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
 
-        cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
+        std::vector<cv::Rect> boundingRects;           //2D coordinated with respect to the region of interest defined from rectified left image
 
         std::vector<cv::Point> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
+
+//        std::vector<double> size;
 
 //        cv::Vec3d position_3d;
 
@@ -43,6 +45,8 @@ namespace darknet_ros {
 //        int disparity;
 
         cv::Point predictedNextPosition;
+
+        int predictedWidth, predictedHeight;
 
         int dblCurrentDiagonalSize;
 
@@ -60,8 +64,7 @@ namespace darknet_ros {
 
         void predictNextPosition(void);
 
-
-
+        void predictWidthHeight();
 
 
     };

@@ -18,8 +18,11 @@
 #include <chrono>
 #include <mutex>
 #include <map>
+#include <chrono>
 
 #include <fstream>
+#include <sstream>
+#include <iostream>
 
 // ROS
 #include <ros/ros.h>
@@ -44,6 +47,7 @@
 
 // darknet_ros_msgs
 #include "darknet_ros/Blob.h"
+#include "darknet_ros/Hungarian.h"
 //#include "../../src/track_kalman.hpp"
 #include "utils/timing.h"
 #include "utils/hog.h"
@@ -93,6 +97,12 @@ typedef struct
   int num, Class;
 } RosBox_;
 
+    typedef struct
+    {
+        float bb_left, bb_top, bb_width, bb_height, det_conf;
+        int frameNum, objTrackID;
+    } inputDetections;
+
 class YoloObjectDetector
 {
  public:
@@ -112,6 +122,16 @@ class YoloObjectDetector
   */
   void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2, const sensor_msgs::ImageConstPtr &image3); //,
 //                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);
+
+    void readImage(cv::Mat img, std::string name);
+
+    void readDetections(std::string name);
+
+    void setFileName(std::string name);
+
+    void closeFile();
+
+    void getFrameRate();
 
   int globalframe, Scale;
   double stereo_baseline_, u0, v0, focal;
@@ -158,7 +178,11 @@ private:
 
   void processImage();
 
+  void readCurrFrameDets(float det_conf_th);
+
   bool publishDetectionImage(const cv::Mat& detectionImage);
+
+  void dataAssociation();
 
   void Tracking();
 
@@ -217,6 +241,8 @@ private:
 
   std::vector<Blob> currentFrameBlobs;
   std::vector<Blob> blobs;
+  std::vector<inputDetections> detList;
+  std::vector<inputDetections> detListCurrFrame;
 
   obstacle_msgs::obs obstacles;
 
@@ -235,13 +261,13 @@ private:
   int demoClasses_;
 
   network *net_;
-  image buff_[3];
-  image buffLetter_[3];
-  cv::Mat buff_cv_l_[3];
-  cv::Mat buff_cv_r_[3];
-  cv::Mat buff_cv_rgb_[3];
-  cv::Mat disparityFrame[3];
-  int buffId_[3];
+  image buff_;
+  image buffLetter_;
+  cv::Mat buff_cv_l_;
+//  cv::Mat buff_cv_r_[3];
+  cv::Mat buff_cv_rgb_;
+//  cv::Mat disparityFrame[3];
+  int buffId_;
   int buffIndex_ = 0;
 
   IplImage * ipl_;
@@ -249,6 +275,11 @@ private:
   float demoThresh_ = 0;
   float demoHier_ = .5;
   int running_ = 0;
+
+  int totFrames = 0;
+  long totTime = 0;
+  long totTimeDet = 0;
+  long totTimePub =0;
 
   int demoDelay_ = 0;
   int demoFrame_ = 3;

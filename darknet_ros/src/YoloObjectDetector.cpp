@@ -52,14 +52,14 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 //  nullHog.assign(36, 0.0);
   init();
 
-  SGM = new disparity_sgm(7, 86);
-  SGM->init_disparity_method(7, 86);
+//  SGM = new disparity_sgm(7, 86);
+//  SGM->init_disparity_method(7, 86);
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
-  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
-  img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
-  file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
+//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+//  img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
+//  file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
   frame_num = 0;
 }
 
@@ -206,30 +206,26 @@ void YoloObjectDetector::init()
   std::string obstacleBoxesTopicName;
   int obstacleBoxesQueueSize;
 
-  nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
-                    std::string("found_object"));
-  nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
-  nodeHandle_.param("publishers/object_detector/latch", objectDetectorLatch, false);
-  nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
-                    std::string("detection_image"));
-  nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
-  nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
-
-  nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
-                    std::string("/cubicle_detection/long_map_msg"));
-  nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("long_obs"));
-
-  objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
-                                                           objectDetectorQueueSize,
-                                                           objectDetectorLatch);
-
-  obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
-          obstacleBoxesTopicName, obstacleBoxesQueueSize);
-
-  detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
-                                                                       detectionImageQueueSize,
-                                                                       detectionImageLatch);
+//  nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
+//                    std::string("found_object"));
+//  nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
+//  nodeHandle_.param("publishers/object_detector/latch", objectDetectorLatch, false);
+//  nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
+//                    std::string("detection_image"));
+//  nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
+//  nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
+//
+//  nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
+//                    std::string("/cubicle_detection/long_map_msg"));
+//  nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
+//  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("long_obs"));
+//
+//  objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,objectDetectorQueueSize, objectDetectorLatch);
+//
+//  obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
+//          obstacleBoxesTopicName, obstacleBoxesQueueSize);
+//
+//  detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName, detectionImageQueueSize, detectionImageLatch);
 
 }
 
@@ -453,13 +449,142 @@ void YoloObjectDetector::DefineLUTs() {
 
     }
 
+    void YoloObjectDetector::setFileName(std::string name){
+        file_name = ros::package::getPath("cubicle_detect") +"/"+ name + ".txt";
+        file.open(file_name);
+    }
+
+    void YoloObjectDetector::closeFile(){
+
+        frame_num = 0;
+        blnFirstFrame = true;
+        initiated = false;
+        blobs.clear();
+        file.close();
+
+    }
+
+    void YoloObjectDetector::readImage(cv::Mat img, std::string name){
+
+        camImageCopy_ = img.clone();
+        img_name = name;
+        frameWidth_ = img.size().width;
+        frameHeight_ = img.size().height;
+
+        if (initiated) {
+            processImage();
+        } else {
+            yolo();
+            processImage();
+        }
+    }
+
+    void YoloObjectDetector::readDetections(std::string name){
+
+        std::cout<<name<<std::endl;
+        std::ifstream infile(name);
+        std::string line;
+        detList.clear();
+        while(std::getline(infile,line)) {
+            std::stringstream   linestream(line);
+            std::string         value;
+            std::vector<std::string> fields;
+//
+            while(getline(linestream,value,',')) {
+                fields.push_back(value);
+//                std::cout << value << ",";
+            }
+
+            if (!fields.empty()){
+                inputDetections fileLine;
+                fileLine.frameNum =  std::stoi(fields.at(0));
+                fileLine.objTrackID = std::stoi(fields.at(1));
+                fileLine.bb_left = std::stof(fields.at(2));
+                fileLine.bb_top = std::stof(fields.at(3));
+                fileLine.bb_width = std::stof(fields.at(4));
+                fileLine.bb_height = std::stof(fields.at(5));
+                fileLine.det_conf = std::stof(fields.at(6));
+                if (fileLine.bb_left<0.0)
+                    fileLine.bb_left = 0.0;
+                if (fileLine.bb_top<0.0)
+                    fileLine.bb_top = 0.0;
+                detList.push_back(fileLine);
+            }
+
+//            std::cout<<std::endl;
+//            std::cout << "Line Finished" << std::endl;
+
+        }
+
+//        for (size_t i = 0; i < detList.size(); i++) {
+//            std::cout<<detList.at(i).frameNum<<","<<detList.at(i).objTrackID<<"," <<
+//            detList.at(i).bb_left<<","<<detList.at(i).bb_top<<","<<detList.at(i).bb_width<<","<<detList.at(i).bb_height<<","<<
+//                    detList.at(i).det_conf<<std::endl;
+//        }
+
+        std::cout << "Detections Read" << std::endl;
+    }
+
+    void YoloObjectDetector::readCurrFrameDets(float det_conf_th){
+
+        detListCurrFrame.clear();
+
+        for (size_t i = 0; i < detList.size(); i++) {
+            if(detList.at(i).frameNum==(frame_num+1) && detList.at(i).det_conf>det_conf_th){
+                float width_del = detList.at(i).bb_left+detList.at(i).bb_width-float(frameWidth_);
+                float height_del = detList.at(i).bb_top+detList.at(i).bb_height-float(frameHeight_);
+
+                if (width_del>0.0)
+                    detList.at(i).bb_width -= width_del;
+
+                if (height_del>0.0)
+                    detList.at(i).bb_height -= height_del;
+
+                detListCurrFrame.push_back(detList.at(i));
+
+//                if (detList.at(i).bb_left>=0.0 && detList.at(i).bb_left<=float(frameWidth_) && detList.at(i).bb_top>=0.0 && detList.at(i).bb_top<=float(frameHeight_))
+////                    if(detList.at(i).bb_width>0.0 && detList.at(i).bb_height>0.0)
+//                    if((detList.at(i).bb_left+detList.at(i).bb_width)<=float(frameWidth_) && (detList.at(i).bb_top+detList.at(i).bb_height)<=float(frameHeight_))
+//                        detListCurrFrame.push_back(detList.at(i));
+            }
+        }
+    }
 
     void YoloObjectDetector::processImage() {
+
+        std::size_t found = img_name.find("DPM");
+        if (found==std::string::npos) {
+            readCurrFrameDets(0.3);
+        } else {
+            readCurrFrameDets(0.0);
+        }
+
         buffIndex_ = (buffIndex_ + 2) % 3;
+        std::chrono::high_resolution_clock::time_point t3, t4, t5, t6;
+        t3 = std::chrono::high_resolution_clock::now();
+//        std::cout << "fetchInThread" << std::endl;
         fetchInThread();
+//        std::cout << "fetchInThread finished" << std::endl;
         detectInThread();
+//        std::cout << "detectInThread finished" << std::endl;
+        t4 = std::chrono::high_resolution_clock::now();
         displayInThread();
-        publishInThread();
+//        std::cout << "displayInThread finished" << std::endl;
+        t5 = std::chrono::high_resolution_clock::now();
+//        publishInThread();
+        dataAssociation();//mot
+//        std::cout << "dataAssociation finished" << std::endl;
+        t6 = std::chrono::high_resolution_clock::now();
+        long durationTotDet, durationTotPub;
+        durationTotDet = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3 ).count();
+        durationTotPub = std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5 ).count();
+        totTimeDet += durationTotDet;
+        totTimePub += durationTotPub;
+    }
+
+    void YoloObjectDetector::getFrameRate(){
+        std::cout<<"Time per frame (for tracking) : "<<totTime/totFrames<<" ms, Tot frames: "<<totFrames<<", Tot time tracking: "<<totTime<<"ms "
+        <<"Tot time det: "<<totTimeDet<<"ms " <<"Tot time pub: "<<totTimePub<<"ms"<<std::endl;
     }
 
 bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
@@ -527,7 +652,7 @@ detection *YoloObjectDetector::avgPredictions(network *net, int *nboxes)
       count += l.outputs;
     }
   }
-  detection *dets = get_network_boxes(net, buff_[0].w, buff_[0].h, demoThresh_, demoHier_, 0, 1, nboxes, 0);
+  detection *dets = get_network_boxes(net, buff_.w, buff_.h, demoThresh_, demoHier_, 0, 1, nboxes, 0);
   return dets;
 }
 
@@ -538,7 +663,7 @@ void *YoloObjectDetector::detectInThread()
   float nms = .45;
 
   layer l = net_->layers[net_->n - 1];
-  float *X = buffLetter_[(buffIndex_ + 2) % 3].data;
+  float *X = buffLetter_.data;
   network_predict(*net_, X);
 
 //  int size_of_array = sizeof(ss)/sizeof(ss[0]);
@@ -549,7 +674,7 @@ void *YoloObjectDetector::detectInThread()
 //  }
 //  printf("output array size: %d\n\n", size_of_array);
 
-  image display = buff_[(buffIndex_ + 2) % 3];
+  image display = buff_;//[(buffIndex_ + 2) % 3];
   int nboxes = 0;
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 1);
@@ -558,13 +683,13 @@ void *YoloObjectDetector::detectInThread()
 
   draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes, here I ignore
 
-  if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
+//  if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 //    printf("\033[2J");
 //    printf("\033[1;1H");
 //    printf("\nFPS:%.1f\n",fps_);
 //    printf("Objects:\n\n");
-      printf("FPS:%.1f\n", fps_);
-  }
+//      printf("FPS:%.1f\n", fps_);
+//  }
 
   // extract the bounding boxes and send them to ROS
   int i, j;
@@ -614,7 +739,7 @@ void *YoloObjectDetector::detectInThread()
   roiBoxes_[0].num = count;
 
   free_detections(dets, nboxes);
-  demoIndex_ = (demoIndex_ + 1) % demoFrame_;
+  demoIndex_ = (demoIndex_ + 2) % demoFrame_;
   running_ = 0;
   return nullptr;
 }
@@ -622,23 +747,23 @@ void *YoloObjectDetector::detectInThread()
 void *YoloObjectDetector::fetchInThread()
 {
   IplImage* ROS_img = getIplImage();
-  ipl_into_image(ROS_img, buff_[buffIndex_]);
+  ipl_into_image(ROS_img, buff_);
   {
     boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-    buffId_[buffIndex_] = actionId_;
+    buffId_ = actionId_;
   }
   if(!use_grey)
-    rgbgr_image(buff_[buffIndex_]);
+    rgbgr_image(buff_);//[buffIndex_]);
 
-  letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
+  letterbox_image_into(buff_, net_->w, net_->h, buffLetter_);
 
-  buff_cv_l_[(buffIndex_)] = left_rectified.clone();
-  buff_cv_r_[(buffIndex_)] = right_rectified.clone();
-  buff_cv_rgb_[(buffIndex_)] = camImageCopy_.clone();
+  buff_cv_l_ = left_rectified.clone();
+//  buff_cv_r_[(buffIndex_)] = right_rectified.clone();
+  buff_cv_rgb_ = camImageCopy_.clone();
 
-  if(counter > 2) {
-      disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
-  }
+//  if(counter > 2) {
+//      disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+//  }
 
   counter ++;
   return nullptr;
@@ -646,7 +771,7 @@ void *YoloObjectDetector::fetchInThread()
 
 void *YoloObjectDetector::displayInThread()
 {
-  show_image_cv(buff_[(buffIndex_ + 2)%3], "YOLO V3", ipl_);
+  show_image_cv(buff_, "YOLO V3", ipl_);
 //  show_image_layers(get_network_image(*net_), "c");
 //  visualize_network(*net_);
 
@@ -725,22 +850,22 @@ void YoloObjectDetector:: yolo()
   roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
 
   IplImage* ROS_img = getIplImage();
-  buff_[0] = ipl_to_image(ROS_img);
-  buff_[1] = copy_image(buff_[0]);
-  buff_[2] = copy_image(buff_[0]);
-  buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
-  buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
-  buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-    disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    buff_cv_l_[0] = camImageCopy_.clone();
-    buff_cv_l_[1] = camImageCopy_.clone();
-    buff_cv_l_[2] = camImageCopy_.clone();
-    buff_cv_rgb_[0] = camImageCopy_.clone();
-    buff_cv_rgb_[1] = camImageCopy_.clone();
-    buff_cv_rgb_[2] = camImageCopy_.clone();
-  ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
+  buff_ = ipl_to_image(ROS_img);
+//  buff_[1] = copy_image(buff_[0]);
+//  buff_[2] = copy_image(buff_[0]);
+  buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
+//  buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
+//  buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
+//    disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+//    disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+//    disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
+    buff_cv_l_ = camImageCopy_.clone();
+//    buff_cv_l_[1] = camImageCopy_.clone();
+//    buff_cv_l_[2] = camImageCopy_.clone();
+    buff_cv_rgb_ = camImageCopy_.clone();
+//    buff_cv_rgb_[1] = camImageCopy_.clone();
+//    buff_cv_rgb_[2] = camImageCopy_.clone();
+  ipl_ = cvCreateImage(cvSize(buff_.w, buff_.h), IPL_DEPTH_8U, buff_.c);
 
   int count = 0;
 
@@ -810,6 +935,83 @@ bool YoloObjectDetector::isNodeRunning()
   return isNodeRunning_;
 }
 
+void YoloObjectDetector::dataAssociation(){
+
+    layer cost_layer = net_->layers[net_->n-2];
+    int l_w = cost_layer.out_w;
+    int l_h = cost_layer.out_h;
+    int l_c = cost_layer.out_c;
+    int fil_r = (int)l_c/2;
+    int fil_c = l_c-fil_r;
+
+//    std::cout<<"layer cost"<<std::endl;
+
+    cv::Mat layer_cost = cv::Mat::zeros(l_h, l_w, CV_32FC(l_c));
+//    cv::Mat layer_cost_vis = cv::Mat::zeros(l_h, l_w, CV_8UC(l_c));
+
+//    std::cout<<layer_cost.size()<<std::endl;
+    for(int kk = 0; kk < l_c; ++kk){
+        for(int ii = 0; ii < l_h; ++ii){
+            for(int jj = 0; jj < l_w; ++jj){
+//                layer_cost.at<cv::Vec<float, 21> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//kitti - 2 class
+                layer_cost.at<cv::Vec<float, 18> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//mot - 1 class
+//                std::cout<<cost_layer.output[ii+l_w*l_h*kk]<<"; ";
+            }
+        }
+    }
+
+//    double min, max;
+//    cv::minMaxLoc(layer_cost, &min, &max);
+//    layer_cost.convertTo(layer_cost_vis,CV_8U,255.0/(max-min),-255.0*min/(max-min));
+
+//    std::cout<<l_w<<", "<<l_h<<", "<<l_c<<std::endl;
+
+//    cv::Mat layer_output = cv::Mat::zeros(l_h, l_w, CV_8UC3);
+
+//    std::cout<<"blob list"<<std::endl;
+
+    for (size_t kk = 0; kk < detListCurrFrame.size(); kk++) {
+
+        auto xmin = static_cast<int>(detListCurrFrame.at(kk).bb_left);
+        auto ymin = static_cast<int>(detListCurrFrame.at(kk).bb_top);
+        auto width = static_cast<int>(detListCurrFrame.at(kk).bb_width);
+        auto height = static_cast<int>(detListCurrFrame.at(kk).bb_height);
+
+        auto xmin_net = xmin*l_w/frameWidth_;
+        auto ymin_net = ymin*l_h/frameHeight_;
+        auto width_net = width*l_w/frameWidth_;
+        auto height_net = height*l_h/frameHeight_;
+
+        cv::Rect_<int> rect_layer = cv::Rect_<int>(xmin_net, ymin_net, width_net, height_net);
+//        cv::rectangle(layer_output, rect_layer, cv::Scalar( 0, 0, 255 ), 1);
+//        if(rect_layer.size().area()>0){
+            cv::Mat cost_roi;
+            layer_cost(rect_layer).copyTo(cost_roi);
+
+            Blob outputObs(cv::Rect(xmin, ymin, width, height));
+            outputObs.category = "Pedestrian";//classLabels_[i]; //mot
+            outputObs.probability = detListCurrFrame.at(kk).det_conf;
+            outputObs.feature_cost = cost_roi;
+            currentFrameBlobs.push_back(outputObs);
+//        }
+
+    }
+
+//    std::cout<<"tracking"<<std::endl;
+
+    std::chrono::high_resolution_clock::time_point t1, t2;
+    t1 = std::chrono::high_resolution_clock::now();
+    Tracking();
+    t2 = std::chrono::high_resolution_clock::now();
+    long durationTot;
+    durationTot = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1 ).count();
+    totTime += durationTot;
+    totFrames++;
+//    std::cout<<"CreateMsg"<<std::endl;
+    CreateMsg();
+
+}
+
 void *YoloObjectDetector::publishInThread()
 {
   // Publish image.
@@ -833,18 +1035,18 @@ void *YoloObjectDetector::publishInThread()
       }
     }
 
-    cv::Mat rgbOutput = buff_cv_rgb_[(buffIndex_ + 2) % 3].clone();
-    cv::Mat greyOutput = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
-    cv::Mat disparityMap = disparityFrame[(buffIndex_ + 2) % 3].clone();
-    cv::Mat hsv;
-    cv::cvtColor(rgbOutput, hsv, CV_BGR2HSV);
+    cv::Mat rgbOutput = buff_cv_rgb_.clone();
+//    cv::Mat greyOutput = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
+//    cv::Mat disparityMap = disparityFrame[(buffIndex_ + 2) % 3].clone();
+//    cv::Mat hsv;
+//    cv::cvtColor(rgbOutput, hsv, CV_BGR2HSV);
 
     std_msgs::Int8 msg;
     msg.data = static_cast<signed char>(num);
     objectPublisher_.publish(msg);
 
 //    float *netowrk_output = get_network_output(*net_);
-    layer cost_layer = net_->layers[net_->n-1];
+    layer cost_layer = net_->layers[net_->n-2];
     int l_w = cost_layer.out_w;
     int l_h = cost_layer.out_h;
     int l_c = cost_layer.out_c;
@@ -858,7 +1060,8 @@ void *YoloObjectDetector::publishInThread()
     for(int kk = 0; kk < l_c; ++kk){
         for(int ii = 0; ii < l_h; ++ii){
             for(int jj = 0; jj < l_w; ++jj){
-                layer_cost.at<cv::Vec<float, 10> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];
+//                layer_cost.at<cv::Vec<float, 21> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//kitti - 2 class
+                layer_cost.at<cv::Vec<float, 18> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//mot - 1 class
 //                std::cout<<cost_layer.output[ii+l_w*l_h*kk]<<"; ";
             }
         }
@@ -888,12 +1091,13 @@ void *YoloObjectDetector::publishInThread()
                   auto xmax_net = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * l_w);
                   auto ymax_net = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * l_h);
 
-                  if ((counter>2) ) {
+//                  if ((counter>2) ) {
 
                       cv::Rect_<int> rect_layer = cv::Rect_<int>(xmin_net, ymin_net, xmax_net - xmin_net, ymax_net - ymin_net);
                       cv::rectangle(layer_output, rect_layer, cv::Scalar( 0, 0, 255 ), 1);
                       cv::Mat cost_roi;
                       layer_cost(rect_layer).copyTo(cost_roi);
+//                      std::cout<<cost_roi<<std::endl;
 //                      cv::Mat roi_vis[l_c];
 //                      split(cost_vis_roi,roi_vis);
 //                      for(int ch = 0; ch < l_c; ++ch){
@@ -903,7 +1107,7 @@ void *YoloObjectDetector::publishInThread()
 //                      }
 
 //                      cv::Mat cost = cv::Mat::zeros((ymax_net-ymin_net)*fil_r, (xmax_net-xmin_net)*fil_c, CV_32FC1);
-////                    std::cout<<std::endl<<"New Object"<<std::endl;
+//                    std::cout<<std::endl<<"New Object"<<std::endl;
 //                      for(int jj = 0; jj < l_c; ++jj){
 //                          for(int ii = xmin_net*ymin_net; ii < xmax_net*ymax_net; ++ii){
 //                              std::cout<<cost_layer.output[ii+l_w*l_h*jj]<<"; ";
@@ -912,7 +1116,7 @@ void *YoloObjectDetector::publishInThread()
 //                      }
 
 
-                      cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
+//                      cv::Rect_<int> rect = cv::Rect_<int>(xmin, ymin, xmax - xmin, ymax - ymin);
 //                      cv::Mat mask = cv::Mat::zeros(greyOutput.size(), CV_8UC1);  // type of mask is CV_8U
 //                      cv::Mat roi(mask, rect);
 //                      roi = cv::Scalar(255);
@@ -939,6 +1143,8 @@ void *YoloObjectDetector::publishInThread()
 
                       Blob outputObs(cv::Rect(xmin, ymin, xmax - xmin, ymax - ymin));
                       outputObs.category = classLabels_[i];
+//                      outputObs.category = "Pedestrian";//classLabels_[i]; //mot
+//                      std::cout<<outputObs.category<<", ";
                       outputObs.probability = rosBoxes_[i][j].prob;
                       outputObs.feature_cost = cost_roi;
 //                      outputObs.kpDesc = desc;
@@ -950,14 +1156,14 @@ void *YoloObjectDetector::publishInThread()
 
                       currentFrameBlobs.push_back(outputObs);
 
-                  } else {
-                      ROS_WARN("*********************************************************");
-                  }
+//                  } else {
+//                      ROS_WARN("*********************************************************");
+//                  }
 
               }
           }
       }
-      cv::imshow("layer_output",layer_output);
+//      cv::imshow("layer_output",layer_output);
 
   } else {
     std_msgs::Int8 msg;
@@ -966,7 +1172,16 @@ void *YoloObjectDetector::publishInThread()
 //    std::cout << "************************************************num 0" << std::endl;
   }
 
-  Tracking();
+//  std::cout<<std::endl;
+    std::chrono::high_resolution_clock::time_point t1, t2;
+    t1 = std::chrono::high_resolution_clock::now();
+//  Tracking();
+    t2 = std::chrono::high_resolution_clock::now();
+    long durationTot;
+    durationTot = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1 ).count();
+    totTime += durationTot;
+    totFrames++;
+//    std::cout<<"Time per frame (for tracking) : "<<durationTot<<" ms"<<std::endl;
   CreateMsg();
 
   obstacleBoxesResults_.header.stamp = image_time_;
@@ -986,14 +1201,15 @@ void *YoloObjectDetector::publishInThread()
 
     void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
-        int simHeight = blobs.size();
-        int simWidth = currentFrameBlobs.size();
+        int simHeight = (int)blobs.size();
+        int simWidth = (int)currentFrameBlobs.size();
         // cv::Mat simSize(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
         //cv::Mat simApp(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
         //cv::Mat simKeyPts(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
         // cv::Mat simPos(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
-//        cv::Mat similarity(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
+        cv::Mat similarity(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
         cv::Mat disSimilarity(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
+        cv::Mat simGeometry(simHeight, simWidth, CV_64FC1, cv::Scalar(0));
         // std::cout<<"Debug matchCurrentFrameBlobsToExistingBlobs 1"<<std::endl;
 
 //        for (int c=0; c<simWidth; c++){
@@ -1012,18 +1228,45 @@ void *YoloObjectDetector::publishInThread()
                 Blob blob = blobs[r];
                 if (blob.blnStillBeingTracked){
                     if (currBlob.category == blob.category){
+
+//                        if(blob.intNumOfConsecutiveFramesWithoutAMatch==0){
+                            int xmin = blob.predictedNextPosition.x - blob.predictedWidth/2;
+                            int ymin = blob.predictedNextPosition.y - blob.predictedHeight/2;
+                            cv::Rect predictedBB(xmin, ymin, blob.predictedWidth, blob.predictedHeight);
+
+                            cv::Rect intersection = predictedBB & currBlob.boundingRects.back();
+                            cv::Rect unio = predictedBB | currBlob.boundingRects.back();
+                            simGeometry.at<double>(r,c) = (double)intersection.area()/unio.area();
+//                            std::cout<<simGeometry.at<double>(r,c)<<", "<<intersection.area()<<", "<<unio.area()<<", "<<predictedBB.area()<<", "<<currBlob.boundingRects.back().area()<<std::endl;
+//                        } else {
+//                            simGeometry.at<double>(r,c) = -1.0;
+//                        }
+
                         cv::Mat blbCosts[ch], reSizedBlbCosts[ch];
                         split(blob.feature_cost,blbCosts);
 //                        blob.feature_cost.copyTo(blbCosts);
-                        for(int ii = 0; ii < ch; ++ii){
-                            if(blob.currentBoundingRect.area()>currBlob.currentBoundingRect.area()){
-                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_AREA);
-                            } else {
-                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_LANCZOS4);
-                            }
-                            disSimilarity.at<double>(r,c) += cv::norm(currBlbCosts[ii],reSizedBlbCosts[ii]);
-                        }
+//                        std::cout<<"inside the cost calculation. ch: "<<ch<<", blob ch: "<<blob.feature_cost.channels()<<std::endl;
+//                        std::cout<<"blob area: "<<blob.boundingRects.back().area()<<", currBlob area: "<<currBlob.boundingRects.back().area()<<std::endl;
+//                        for(int ii = 0; ii < ch; ++ii){
+//                            if(blob.boundingRects.back().area()>currBlob.boundingRects.back().area()){
+//                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_AREA);
+//                            } else {
+//                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_CUBIC);// CV_INTER_LANCZOS4);
+//                            }
+////                            std::cout<<ii<<std::endl<<currBlbCosts[ii]<<std::endl;
+////                            std::cout<<reSizedBlbCosts[ii]<<std::endl;
+//                            disSimilarity.at<double>(r,c) += cv::norm(currBlbCosts[ii],reSizedBlbCosts[ii]);
+//                        }
+//                        std::cout<<currBlbCosts[20]<<std::endl;
+//                        std::cout<<r<<", "<<c<<": "<<disSimilarity.at<double>(r,c)<<"; ";
+                    } else {
+                        disSimilarity.at<double>(r,c) = -1.0;
+//                        simGeometry.at<double>(r,c) = -1.0;
+//                        std::cout<<currBlob.category<<", "<<blob.category<<std::endl;
                     }
+                } else {
+                    disSimilarity.at<double>(r,c) = -1.0;
+//                    simGeometry.at<double>(r,c) = -1.0;
                 }
             }
         } 
@@ -1074,37 +1317,176 @@ void *YoloObjectDetector::publishInThread()
         //similarity = simKeyPts  ;//+ simApp; //simSize + simPos;
         // similarity = simKeyPts;
 
-         std::cout<<"similarity"<<std::endl<<disSimilarity<<std::endl<<std::endl;
+//        double maxFeature=0.0;//maxGeo=0.0,
+//        double  minFeature=10000000.0; //minGeo=10000000.0,
+        cv::Mat maxFeatureDis;
+        cv::reduce(disSimilarity,maxFeatureDis,0,CV_REDUCE_MAX);
 
-        double min, max;
-        //cv::minMaxLoc(similarity, &min, &max);
-        cv::minMaxLoc(disSimilarity, &min, &max);
-
-        // std::cout<<"Debug matchCurrentFrameBlobsToExistingBlobs 3"<<std::endl;
-
-        for (int c=0; c<simWidth; c++){
-            double minDisSimilarity = 10000000.0;
-            int indexMinDisSimilarity = -1;
-            Blob &currentFrameBlob = currentFrameBlobs.at(c);
-            for (int r=0; r<simHeight; r++){
-                double disSimilarityVal = disSimilarity.at<double>(r,c);
-                if (disSimilarityVal>0){
-                    if (disSimilarityVal < minDisSimilarity) {
-                        minDisSimilarity = disSimilarityVal;
-                        indexMinDisSimilarity = r;
-                    }
+        for (int c=0; c<simWidth; c++) {
+            for (int r = 0; r < simHeight; r++) {
+                if (disSimilarity.at<double>(r,c)!=-1.0){
+                    disSimilarity.at<double>(r,c) /= maxFeatureDis.at<double>(0,c);
                 }
             }
-            if (indexMinDisSimilarity != -1) {
-                if ((minDisSimilarity < max) && (!blobs[indexMinDisSimilarity].blnAlreadyTrackedInThisFrame)) {
-                    addBlobToExistingBlobs(currentFrameBlob, blobs, indexMinDisSimilarity);
-                } else {
-                    addNewBlob(currentFrameBlob, blobs);
+        }
+
+//        for (int c=0; c<simWidth; c++){
+//            for (int r=0; r<simHeight; r++){
+//                double disSimilarityVal = disSimilarity.at<double>(r,c);
+//                if (disSimilarityVal>=0.0){
+//                    if (maxFeature < disSimilarityVal) {
+//                        maxFeature = disSimilarityVal;
+//                    }
+//                    if (minFeature > disSimilarityVal) {
+//                        minFeature = disSimilarityVal;
+//                    }
+//                }
+////                double simGeometryVal = simGeometry.at<double>(r,c);
+////                if (simGeometryVal>=0.0){
+////                    if (maxGeo < simGeometryVal) {
+////                        maxGeo = simGeometryVal;
+////                    }
+////                    if (minGeo > simGeometryVal) {
+////                        minGeo = simGeometryVal;
+////                    }
+////                }
+//            }
+//        }
+
+//        std::cout<<maxGeo
+
+        for (int c=0; c<simWidth; c++) {
+            for (int r = 0; r < simHeight; r++) {
+                double simGeometryVal = simGeometry.at<double>(r,c);
+                double disSimilarityVal = disSimilarity.at<double>(r,c);
+                if (disSimilarity.at<double>(r,c)==-1.0){
+                    similarity.at<double>(r,c)=simGeometryVal/2.0;
+//                    if (simGeometryVal>0.0){
+//                        std::cout<<"simGeometryVal: "<<simGeometryVal<<std::endl;
+//                    }
+                } else{
+//                    similarity.at<double>(r,c)=(simGeometryVal+(1.0-disSimilarityVal))/2.0;
+                    similarity.at<double>(r,c)=simGeometryVal;
                 }
+//                if (maxGeo==minGeo){
+//                    if (maxFeature==minFeature){
+//                        similarity.at<double>(r,c) =0.0;
+//                    } else {
+//                        similarity.at<double>(r,c)=(1.0-((disSimilarityVal-minFeature)/(maxFeature-minFeature)))/2;
+//                    }
+//                } else {
+//                    if (maxFeature==minFeature){
+//                        similarity.at<double>(r,c)=simGeometryVal/2.0;//((simGeometryVal-minGeo)/(maxGeo-minGeo))/2;
+//                    } else {
+//                        if (disSimilarity.at<double>(r,c)==-1.0){
+//                            similarity.at<double>(r,c)=simGeometryVal/2.0;
+//                        } else{
+//                            similarity.at<double>(r,c)=(simGeometryVal+(1.0-((disSimilarityVal-minFeature)/(maxFeature-minFeature))))/2;
+//                        }
+//                    }
+//                }
+//                if (simGeometryVal>0){
+//                    similarity.at<double>(r,c)=(((simGeometryVal-minGeo)/(maxGeo-minGeo))
+//                            +(1.0-((disSimilarityVal-minFeature)/(maxFeature-minFeature))))/2;
+//                } else if (disSimilarityVal>0){
+//                    similarity.at<double>(r,c)= 1.0-((disSimilarityVal-minFeature)/(maxFeature-minFeature));
+//                }
+            }
+        }
+
+        double min, max;
+        cv::minMaxLoc(similarity, &min, &max);
+        double thForSimilarityVal = std::max(0.25,max*0.5);
+        double thForHungarianCost = std::max(0.25,max*0.5);
+
+        std::vector< std::vector<double> > costMatrix;
+
+        for (int r = 0; r < simHeight; r++)  {
+            std::vector<double> costForEachTrack;
+            for (int c=0; c<simWidth; c++) {
+                costForEachTrack.push_back(1.0-similarity.at<double>(r,c));
+            }
+            costMatrix.push_back(costForEachTrack);
+        }
+
+        HungarianAlgorithm HungAlgo;
+        std::vector<int> assignment;
+
+        double hungarianCost = HungAlgo.Solve(costMatrix, assignment);
+
+        for (int trackID = 0; trackID < costMatrix.size(); trackID++){
+//            std::cout << trackID << "," << assignment[trackID] << "\t";
+            Blob &currentFrameBlob = currentFrameBlobs.at(assignment[trackID]);
+            double similarityVal = similarity.at<double>(trackID,assignment[trackID]);
+            if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && similarityVal>thForHungarianCost ) { //(minDisSimilarity < max)
+                currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
+                addBlobToExistingBlobs(currentFrameBlob, blobs, trackID);
             } else {
                 addNewBlob(currentFrameBlob, blobs);
             }
         }
+
+        for (int c=0; c<simWidth; c++){
+            Blob &currentFrameBlob = currentFrameBlobs.at(c);
+            if(!currentFrameBlob.blnAlreadyTrackedInThisFrame)
+                addNewBlob(currentFrameBlob, blobs);
+        }
+
+
+//        std::cout<<"similarity "<<frame_num<<std::endl;
+//        for (int c=0; c<simWidth; c++){
+//            for (int r=0; r<simHeight; r++){
+//                std::cout<<similarity.at<double>(r,c)<<"; ";
+//            }
+//            std::cout<<std::endl;
+//        }
+//        std::cout<<std::endl;
+//        std::cout<<"disSimilarity "<<std::endl;
+//        for (int c=0; c<simWidth; c++){
+//            for (int r=0; r<simHeight; r++){
+//                std::cout<<disSimilarity.at<double>(r,c)<<"; ";
+//            }
+//            std::cout<<std::endl;
+//        }
+//        std::cout<<std::endl;
+//        std::cout<<"simGeometry "<<std::endl;
+//        for (int c=0; c<simWidth; c++){
+//            for (int r=0; r<simHeight; r++){
+//                std::cout<<simGeometry.at<double>(r,c)<<"; ";
+//            }
+//            std::cout<<std::endl;
+//        }
+//        std::cout<<std::endl;
+
+
+
+        // std::cout<<"Debug matchCurrentFrameBlobsToExistingBlobs 3"<<std::endl;
+
+//        for (int c=0; c<simWidth; c++){
+////            double minDisSimilarity = 10000000.0;
+//            double maxSimilarity = 0.0;
+//            int indexMinDisSimilarity = -1;
+//            Blob &currentFrameBlob = currentFrameBlobs.at(c);
+//            for (int r=0; r<simHeight; r++){
+////                double disSimilarityVal = disSimilarity.at<double>(r,c);
+//                double similarityVal = similarity.at<double>(r,c);
+//                if (similarityVal>0.0){
+//                    if (maxSimilarity < similarityVal) {
+//                        maxSimilarity = similarityVal;
+//                        indexMinDisSimilarity = r;
+//                    }
+//                }
+//            }
+//            if (indexMinDisSimilarity != -1) {
+//                if ( (!blobs[indexMinDisSimilarity].blnAlreadyTrackedInThisFrame) && maxSimilarity>thForSimilarityVal ) { //(minDisSimilarity < max)
+//                    addBlobToExistingBlobs(currentFrameBlob, blobs, indexMinDisSimilarity);
+//                } else {
+//                    addNewBlob(currentFrameBlob, blobs);
+//                }
+//            } else {
+//                addNewBlob(currentFrameBlob, blobs);
+//            }
+//        }
 
 //        for (int c=0; c<simWidth; c++){
 //            double maxSimilarity = 0.0;
@@ -1146,7 +1528,8 @@ void *YoloObjectDetector::publishInThread()
 
     void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex) {
 
-        existingBlobs[intIndex].currentBoundingRect = currentFrameBlob.currentBoundingRect;
+//        existingBlobs[intIndex].currentBoundingRect = currentFrameBlob.currentBoundingRect;
+        existingBlobs[intIndex].boundingRects.push_back(currentFrameBlob.boundingRects.back());
         existingBlobs[intIndex].centerPositions.push_back(currentFrameBlob.centerPositions.back());
         existingBlobs[intIndex].dblCurrentDiagonalSize = currentFrameBlob.dblCurrentDiagonalSize;
         existingBlobs[intIndex].probability = currentFrameBlob.probability;
@@ -1171,7 +1554,7 @@ void *YoloObjectDetector::publishInThread()
     void YoloObjectDetector::Tracking (){
 
         if (blnFirstFrame) {
-            if (currentFrameBlobs.size()>0){
+            if (!currentFrameBlobs.empty()){
                 blnFirstFrame = false;
                 for (auto &currentFrameBlob : currentFrameBlobs)
                     blobs.push_back(currentFrameBlob);
@@ -1181,8 +1564,12 @@ void *YoloObjectDetector::publishInThread()
                 existingBlob.blnCurrentMatchFoundOrNewBlob = false;
                 existingBlob.blnAlreadyTrackedInThisFrame = false;
                 existingBlob.predictNextPosition();
+                existingBlob.predictWidthHeight();
             }
-            if (currentFrameBlobs.size()>0){
+
+//            std::cout<<"blob prediction finished"<<std::endl;
+
+            if (!currentFrameBlobs.empty()){
                 matchCurrentFrameBlobsToExistingBlobs();
             } else {
                 for (auto &existingBlob : blobs) {
@@ -1196,6 +1583,8 @@ void *YoloObjectDetector::publishInThread()
                 }
             }
 
+//            std::cout<<"blob association finished"<<std::endl;
+
         }
 
         currentFrameBlobs.clear();
@@ -1204,17 +1593,23 @@ void *YoloObjectDetector::publishInThread()
     void YoloObjectDetector::CreateMsg(){
 
         // cv::Mat output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
-        cv::Mat output = buff_cv_rgb_[(buffIndex_ + 2) % 3].clone();//camImageCopy_.clone();
+        cv::Mat output = buff_cv_rgb_.clone();//camImageCopy_.clone();
 
         // for (long int i = 0; i < currentFrameBlobs.size(); i++) {
         //   cv::rectangle(output, currentFrameBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
         // }
         // currentFrameBlobs.clear();
 
+        /*Tracking Result*/
         for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
             if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
-                cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+//                cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+                cv::rectangle(output, blobs[i].boundingRects.back(), cv::Scalar( 0, 0, 255 ), 2);
+//                int xmin = blobs[i].predictedNextPosition.x - blobs[i].predictedWidth/2;
+//                int ymin = blobs[i].predictedNextPosition.y - blobs[i].predictedHeight/2;
+//                cv::Rect predictedBB(xmin, ymin, blobs[i].predictedWidth, blobs[i].predictedHeight);
+//                cv::rectangle(output, predictedBB, cv::Scalar( 0, 255, 0 ), 2);
                 // cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
 //                for(int j=0; j<blobs[i].keyPoints.size();j++){
 //                     cv::circle(output,cv::Point((int)blobs[i].keyPoints[j].x,(int)blobs[i].keyPoints[j].y),2,cv::Scalar( 0, 255, 0 ));
@@ -1224,19 +1619,49 @@ void *YoloObjectDetector::publishInThread()
                 std::ostringstream str;
                 // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
                 str << "ID="<<i<<"; ";
-                cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 2, CV_RGB(0,250,255));
+                cv::putText(output, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 2, CV_RGB(0,255,0));
                 // cv::putText(output1, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 2, CV_RGB(255, 250, 255));
+
+                //mot
+                file << frame_num+1 <<", "<< i+1 << ", " << blobs[i].boundingRects.back().x << ", " << blobs[i].boundingRects.back().y << ", "
+                << blobs[i].boundingRects.back().width << ", " << blobs[i].boundingRects.back().height << ", "
+                << -1 << ", " << -1 << ", " << -1 << ", " << -1 << std::endl;
+
+
+                //kitti
+//                file << frame_num <<" "<< i << " " << blobs[i].category<< " "<< -1 << " " << -1 <<" " << -10 << " "
+//                     << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y << " "
+//                     << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " "
+//                     << blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " "
+//                     << -1 << " " << -1 << " " << -1 << " " << "-1000 -1000 -1000" << " " << -10 << " " << blobs[i].probability << std::endl;
+
             }
         }
+
+
+//        for (long int i = 0; i < currentFrameBlobs.size(); i++) {
+//
+//            cv::rectangle(output, currentFrameBlobs[i].boundingRects.back(), cv::Scalar( 0, 0, 255 ), 2);
+//            //mot det
+//            file << frame_num+1 <<", "<< -1 << ", " << currentFrameBlobs[i].boundingRects.back().x << ", " << currentFrameBlobs[i].boundingRects.back().y << ", "
+//                 << currentFrameBlobs[i].boundingRects.back().width << ", " << currentFrameBlobs[i].boundingRects.back().height << ", "
+//                 << currentFrameBlobs[i].probability << std::endl;
+//        }
+
+
+
         cv::imshow("debug", output);
         // cv::imshow("disparity", output1);
-        cv::waitKey(0);
+        cv::waitKey(1);
+//        currentFrameBlobs.clear();
+
+         sprintf(im, "f%03d.png", frame_num);
+         img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
+        // std::cout<<img_name<<std::endl;
+//         cv::imwrite(img_name, output);
+
 
         frame_num ++;
-        // sprintf(im, "f%03d.png", frame_num);
-        // img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
-        // std::cout<<img_name<<std::endl;
-        // cv::imwrite(img_name, output);
 
     }
 

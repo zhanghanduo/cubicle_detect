@@ -1,0 +1,11 @@
+yolo_model:
+
+  config_file:
+    name: yolo_mot.cfg #yolo_bdd_c1.cfg # yolo-obj.cfg  # yolov3-bdd.cfg
+  weight_file:
+    name: yolo_mot_35300.weights #yolo_bdd_c1_165300.weights #yolov_ugv.backup # yolo-obj_7100.weights #   #yolov3-bdd.weights
+  threshold:
+    value: 0.25
+  detection_classes:
+    names:
+      - pedestrian
