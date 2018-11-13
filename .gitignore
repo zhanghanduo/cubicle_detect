@@ -9,4 +9,4 @@ darknet_ros/data_MOT17Det/
 darknet_ros/yolo_network_config/weights/
 darknet_ros/seq_1
 darknet_ros/results
-models/
+models/pose
