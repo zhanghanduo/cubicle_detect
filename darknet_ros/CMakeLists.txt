@@ -38,6 +38,8 @@ add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
 option(LIBSGM_SHARED   "Build a shared library" OFF)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -122,6 +124,12 @@ find_package(catkin REQUIRED
 # Enable OPENCV in darknet
 add_definitions(-DOPENCV)
 add_definitions(-O4 -g)
+
+find_package(GFlags)
+find_package(Glog)
+find_package(OpenPose REQUIRED)
+
+include_directories(${OpenPose_INCLUDE_DIRS} ${GFLAGS_INCLUDE_DIR} ${GLOG_INCLUDE_DIR})
 
 find_package(Eigen3 3.1.0 REQUIRED)
 
@@ -225,6 +233,9 @@ if (CUDA_FOUND)
           ${Boost_LIBRARIES}
           ${catkin_LIBRARIES}
           ${OpenCV_LIBS}
+          ${OpenPose_LIBS}
+          ${GFLAGS_LIBRARY}
+          ${GLOG_LIBRARY}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
           ${PROJECT_SOURCE_DIR}/sgm/lib/libstereo_sgm.a

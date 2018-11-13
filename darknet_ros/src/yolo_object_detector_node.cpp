@@ -109,9 +109,9 @@ int main(int argc, char** argv) {
 
   mainFolder = "/home/ugv/catkin_ws/src/cubicle_detect/darknet_ros/data";
 
-//  std::cout<<"Debug main() before YoloObjectDetector initiation"<<std::endl;
+  std::cout<<"Debug main() before YoloObjectDetector initiation"<<std::endl;
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
-//  std::cout<<"Debug main() after YoloObjectDetector initiation"<<std::endl;
+  std::cout<<"Debug main() after YoloObjectDetector initiation"<<std::endl;
 
   if(nodeHandle.getParam("image_left_topic", image_left_topic))
     ROS_INFO("Get left image topic: %s", image_left_topic.c_str());
@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
 //  sync.registerCallback(boost::bind(&darknet_ros::YoloObjectDetector::cameraCallback,
 //                                    &detector ,_1, _2, _3));
 
-//  std::cout<<"Debug main() after camerCallBack"<<std::endl;
+  std::cout<<"Debug main() after camerCallBack"<<std::endl;
 
 //  ros::spin();
 
@@ -176,6 +176,12 @@ int main(int argc, char** argv) {
 
     const std::string detFileName = mainFolder +"/" + foldernames[ii] + file_ext;
     detector.readDetections(detFileName);
+
+//    cv::Mat testImage = imread(folderName + filenames[0] + ext);
+//      if (!testImage.data)
+//          std::cerr << "Problem loading image!!!" << std::endl;
+//      else
+//          detector.rearrangeDetection(testImage.size().height, testImage.size().width);
 
     for(size_t frame = 0; frame < filenames.size(); ++frame) {
       std::string fName = filenames[frame];

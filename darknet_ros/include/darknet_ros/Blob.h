@@ -8,6 +8,7 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp>
+#include<opencv2/video/tracking.hpp>
 
 namespace darknet_ros {
 
@@ -24,6 +25,14 @@ namespace darknet_ros {
 //        cv::Mat kpDesc;
 //        cv::MatND nHist;
         cv::Mat feature_cost;
+
+        cv::MatND histHead , histBody, histLegs;
+
+        bool isHead, isBody, isLegs;
+
+        cv::KalmanFilter kf;//(stateSize, measSize, contrSize, CV_32F);
+        cv::Mat state;//(stateSize, 1, CV_32F);  // [x,y,v_x,v_y,w,h]
+        cv::Mat meas;//(measSize, 1, CV_32F);    // [z_x,z_y,z_w,z_h]
 
 //        std::vector<cv::Point2i> obsPoints;     //2D coordinated with respect to the region of interest defined from rectified left image
 //
@@ -59,6 +68,8 @@ namespace darknet_ros {
         bool blnAlreadyTrackedInThisFrame;
 
         int intNumOfConsecutiveFramesWithoutAMatch;
+
+        Blob(float x, float y, float width, float height);
 
         Blob(cv::Rect _BBoxRect);
 

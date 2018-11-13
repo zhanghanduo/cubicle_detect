@@ -44,6 +44,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 #include <cv_bridge/cv_bridge.h>
+//#include "tracking.hpp"
 
 // darknet_ros_msgs
 #include "darknet_ros/Blob.h"
@@ -64,6 +65,8 @@
 #include <cuda_runtime_api.h>
 //#include <device_functions.h>
 //#include "device_launch_parameters.h"
+//#include <openpose/flags.hpp>
+#include <openpose/headers.hpp>
 
 #include "curand.h"
 #include "cublas_v2.h"
@@ -99,8 +102,9 @@ typedef struct
 
     typedef struct
     {
-        float bb_left, bb_top, bb_width, bb_height, det_conf;
-        int frameNum, objTrackID;
+        float bb_left=0.0, bb_top=0.0, bb_width=0.0, bb_height=0.0, det_conf=0.0;
+        int frameNum=0, objTrackID=0, personID=-1;
+        bool validDet = true;
     } inputDetections;
 
 class YoloObjectDetector
@@ -127,7 +131,11 @@ class YoloObjectDetector
 
     void readDetections(std::string name);
 
+    void rearrangeDetection(int imgHeight, int imgWidth);
+
     void setFileName(std::string name);
+
+    cv::MatND calculateHistogram(cv::Mat hsv, cv::Mat mask);
 
     void closeFile();
 
@@ -176,6 +184,8 @@ private:
    * @return true if successful.
    */
 
+  cv::Mat occlutionMap(cv::Rect_<int> bbox, size_t kk);
+
   void processImage();
 
   void readCurrFrameDets(float det_conf_th);
@@ -185,6 +195,8 @@ private:
   void dataAssociation();
 
   void Tracking();
+
+  void matchCurrentDetectionsToExisting();
 
   void matchCurrentFrameBlobsToExistingBlobs();
 
@@ -251,6 +263,9 @@ private:
   Util::HOGFeatureDescriptor* hog_descriptor;
   cv::Ptr<cv::AKAZE> akaze = cv::AKAZE::create();
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
+
+  op::Wrapper opWrapper{op::ThreadManagerMode::Asynchronous};
+
 
   // Yolo running on thread.
   std::thread yoloThread_;
@@ -345,6 +360,10 @@ private:
   bool isNodeRunning(void);
 
   void *publishInThread();
+
+  void displayPose(const std::shared_ptr<std::vector<op::Datum>>& datumsPtr);
+
+  void extractBodyParts(const std::shared_ptr<std::vector<op::Datum>>& datumsPtr);
 
   bool use_grey;
 

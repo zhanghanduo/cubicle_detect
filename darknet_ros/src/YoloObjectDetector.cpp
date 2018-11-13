@@ -50,7 +50,43 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   }
 //  mpDetection = new Detection(this, nodeHandle_);
 //  nullHog.assign(36, 0.0);
-  init();
+//  init();
+
+  std::string model_folder = "/home/ugv/catkin_ws/src/cubicle_detect/models/";//std::string(std::getenv("OPENPOSE_HOME")) + std::string("/models/");
+//  const auto heatMapTypes = op::flagsToHeatMaps(false, false, false);
+//  const auto heatMapScale = op::flagsToHeatMapScaleMode(op::ScaleMode::ZeroToOne);
+//  op::flagsTo
+//  const op::WrapperStructPose wrapperStructPose{
+//      true, "-1x368", "-1x-1", 0, -1, 0, 1, (float) 0.3, op::flagsToRenderMode(-1, false), "BODY_25", true,
+//      (float) 0.6, (float) 0.7, 0, model_folder, heatMapTypes, op::ScaleMode::ZeroToOne, false, (float) 0.05, -1, true};
+
+//  std::cout<<"before WrapperStructPose"<<std::endl;
+//
+//  const op::WrapperStructPose wrapperStructPose{
+//          true, {}, {}, {}, {}, {}, {}, {}, op::flagsToRenderMode(2, false), {}, {},
+//          {}, {}, {}, model_folder, {}, {}, {}, {}, {}, true};
+
+  const op::WrapperStructPose wrapperStructPose{true, op::Point<int>{656, 368}, op::Point<int>{-1, -1},
+                                                op::ScaleMode::InputResolution, -1, 0, 1, 0.15f, op::RenderMode::Gpu,
+                                                op::PoseModel::BODY_25, true, op::POSE_DEFAULT_ALPHA_KEYPOINT,
+                                                op::POSE_DEFAULT_ALPHA_HEAT_MAP, 0, model_folder, {}, op::ScaleMode::ZeroToOne, false,
+                                                0.05f, -1, true};
+//
+//  std::cout<<"WrapperStructPose"<<std::endl;
+//
+  opWrapper.configure(wrapperStructPose);
+  opWrapper.configure(op::WrapperStructFace{});
+  opWrapper.configure(op::WrapperStructHand{});
+  opWrapper.configure(op::WrapperStructExtra{});
+  opWrapper.configure(op::WrapperStructOutput{});
+//
+//  std::cout<<"before disable multithread"<<std::endl;
+  opWrapper.disableMultiThreading();
+    opWrapper.start();
+//  std::cout<<"after disable multithread"<<std::endl;
+
+
+//  std::cout<<"opWrapper start"<<std::endl;
 
 //  SGM = new disparity_sgm(7, 86);
 //  SGM->init_disparity_method(7, 86);
@@ -464,6 +500,451 @@ void YoloObjectDetector::DefineLUTs() {
 
     }
 
+    void YoloObjectDetector::displayPose(const std::shared_ptr<std::vector<op::Datum>>& datumsPtr){
+
+        cv::Mat outputKP = camImageCopy_.clone();
+
+        if (datumsPtr != nullptr && !datumsPtr->empty())
+        {
+//            op::log("Body keypoints: " + datumsPtr->at(0).poseKeypoints.toString());
+
+//            op::log("Pose ID: " + datumsPtr->at(0).poseIds.toString());
+
+            for(int ii=0; ii<datumsPtr->at(0).poseKeypoints.getVolume();ii+=3){
+                std::ostringstream str;
+                cv::Point2i position;
+                position.x = (int) datumsPtr->at(0).poseKeypoints.at(ii);
+                position.y = (int) datumsPtr->at(0).poseKeypoints.at(ii+1);
+                // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
+//                if (ii%75==0){
+//                    std::cout<<"new person"<<std::endl;
+//                }
+//                std::cout<<position.x<<", "<<position.y<<", "<<datumsPtr->at(0).poseKeypoints.at(ii+2)<<std::endl;
+                if (datumsPtr->at(0).poseKeypoints.at(ii+2)>0.0){
+//                    std::cout<<position.x<<", "<<position.y<<", "<<datumsPtr->at(0).poseKeypoints.at(ii+2)<<std::endl;
+                    str << ii;//datumsPtr->at(0).poseKeypoints.at(ii+2);
+                    cv::putText(outputKP, str.str(), position, CV_FONT_HERSHEY_PLAIN, 0.7, CV_RGB(0,0,255));
+                }
+
+            }
+            cv::imshow("outputKP",outputKP);
+            // Display image
+//            float fuk = datumsPtr->at(0).poseKeypoints.at(0);
+            cv::imshow("User worker GUI", datumsPtr->at(0).cvOutputData);
+//            cv::waitKey(0);
+        }
+        else
+            op::log("Nullptr or empty datumsPtr found.", op::Priority::High);
+    }
+
+    cv::MatND YoloObjectDetector::calculateHistogram(cv::Mat hsv, cv::Mat mask){
+        // Quantize the hue to 30 levels and the saturation to 32 levels
+        int hbins = 30, sbins = 32;
+        int histSize[] = {30,32};//{hbins, sbins};{hbins, sbins};
+        // // hue varies from 0 to 179, see cvtColor
+        float hranges[] = { 0, 180 };
+        // // saturation varies from 0 (black-gray-white) to 255 (pure spectrum color)
+        float sranges[] = { 0, 256 };
+        const float* ranges[] = { hranges, sranges };
+        cv::MatND hist;
+        // we compute the histogram from the 0-th and 1-st channels
+        int channels[] = {0, 1};
+
+        cv::calcHist( &hsv, 1, channels, mask, hist, 2, histSize, ranges, true, false );
+        cv::normalize(hist, hist, 1, 0, 2, -1, cv::Mat());
+
+        return hist;
+    }
+
+    void YoloObjectDetector::extractBodyParts(const std::shared_ptr<std::vector<op::Datum>>& datumsPtr){
+
+        cv::Mat outputBP = camImageCopy_.clone();
+        cv::Mat hsv;
+        cv::cvtColor(outputBP, hsv, CV_BGR2HSV);
+        currentFrameBlobs.clear();
+
+        if (datumsPtr != nullptr && !datumsPtr->empty()) {
+
+            std::vector<cv::Point3f> partList;
+
+//            std::cout<<"extracting pose points"<<std::endl;
+
+            for(int ii=0; ii<datumsPtr->at(0).poseKeypoints.getVolume();ii+=3) {
+                cv::Point3f partDescriptor;
+                partDescriptor.x = datumsPtr->at(0).poseKeypoints.at(ii);
+                partDescriptor.y = datumsPtr->at(0).poseKeypoints.at(ii+1);
+                partDescriptor.z = datumsPtr->at(0).poseKeypoints.at(ii+2);
+                partList.push_back(partDescriptor);
+            }
+
+            int noOfPersons = static_cast<int>(partList.size() / 25);
+//            std::cout<<"allocating person for each detection box, #persons:"<<noOfPersons<<std::endl;
+
+            for (size_t kk = 0; kk < detListCurrFrame.size(); kk++) {
+
+                if (detListCurrFrame.at(kk).validDet) {
+
+                    auto xmin = detListCurrFrame.at(kk).bb_left;
+                    auto ymin = detListCurrFrame.at(kk).bb_top;
+                    auto width = detListCurrFrame.at(kk).bb_width;
+                    auto height = detListCurrFrame.at(kk).bb_height;
+
+                    cv::Rect_<int> detBBox = cv::Rect_<int>(static_cast<int>(xmin), static_cast<int>(ymin),
+                                                            static_cast<int>(width), static_cast<int>(height));
+
+                    float maxCost = 0.0, maxIOU = 0.0;
+                    int indexOfMaxCost = -1;
+
+//                std::cout<<"new detection"<<std::endl;
+
+                    for (int ii = 0; ii < noOfPersons; ii++) {
+                        float costForPerson = 0.0;
+                        int noOfPartsOutside = 0;// allPartsInside = true;
+
+                        float partsXMin = 10000, partsYMin = 10000, partsXMax = 0, partsYMax = 0;
+
+                        for (int jj = 0; jj < 25; jj++) {
+                            auto ppart = partList.at(ii * 25 + jj);
+                            if (ppart.z > 0.0) {
+
+                                float xCord = ppart.x;
+                                float yCord = ppart.y;
+
+                                if (xCord >= xmin && xCord <= xmin + width &&
+                                    yCord >= ymin && yCord <= ymin + height) {
+                                    costForPerson += ppart.z;
+                                } else {
+                                    noOfPartsOutside++;
+//                                std::cout<<ii<<"th person, "<<jj<<std::endl;
+                                }
+
+                                if (partsXMin > xCord)
+                                    partsXMin = xCord;
+
+                                if (partsXMax < xCord)
+                                    partsXMax = xCord;
+
+                                if (partsYMin > yCord)
+                                    partsYMin = yCord;
+
+                                if (partsYMax < yCord)
+                                    partsYMax = yCord;
+
+                            }
+                        }
+
+                        cv::Rect_<int> minBBox = cv::Rect_<int>(static_cast<int>(partsXMin),
+                                                                static_cast<int>(partsYMin),
+                                                                static_cast<int>(partsXMax - partsXMin),
+                                                                static_cast<int>(partsYMax - partsYMin));
+
+                        cv::Rect intersection = detBBox & minBBox;
+                        cv::Rect unio = detBBox | minBBox;
+                        float iou = (float) intersection.area() / unio.area();
+
+                        costForPerson *= iou;
+
+                        if (noOfPartsOutside > 10)
+                            costForPerson = 0.0;
+
+                        if (costForPerson > maxCost) {
+                            maxCost = costForPerson;
+                            indexOfMaxCost = ii;
+                            maxIOU = iou;
+                        }
+
+//                    std::cout<<"bbox: "<<kk<<", pID: "<<ii<<", iou: "<<iou<<", partsOutside: "<<noOfPartsOutside<<", costFor: "<<costForPerson<<std::endl;
+                    }
+
+                    if (indexOfMaxCost != -1 && maxIOU > 0.1) {
+                        detListCurrFrame.at(kk).personID = indexOfMaxCost;
+                    }
+                }
+
+            }
+
+            for (size_t kk = 0; kk < detListCurrFrame.size(); kk++) {
+
+                inputDetections inputDetkk = detListCurrFrame.at(kk);
+
+                if(inputDetkk.personID!=-1){
+
+                    for (size_t ll = 0; ll < detListCurrFrame.size(); ll++) {
+                        if (ll==kk)
+                            continue;
+
+                        inputDetections inputDetll = detListCurrFrame.at(ll);
+
+                        if(inputDetkk.personID==inputDetll.personID){
+                            float partsXMin = 10000, partsYMin = 10000, partsXMax =0, partsYMax =0;
+                            for (int jj=0; jj<25; jj++){
+                                auto ppart = partList.at(inputDetll.personID*25+jj);
+                                if (ppart.z>0.0){
+                                    float xCord = ppart.x;
+                                    float yCord = ppart.y;
+
+                                    if (partsXMin>xCord)
+                                        partsXMin = xCord;
+                                    if (partsXMax<xCord)
+                                        partsXMax = xCord;
+
+                                    if (partsYMin>yCord)
+                                        partsYMin = yCord;
+                                    if (partsYMax<yCord)
+                                        partsYMax = yCord;
+                                }
+                            }
+
+                            cv::Rect_<int> minBBox = cv::Rect_<int>(static_cast<int>(partsXMin), static_cast<int>(partsYMin),
+                                                                    static_cast<int>(partsXMax - partsXMin),
+                                                                    static_cast<int>(partsYMax - partsYMin));
+
+                            cv::Rect_<int> bboxkk = cv::Rect_<int>(static_cast<int>(inputDetkk.bb_left),
+                                                                   static_cast<int>(inputDetkk.bb_top),
+                                                                   static_cast<int>(inputDetkk.bb_width),
+                                                                   static_cast<int>(inputDetkk.bb_height));
+                            cv::Rect_<int> bboxll = cv::Rect_<int>(static_cast<int>(inputDetll.bb_left),
+                                                                   static_cast<int>(inputDetll.bb_top),
+                                                                   static_cast<int>(inputDetll.bb_width),
+                                                                   static_cast<int>(inputDetll.bb_height));
+
+                            cv::Rect intersectionkk = bboxkk & minBBox;
+                            cv::Rect uniokk = bboxkk | minBBox;
+                            float ioukk = (float)intersectionkk.area() / uniokk.area();
+
+                            cv::Rect intersectionll = bboxll & minBBox;
+                            cv::Rect unioll = bboxll | minBBox;
+                            float ioull = (float)intersectionll.area() / unioll.area();
+
+                            if (ioukk>ioull) {
+                                detListCurrFrame.at(ll).personID = -1;
+                                detListCurrFrame.at(ll).validDet = false;
+                            } else {
+                                detListCurrFrame.at(kk).personID = -1;
+                                detListCurrFrame.at(kk).validDet = false;
+                            }
+                        }
+                    }
+                } else {
+                    if (inputDetkk.bb_height>frameHeight_*.2)
+                        detListCurrFrame.at(kk).validDet = false;
+                }
+            }
+
+            std::vector<cv::Scalar> colors;
+            cv::RNG rng(0);
+            for(int i=0; i < detListCurrFrame.size(); i++)
+                colors.push_back(cv::Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255)));
+
+//            std::cout<<"extracting head, body and leg"<<std::endl;
+
+            for (size_t kk = 0; kk < detListCurrFrame.size(); kk++) {
+
+                if (detListCurrFrame.at(kk).validDet) {
+
+                    auto xmin = static_cast<int>(detListCurrFrame.at(kk).bb_left);
+                    auto ymin = static_cast<int>(detListCurrFrame.at(kk).bb_top);
+                    auto width = static_cast<int>(detListCurrFrame.at(kk).bb_width);
+                    auto height = static_cast<int>(detListCurrFrame.at(kk).bb_height);
+                    auto pID = detListCurrFrame.at(kk).personID;
+
+                    cv::Rect_<int> bbox = cv::Rect_<int>(xmin, ymin, width, height);
+                    cv::rectangle(outputBP, bbox, colors.at(kk), 2);
+
+//                    Blob outputObs(bbox);
+                    Blob outputObs(detListCurrFrame.at(kk).bb_left,
+                                   detListCurrFrame.at(kk).bb_top,
+                                   detListCurrFrame.at(kk).bb_width,
+                                   detListCurrFrame.at(kk).bb_height);
+                    outputObs.category = "Pedestrian";//classLabels_[i]; //mot
+                    outputObs.probability = detListCurrFrame.at(kk).det_conf;
+
+//                std::cout<<"bbox: "<<kk<<", pID: "<<pID<<std::endl;
+
+                    if (pID != -1) {
+
+                        cv::Mat blobMask = occlutionMap(bbox, kk);
+                        cv::Mat hsvBBoxROI;
+                        hsv(bbox).copyTo(hsvBBoxROI);
+//                        std::ostringstream str;
+//                        str << "BBox "<<kk;
+//                        cv::imshow(str.str(),blobMask*255);
+
+//                    cv::rectangle(outputBP, bbox, colors.at(kk),2);
+//                    cv::Point3f nose = partList.at(25*pID);
+//                    cv::Point3f neck = partList.at(25*pID+1);
+                        cv::Point3f Rshoulder = partList.at(25 * pID + 2);
+                        cv::Point3f Lshoulder = partList.at(25 * pID + 5);
+                        cv::Point3f Midhip = partList.at(25 * pID + 8);
+//                    cv::Point3f Rhip = partList.at(25*pID+9);
+//                    cv::Point3f Lhip = partList.at(25*pID+12);
+                        cv::Point3f Rankle = partList.at(25 * pID + 11);
+                        cv::Point3f Lankle = partList.at(25 * pID + 14);
+                        cv::Point3f Rear = partList.at(25 * pID + 17);
+                        cv::Point3f Lear = partList.at(25 * pID + 18);
+
+//                    std::cout<<Rshoulder<<", "<<Lshoulder<<", "<<Midhip<<", "<<Rear<<", "<<Lear<<std::endl;
+
+                        //Extract head
+                        cv::Mat maskHead(camImageCopy_.size(),CV_8UC1,cv::Scalar::all(0));
+                        if (Lear.z > 0.0 && Rear.z > 0.0) {
+
+                            cv::Point2i center = cv::Point2i((int) ((Lear.x + Rear.x) / 2),
+                                                             (int) ((Lear.y + Rear.y) / 2));
+
+                            if (bbox.contains(cv::Point((int) Lear.x, (int) Lear.y)) &&
+                                bbox.contains(cv::Point((int) Rear.x, (int) Rear.y))){
+
+                                cv::circle(maskHead, center, (int) (std::fabs(Lear.x - Rear.x) / 2), cv::Scalar::all(1),CV_FILLED);
+                                cv::circle(outputBP, center, (int) (std::fabs(Lear.x - Rear.x) / 2), colors.at(kk));
+
+                                cv::Mat maskRoiHead = maskHead(bbox).mul(blobMask);
+                                outputObs.histHead = calculateHistogram(hsvBBoxROI,maskRoiHead);
+                                outputObs.isHead = true;
+//                                cv::imshow("maskRoiHead",maskRoiHead*255);
+                            }
+                        }
+//                        maskHead(bbox).copyTo(maskRoiHead);
+
+                        //extract body
+                        cv::Mat maskBody(camImageCopy_.size(),CV_8UC1,cv::Scalar::all(0));
+                        cv::Point2i topLeft = cv::Point2i(static_cast<int>(Rshoulder.x), static_cast<int>(Rshoulder.y));
+                        if (Rshoulder.x > Lshoulder.x)
+                            topLeft = cv::Point2i(static_cast<int>(Lshoulder.x), static_cast<int>(Lshoulder.y));
+                        int bodyWidth = static_cast<int>(std::fabs(Rshoulder.x - Lshoulder.x));
+
+                        if (Rshoulder.z > 0.0 && Lshoulder.z > 0.0 && Midhip.z > 0.0) {
+                            int bodyHeight = static_cast<int>(std::fabs(Rshoulder.y - Midhip.y));
+
+                            if (bbox.contains(topLeft) &&
+                                bbox.contains(cv::Point(topLeft.x + bodyWidth, topLeft.y + bodyHeight))) {
+
+                                cv::rectangle(maskBody, cv::Rect(topLeft.x, topLeft.y, bodyWidth, bodyHeight),
+                                              cv::Scalar::all(1),CV_FILLED);
+                                cv::rectangle(outputBP, cv::Rect(topLeft.x, topLeft.y, bodyWidth, bodyHeight),
+                                              colors.at(kk));
+
+                                cv::Mat maskRoiBody = maskBody(bbox).mul(blobMask);
+                                outputObs.histBody = calculateHistogram(hsvBBoxROI,maskRoiBody);
+                                outputObs.isBody = true;
+//                                cv::imshow("maskRoiBody",maskRoiBody*255);
+                            }
+
+                        } else if (Rshoulder.z > 0.0 && Lshoulder.z > 0.0) {
+                            int bodyHeight = static_cast<int>(std::fabs(ymin + height - Rshoulder.y));
+                            if (bbox.contains(topLeft) &&
+                                bbox.contains(cv::Point(topLeft.x + bodyWidth, topLeft.y + bodyHeight))) {
+
+                                cv::rectangle(maskBody, cv::Rect(topLeft.x, topLeft.y, bodyWidth, bodyHeight),
+                                              cv::Scalar::all(1),CV_FILLED);
+                                cv::rectangle(outputBP, cv::Rect(topLeft.x, topLeft.y, bodyWidth, bodyHeight),
+                                              colors.at(kk));
+
+                                cv::Mat maskRoiBody = maskBody(bbox).mul(blobMask);
+                                outputObs.histBody = calculateHistogram(hsvBBoxROI,maskRoiBody);
+                                outputObs.isBody = true;
+//                                cv::imshow("maskRoiBody",maskRoiBody*255);
+                            }
+
+                        }
+
+                        //extract legs
+                        cv::Mat maskLegs(camImageCopy_.size(),CV_8UC1,cv::Scalar::all(0));
+                        if (Midhip.z > 0.0 && Rshoulder.z > 0.0 && Lshoulder.z > 0.0) {
+                            int bodyHeight = static_cast<int>(std::fabs(ymin + height - Midhip.y));
+                            if (Rankle.z > 0.0 && Rankle.y < ymin + height)
+                                bodyHeight = static_cast<int>(std::fabs(Rankle.y - Midhip.y));
+                            else if (Lankle.z > 0.0 && Lankle.y < ymin + height)
+                                bodyHeight = static_cast<int>(std::fabs(Lankle.y - Midhip.y));
+
+                            int topOff = static_cast<int>(Midhip.y);
+
+                            if (bbox.contains(cv::Point(topLeft.x, topOff)) &&
+                                bbox.contains(cv::Point(topLeft.x + bodyWidth, topOff + bodyHeight))) {
+
+                                cv::rectangle(maskLegs, cv::Rect(topLeft.x, topOff, bodyWidth, bodyHeight),
+                                              cv::Scalar::all(1),CV_FILLED);
+                                cv::rectangle(outputBP, cv::Rect(topLeft.x, topOff, bodyWidth, bodyHeight),
+                                              colors.at(kk));
+
+                                cv::Mat maskRoiLegs = maskLegs(bbox).mul(blobMask);
+                                outputObs.histLegs = calculateHistogram(hsvBBoxROI,maskRoiLegs);
+                                outputObs.isLegs = true;
+//                                cv::imshow("maskRoiLegs",maskRoiLegs*255);
+                            }
+                        }
+                    }
+
+                    currentFrameBlobs.push_back(outputObs);
+                }
+
+            }
+
+        }
+
+        cv::imshow("outputBP",outputBP);
+        cv::waitKey(0);
+
+    }
+
+    cv::Mat YoloObjectDetector::occlutionMap(cv::Rect_<int> bbox, size_t kk) {
+
+//        cv::Mat output = camImageCopy_.clone();
+
+//        for (size_t kk = 0; kk < detListCurrFrame.size(); kk++) {
+//            auto xmin = static_cast<int>(detListCurrFrame.at(kk).bb_left);
+//            auto ymin = static_cast<int>(detListCurrFrame.at(kk).bb_top);
+//            auto width = static_cast<int>(detListCurrFrame.at(kk).bb_width);
+//            auto height = static_cast<int>(detListCurrFrame.at(kk).bb_height);
+//            cv::Rect_<int> bbox = cv::Rect_<int>(xmin, ymin, width, height);
+//
+//            cv::rectangle(output, bbox, cv::Scalar( 0, 0, 255 ), 2);
+
+            cv::Mat mask(camImageCopy_.size(),CV_8UC1,cv::Scalar::all(1));// = cv::Mat::ones(camImageCopy_.size(),CV_8UC3);
+
+            for (size_t ii = 0; ii < detListCurrFrame.size(); ii++){
+                if (ii==kk)
+                    continue;
+
+                if(detListCurrFrame.at(ii).validDet){
+                    auto xminii = static_cast<int>(detListCurrFrame.at(ii).bb_left);
+                    auto yminii = static_cast<int>(detListCurrFrame.at(ii).bb_top);
+                    auto widthii = static_cast<int>(detListCurrFrame.at(ii).bb_width);
+                    auto heightii = static_cast<int>(detListCurrFrame.at(ii).bb_height);
+                    cv::Rect_<int> bboxii = cv::Rect_<int>(xminii, yminii, widthii, heightii);
+
+                    cv::Rect intersection = bbox & bboxii;
+
+                    if (intersection.area()>0){
+                        if (bbox.y+bbox.height<yminii+heightii) {
+                            mask(intersection).setTo(cv::Scalar::all(0));
+//                        std::cout<<intersection<<std::endl;
+                        }
+                    }
+                }
+
+            }
+
+            cv::Mat maskroi;
+            mask(bbox).copyTo(maskroi);
+
+            return maskroi;
+
+//            cv::Mat imgCopy, imgroi, maskedimg;
+//            camImageCopy_.copyTo(imgCopy);
+//            maskedimg = imgCopy.mul(mask);
+//            maskedimg(bbox).copyTo(imgroi);
+
+//            std::ostringstream str;
+//            str << "BBox "<<kk;
+//            cv::imshow(str.str(),imgroi);
+//            cv::imshow(str.str(),mask*255);
+
+//        }
+
+//        cv::imshow("output",output);
+    }
+
     void YoloObjectDetector::readImage(cv::Mat img, std::string name){
 
         camImageCopy_ = img.clone();
@@ -471,12 +952,26 @@ void YoloObjectDetector::DefineLUTs() {
         frameWidth_ = img.size().width;
         frameHeight_ = img.size().height;
 
-        if (initiated) {
-            processImage();
-        } else {
-            yolo();
-            processImage();
+//        cv::imshow("camImageCopy_", camImageCopy_);
+//        cv::waitKey(0);
+
+
+        auto datumProcessed = opWrapper.emplaceAndPop(camImageCopy_);
+        if (datumProcessed != nullptr) {
+            displayPose(datumProcessed);
         }
+//        else
+//            op::log("Image could not be processed.", op::Priority::High);
+
+        processImage();
+        extractBodyParts(datumProcessed);
+
+//        if (initiated) {
+//            processImage();
+//        } else {
+//            yolo();
+//            processImage();
+//        }
     }
 
     void YoloObjectDetector::readDetections(std::string name){
@@ -508,9 +1003,9 @@ void YoloObjectDetector::DefineLUTs() {
                     fileLine.bb_left = 0.0;
                 if (fileLine.bb_top<0.0)
                     fileLine.bb_top = 0.0;
+
                 detList.push_back(fileLine);
             }
-
 //            std::cout<<std::endl;
 //            std::cout << "Line Finished" << std::endl;
 
@@ -525,12 +1020,147 @@ void YoloObjectDetector::DefineLUTs() {
         std::cout << "Detections Read" << std::endl;
     }
 
+    void YoloObjectDetector::rearrangeDetection(int imgHeight, int imgWidth) {
+
+//        std::cout<<"rearrangeDetection"<<std::endl;
+
+        for (size_t i = 0; i < detList.size(); i++) {
+            float width_del = detList.at(i).bb_left + detList.at(i).bb_width - float(imgWidth);
+            float height_del = detList.at(i).bb_top + detList.at(i).bb_height - float(imgHeight);
+
+            if (width_del > 0.0)
+                detList.at(i).bb_width -= width_del;
+
+            if (height_del > 0.0)
+                detList.at(i).bb_height -= height_del;
+
+        }
+
+//        std::cout<<"medianPedHeight"<<std::endl;
+
+//        std::vector<std::vector<float> > pedHeight;
+        std::vector<float>  medianPedHeight;
+
+        for (int i =0; i<imgHeight; i++){
+            std::vector<float> heightArray;
+            for (size_t kk = 0; kk < detList.size(); kk++){
+                int bottomRow = static_cast<int>(detList.at(kk).bb_top + detList.at(kk).bb_height);
+                if (bottomRow==i){//} && detList.at(kk).det_conf>2.5){
+                    heightArray.push_back(detList.at(kk).bb_height);
+                }
+            }
+
+//            std::cout<<"sorting heightarray"<<std::endl;
+
+            if (!heightArray.empty())
+                std::sort(heightArray.begin(),heightArray.end());
+//            pedHeight.push_back(heightArray);
+
+//            std::cout<<"median position calculation"<<std::endl;
+
+            int medianPosition = -1;
+//            if (heightArray.empty())
+//                medianPosition = -1;
+            if(heightArray.size()<5)
+                medianPosition = -1;
+            else if (heightArray.size()%2==0)
+                medianPosition = static_cast<int>(heightArray.size() / 2);
+            else if (heightArray.size()%2==1)
+                medianPosition = static_cast<int>((heightArray.size()+1)/ 2);
+
+//            std::cout<<"median array creation"<<std::endl;
+            float medianHeight = 0.0;
+            if (medianPosition!=-1)
+                medianHeight = heightArray.at(medianPosition);
+
+            medianPedHeight.push_back(medianHeight);
+        }
+
+//        for (int i =0; i<pedHeight.size(); i++){
+//            std::cout<<std::endl;
+//            for (size_t kk = 0; kk < pedHeight.at(i).size(); kk++){
+//                std::cout<<pedHeight.at(i).at(kk)<<", ";
+//            }
+//        }
+
+//        std::cout<<"invalidation big detections"<<std::endl;
+
+//        for (int i =0; i<medianPedHeight.size(); i++){
+//            std::cout<<i<<", "<<medianPedHeight.at(i)<<std::endl;
+//        }
+
+        float prvValue = 0.0;
+        for (int i = static_cast<int>(medianPedHeight.size() - 1); i > -1; i--){
+            float value = medianPedHeight.at(i);
+            if (value == 0.0)
+                medianPedHeight.at(i) = prvValue;
+            else if (prvValue>0.0 && value > prvValue)
+                medianPedHeight.at(i) = prvValue;
+            else if (prvValue>0.0 && value<prvValue)
+                prvValue = value;
+            else if (value>0.0)
+                prvValue = value;
+//            std::cout<<i<<", "<<medianPedHeight.at(i)<<std::endl;
+        }
+
+        for (size_t i = 0; i < detList.size(); i++) {
+            int bottomRow = static_cast<int>(detList.at(i).bb_top + detList.at(i).bb_height);
+            float medianHeightRow = static_cast<float>(1.1 * medianPedHeight.at(
+                    static_cast<unsigned long>(bottomRow - 1)));
+            if (medianHeightRow>0.0 && detList.at(i).bb_height>medianHeightRow){
+                detList.at(i).validDet = false;
+//                std::cout<<"invalidated: "<<i<<std::endl;
+            }
+        }
+
+//        for (int i =0; i<medianPedHeight.size(); i++){
+//            std::cout<<i<<", "<<medianPedHeight.at(i)<<std::endl;
+//        }
+//
+//        std::cout<<"removing detections within detections"<<std::endl;
+
+//        for (size_t kk = 0; kk < detList.size(); kk++) {
+//
+//            if(detList.at(kk).validDet){
+//                auto xmin = static_cast<int>(detList.at(kk).bb_left);
+//                auto ymin = static_cast<int>(detList.at(kk).bb_top);
+//                auto width = static_cast<int>(detList.at(kk).bb_width);
+//                auto height = static_cast<int>(detList.at(kk).bb_height);
+//                cv::Rect_<int> bbox = cv::Rect_<int>(xmin, ymin, width, height);
+//
+//                for (size_t ii = 0; ii < detList.size(); ii++) {
+//                    if (ii == kk)
+//                        continue;
+//
+//                    auto xminii = static_cast<int>(detList.at(ii).bb_left);
+//                    auto yminii = static_cast<int>(detList.at(ii).bb_top);
+//                    auto widthii = static_cast<int>(detList.at(ii).bb_width);
+//                    auto heightii = static_cast<int>(detList.at(ii).bb_height);
+//                    cv::Rect_<int> bboxii = cv::Rect_<int>(xminii, yminii, widthii, heightii);
+//
+//                    cv::Rect intersection = bbox & bboxii;
+//
+//                    if (intersection.area() == bbox.area() ) {
+//                        if(bbox.area()<bboxii.area()){
+//                            detList.at(kk).validDet = false;
+//                        } else {
+//                            detList.at(ii).validDet = false;
+//                        }
+//                    }
+//
+//                }
+//            }
+//
+//        }
+
+    }
+
     void YoloObjectDetector::readCurrFrameDets(float det_conf_th){
 
         detListCurrFrame.clear();
 
         for (size_t i = 0; i < detList.size(); i++) {
-            if(detList.at(i).frameNum==(frame_num+1) && detList.at(i).det_conf>det_conf_th){
+            if(detList.at(i).frameNum==(frame_num+1)){//} && detList.at(i).det_conf>det_conf_th){
                 float width_del = detList.at(i).bb_left+detList.at(i).bb_width-float(frameWidth_);
                 float height_del = detList.at(i).bb_top+detList.at(i).bb_height-float(frameHeight_);
 
@@ -559,20 +1189,22 @@ void YoloObjectDetector::DefineLUTs() {
             readCurrFrameDets(0.0);
         }
 
+//        occlutionMap();
+
         buffIndex_ = (buffIndex_ + 2) % 3;
         std::chrono::high_resolution_clock::time_point t3, t4, t5, t6;
         t3 = std::chrono::high_resolution_clock::now();
 //        std::cout << "fetchInThread" << std::endl;
-        fetchInThread();
+//        fetchInThread();
 //        std::cout << "fetchInThread finished" << std::endl;
-        detectInThread();
+//        detectInThread();
 //        std::cout << "detectInThread finished" << std::endl;
         t4 = std::chrono::high_resolution_clock::now();
-        displayInThread();
+//        displayInThread();
 //        std::cout << "displayInThread finished" << std::endl;
         t5 = std::chrono::high_resolution_clock::now();
 //        publishInThread();
-        dataAssociation();//mot
+//        dataAssociation();//mot
 //        std::cout << "dataAssociation finished" << std::endl;
         t6 = std::chrono::high_resolution_clock::now();
         long durationTotDet, durationTotPub;
@@ -580,6 +1212,8 @@ void YoloObjectDetector::DefineLUTs() {
         durationTotPub = std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5 ).count();
         totTimeDet += durationTotDet;
         totTimePub += durationTotPub;
+
+        frame_num++;
     }
 
     void YoloObjectDetector::getFrameRate(){
@@ -772,6 +1406,7 @@ void *YoloObjectDetector::fetchInThread()
 void *YoloObjectDetector::displayInThread()
 {
   show_image_cv(buff_, "YOLO V3", ipl_);
+//    visualize_network(net_);
 //  show_image_layers(get_network_image(*net_), "c");
 //  visualize_network(*net_);
 
@@ -937,36 +1572,72 @@ bool YoloObjectDetector::isNodeRunning()
 
 void YoloObjectDetector::dataAssociation(){
 
-    layer cost_layer = net_->layers[net_->n-2];
+    layer cost_layer = net_->layers[2];//net_->n-2];
     int l_w = cost_layer.out_w;
     int l_h = cost_layer.out_h;
     int l_c = cost_layer.out_c;
     int fil_r = (int)l_c/2;
     int fil_c = l_c-fil_r;
 
+
+
+//    for(int i = net_->n-1; i > 0; --i) {
+//        std::cout<<net_->layers[i].type<<", ";
+////        if(net.layers[i].type != COST) break;
+//    }
+//    std::cout<<std::endl;
+
 //    std::cout<<"layer cost"<<std::endl;
 
     cv::Mat layer_cost = cv::Mat::zeros(l_h, l_w, CV_32FC(l_c));
-//    cv::Mat layer_cost_vis = cv::Mat::zeros(l_h, l_w, CV_8UC(l_c));
+    cv::Mat layer_cost_vis = cv::Mat::zeros(l_h, l_w, CV_8UC(l_c));
 
-//    std::cout<<layer_cost.size()<<std::endl;
+//    std::cout<<cost_layer.cost<<std::endl;//", "<<cost_layer.cost[0]<<cost_layer.cost[1]<<std::endl;
+    cuda_pull_array(cost_layer.output_gpu, cost_layer.output, cost_layer.batch*cost_layer.outputs);
     for(int kk = 0; kk < l_c; ++kk){
         for(int ii = 0; ii < l_h; ++ii){
             for(int jj = 0; jj < l_w; ++jj){
 //                layer_cost.at<cv::Vec<float, 21> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//kitti - 2 class
-                layer_cost.at<cv::Vec<float, 18> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//mot - 1 class
+                layer_cost.at<cv::Vec<float, 32> >(ii,jj)[kk]=cost_layer.output[jj+ii*l_w+l_w*l_h*kk];//mot - 1 class
+//                memcpy();
 //                std::cout<<cost_layer.output[ii+l_w*l_h*kk]<<"; ";
             }
         }
     }
 
+//    cuda_pull_array(cost_layer.output_gpu, cost_layer.output, cost_layer.batch*cost_layer.outputs);
+//    if (l_w >= 0 && l_h >= 1 && l_c >= 3) {
+//        int jj;
+//        for (jj = 0; jj < l_c; ++jj) {
+////            image img = make_image(l_w, l_h, 3);
+//            cv::Mat vis = cv::Mat::zeros(l_h, l_w, CV_8UC3);
+//            memcpy(vis.data, cost_layer.output+ l_w*l_h*jj, l_w*l_h * 1 * sizeof(float));
+//            char buff[256];
+//            sprintf(buff, "slice-%d", jj);
+//            cv::imshow(buff,vis);
+////            show_image(img, buff);
+//        }
+////        cvWaitKey(0); // wait press-key in console
+////        cvDestroyAllWindows();
+//    }
+
 //    double min, max;
 //    cv::minMaxLoc(layer_cost, &min, &max);
 //    layer_cost.convertTo(layer_cost_vis,CV_8U,255.0/(max-min),-255.0*min/(max-min));
+//    cv::resize(layer_cost_vis, layer_cost_vis, camImageCopy_.size(), 0, 0, CV_INTER_CUBIC);
+
 
 //    std::cout<<l_w<<", "<<l_h<<", "<<l_c<<std::endl;
 
 //    cv::Mat layer_output = cv::Mat::zeros(l_h, l_w, CV_8UC3);
+
+//    cv::Mat roi_vis[l_c];
+//    split(layer_cost_vis,roi_vis);
+//    for(int ch = 0; ch < l_c; ++ch){
+//        std::ostringstream str;
+//        str << "Layer "<<ch;
+//        cv::imshow(str.str(),roi_vis[ch]);
+//    }
 
 //    std::cout<<"blob list"<<std::endl;
 
@@ -984,7 +1655,7 @@ void YoloObjectDetector::dataAssociation(){
 
         cv::Rect_<int> rect_layer = cv::Rect_<int>(xmin_net, ymin_net, width_net, height_net);
 //        cv::rectangle(layer_output, rect_layer, cv::Scalar( 0, 0, 255 ), 1);
-//        if(rect_layer.size().area()>0){
+        if(rect_layer.size().area()>0){
             cv::Mat cost_roi;
             layer_cost(rect_layer).copyTo(cost_roi);
 
@@ -993,7 +1664,7 @@ void YoloObjectDetector::dataAssociation(){
             outputObs.probability = detListCurrFrame.at(kk).det_conf;
             outputObs.feature_cost = cost_roi;
             currentFrameBlobs.push_back(outputObs);
-//        }
+        }
 
     }
 
@@ -1057,6 +1728,7 @@ void *YoloObjectDetector::publishInThread()
 //    cv::Mat layer_cost_vis = cv::Mat::zeros(l_h, l_w, CV_8UC(l_c));
 
 //    std::cout<<layer_cost.size()<<std::endl;
+      cuda_pull_array(cost_layer.output_gpu, cost_layer.output, cost_layer.batch*cost_layer.outputs);
     for(int kk = 0; kk < l_c; ++kk){
         for(int ii = 0; ii < l_h; ++ii){
             for(int jj = 0; jj < l_w; ++jj){
@@ -1154,7 +1826,11 @@ void *YoloObjectDetector::publishInThread()
 //                          outputObs.keyPoints.push_back(cv::Point3f(kpts[i].pt.x,kpts[i].pt.y,kptDis));
 //                      }
 
-                      currentFrameBlobs.push_back(outputObs);
+                      if (outputObs.category == "person") {
+                          currentFrameBlobs.push_back(outputObs);
+                      }
+
+
 
 //                  } else {
 //                      ROS_WARN("*********************************************************");
@@ -1198,6 +1874,10 @@ void *YoloObjectDetector::publishInThread()
 
   return nullptr;
 }
+
+    void YoloObjectDetector::matchCurrentDetectionsToExisting(){
+
+    }
 
     void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 
@@ -1247,16 +1927,16 @@ void *YoloObjectDetector::publishInThread()
 //                        blob.feature_cost.copyTo(blbCosts);
 //                        std::cout<<"inside the cost calculation. ch: "<<ch<<", blob ch: "<<blob.feature_cost.channels()<<std::endl;
 //                        std::cout<<"blob area: "<<blob.boundingRects.back().area()<<", currBlob area: "<<currBlob.boundingRects.back().area()<<std::endl;
-//                        for(int ii = 0; ii < ch; ++ii){
-//                            if(blob.boundingRects.back().area()>currBlob.boundingRects.back().area()){
-//                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_AREA);
-//                            } else {
-//                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_CUBIC);// CV_INTER_LANCZOS4);
-//                            }
-////                            std::cout<<ii<<std::endl<<currBlbCosts[ii]<<std::endl;
-////                            std::cout<<reSizedBlbCosts[ii]<<std::endl;
-//                            disSimilarity.at<double>(r,c) += cv::norm(currBlbCosts[ii],reSizedBlbCosts[ii]);
-//                        }
+                        for(int ii = 0; ii < ch; ++ii){
+                            if(blob.boundingRects.back().area()>currBlob.boundingRects.back().area()){
+                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_AREA);
+                            } else {
+                                cv::resize(blbCosts[ii], reSizedBlbCosts[ii], currBlbCosts[ii].size(), 0, 0, CV_INTER_CUBIC);// CV_INTER_LANCZOS4);
+                            }
+//                            std::cout<<ii<<std::endl<<currBlbCosts[ii]<<std::endl;
+//                            std::cout<<reSizedBlbCosts[ii]<<std::endl;
+                            disSimilarity.at<double>(r,c) += cv::norm(currBlbCosts[ii],reSizedBlbCosts[ii]);
+                        }
 //                        std::cout<<currBlbCosts[20]<<std::endl;
 //                        std::cout<<r<<", "<<c<<": "<<disSimilarity.at<double>(r,c)<<"; ";
                     } else {
@@ -1292,7 +1972,8 @@ void *YoloObjectDetector::publishInThread()
                         //}
 
                         // double sizeSim = intersectionOverUnion(currBlob.currentBoundingRect, blob.currentBoundingRect);
-                        //double appSim = 1.0-cv::compareHist(currBlob.nHist, blob.nHist, cv::HISTCMP_HELLINGER );
+                        // double appSim = cv::compareHist(currBlob.nHist, blob.nHist, cv::CV_COMP_CORREL);
+                        //double appSim = 1.0-cv::compareHist(currBlob.nHist, blob.nHist, cv::HISTCMP_HELLINGER ); //may not yeild accurate results
                         // double posSim = 1.0/(0.001+ (double)distanceBetweenPoints(currBlob.centerPositions.back(), blob.predictedNextPosition));
 
                         // simSize.at<double>(r,c) = sizeSim;
@@ -1365,8 +2046,8 @@ void *YoloObjectDetector::publishInThread()
 //                        std::cout<<"simGeometryVal: "<<simGeometryVal<<std::endl;
 //                    }
                 } else{
-//                    similarity.at<double>(r,c)=(simGeometryVal+(1.0-disSimilarityVal))/2.0;
-                    similarity.at<double>(r,c)=simGeometryVal;
+                    similarity.at<double>(r,c)=(simGeometryVal+(1.0-disSimilarityVal))/2.0;
+//                    similarity.at<double>(r,c)=simGeometryVal;
                 }
 //                if (maxGeo==minGeo){
 //                    if (maxFeature==minFeature){
@@ -1405,26 +2086,35 @@ void *YoloObjectDetector::publishInThread()
             std::vector<double> costForEachTrack;
             for (int c=0; c<simWidth; c++) {
                 costForEachTrack.push_back(1.0-similarity.at<double>(r,c));
+//                std::cout<<costForEachTrack.at(c)<<", ";//<<std::endl;
             }
             costMatrix.push_back(costForEachTrack);
+//            std::cout<<std::endl;
         }
+
+//        std::cout<<"costMatrix: "<<costMatrix.size()<<", "<<costMatrix[0].size()<<"; simHeight: "<<simHeight<<", simWidth: "<<simWidth<<std::endl;
 
         HungarianAlgorithm HungAlgo;
         std::vector<int> assignment;
 
+//        std::cout<<"starting hungarianCost: "<<std::endl;
         double hungarianCost = HungAlgo.Solve(costMatrix, assignment);
+//        std::cout<<"hungarianCost: "<<hungarianCost<<std::endl;
 
         for (int trackID = 0; trackID < costMatrix.size(); trackID++){
 //            std::cout << trackID << "," << assignment[trackID] << "\t";
-            Blob &currentFrameBlob = currentFrameBlobs.at(assignment[trackID]);
-            double similarityVal = similarity.at<double>(trackID,assignment[trackID]);
-            if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && similarityVal>thForHungarianCost ) { //(minDisSimilarity < max)
-                currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
-                addBlobToExistingBlobs(currentFrameBlob, blobs, trackID);
-            } else {
-                addNewBlob(currentFrameBlob, blobs);
+            if (assignment[trackID]>-1) {
+                Blob &currentFrameBlob = currentFrameBlobs.at(static_cast<unsigned long>(assignment[trackID]));
+                double similarityVal = similarity.at<double>(trackID,assignment[trackID]);
+                if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && similarityVal>thForHungarianCost ) { //(minDisSimilarity < max)
+                    currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
+                    addBlobToExistingBlobs(currentFrameBlob, blobs, trackID);
+                } else {
+                    addNewBlob(currentFrameBlob, blobs);
+                }
             }
         }
+//        std::cout<<std::endl;
 
         for (int c=0; c<simWidth; c++){
             Blob &currentFrameBlob = currentFrameBlobs.at(c);
