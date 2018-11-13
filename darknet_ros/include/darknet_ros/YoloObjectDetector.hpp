@@ -198,6 +198,8 @@ private:
 
   void matchCurrentDetectionsToExisting();
 
+  void trackDetections();
+
   void matchCurrentFrameBlobsToExistingBlobs();
 
   void CreateMsg();

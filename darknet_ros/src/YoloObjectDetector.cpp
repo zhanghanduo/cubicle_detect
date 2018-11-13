@@ -883,7 +883,7 @@ void YoloObjectDetector::DefineLUTs() {
         }
 
         cv::imshow("outputBP",outputBP);
-        cv::waitKey(0);
+//        cv::waitKey(0);
 
     }
 
@@ -965,6 +965,8 @@ void YoloObjectDetector::DefineLUTs() {
 
         processImage();
         extractBodyParts(datumProcessed);
+        trackDetections();
+        frame_num++;
 
 //        if (initiated) {
 //            processImage();
@@ -1212,8 +1214,6 @@ void YoloObjectDetector::DefineLUTs() {
         durationTotPub = std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5 ).count();
         totTimeDet += durationTotDet;
         totTimePub += durationTotPub;
-
-        frame_num++;
     }
 
     void YoloObjectDetector::getFrameRate(){
@@ -1877,6 +1877,214 @@ void *YoloObjectDetector::publishInThread()
 
     void YoloObjectDetector::matchCurrentDetectionsToExisting(){
 
+        int tracksOrMatHeight = (int)blobs.size();
+        int detsOrMatWidth = (int)currentFrameBlobs.size();
+        cv::Mat appDisSimilarity(tracksOrMatHeight, detsOrMatWidth, CV_64FC1, cv::Scalar(1.0));
+        cv::Mat motionDisSimilarity(tracksOrMatHeight, detsOrMatWidth, CV_64FC1, cv::Scalar(1.0));
+        cv::Mat disSimilarity(tracksOrMatHeight, detsOrMatWidth, CV_64FC1, cv::Scalar(1.0));
+
+        for (int c=0; c<detsOrMatWidth; c++) {
+
+            Blob currBlob = currentFrameBlobs[c];
+
+            for (int r = 0; r < tracksOrMatHeight; r++) {
+                Blob blob = blobs[r];
+                if (blob.blnStillBeingTracked) {
+                    if (currBlob.category == blob.category) {
+
+                        int appCount =0;
+                        double appSimilarity = 0.0;
+
+                        if(blob.isHead && currBlob.isHead){
+                            appSimilarity += cv::compareHist(currBlob.histHead, blob.histHead, CV_COMP_CORREL);
+                            appCount++;
+                        }
+
+                        if(blob.isBody && currBlob.isBody){
+                            appSimilarity += cv::compareHist(currBlob.histBody, blob.histBody, CV_COMP_CORREL);
+                            appCount++;
+                        }
+
+                        if(blob.isLegs && currBlob.isLegs){
+                            appSimilarity += cv::compareHist(currBlob.histLegs, blob.histLegs, CV_COMP_CORREL);
+                            appCount++;
+                        }
+
+                        if (appCount>0)
+                            appSimilarity /= appCount;
+                        else
+                            appSimilarity = 2.0;
+
+                        appDisSimilarity.at<double>(r,c) = 1.0 - appSimilarity;
+
+                        cv::Rect predRect;
+                        predRect.width = static_cast<int>(blob.state.at<float>(4));
+                        predRect.height = static_cast<int>(blob.state.at<float>(5));
+                        predRect.x = static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
+                        predRect.y = static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
+
+                        cv::Rect intersection = predRect & currBlob.boundingRects.back();
+                        cv::Rect unio = predRect | currBlob.boundingRects.back();
+                        motionDisSimilarity.at<double>(r,c) = 1.0 - (double)intersection.area()/unio.area();
+
+                    }
+                }
+            }
+        }
+
+        for (int c=0; c<detsOrMatWidth; c++) {
+            for (int r = 0; r < tracksOrMatHeight; r++) {
+                double appDisSimValue = appDisSimilarity.at<double>(r,c);
+                if (appDisSimValue==-1.0){
+                    disSimilarity.at<double>(r,c)=motionDisSimilarity.at<double>(r,c);
+                } else{
+                    disSimilarity.at<double>(r,c)=(appDisSimValue+motionDisSimilarity.at<double>(r,c))/2.0;
+                }
+            }
+        }
+
+        double min, max;
+        cv::minMaxLoc(disSimilarity, &min, &max);
+//        double thForHungarianCost = std::max(0.75,max*0.5);
+
+        std::vector< std::vector<double> > costMatrix;
+        for (int r = 0; r < tracksOrMatHeight; r++)  {
+            std::vector<double> costForEachTrack;
+            for (int c=0; c<detsOrMatWidth; c++) {
+                costForEachTrack.push_back(disSimilarity.at<double>(r,c));
+            }
+            costMatrix.push_back(costForEachTrack);
+        }
+
+//        std::cout<<"costMatrix: "<<costMatrix.size()<<", "<<costMatrix[0].size()<<"; simHeight: "<<simHeight<<", simWidth: "<<simWidth<<std::endl;
+
+        HungarianAlgorithm HungAlgo;
+        std::vector<int> assignment;
+
+        double hungarianCost = HungAlgo.Solve(costMatrix, assignment);
+//        std::cout<<"hungarianCost: "<<hungarianCost<<std::endl;
+
+        for (int trackID = 0; trackID < costMatrix.size(); trackID++){
+//            std::cout << trackID << "," << assignment[trackID] << "\t";
+            if (assignment[trackID]>-1) {
+                Blob &currentFrameBlob = currentFrameBlobs.at(static_cast<unsigned long>(assignment[trackID]));
+                double disSimValue = disSimilarity.at<double>(trackID,assignment[trackID]);
+                if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && disSimValue<0.7 ) { //(minDisSimilarity < max)
+                    currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
+                    addBlobToExistingBlobs(currentFrameBlob, blobs, trackID);
+                } else {
+                    addNewBlob(currentFrameBlob, blobs);
+                }
+            }
+        }
+//        std::cout<<std::endl;
+
+        for (int c=0; c<detsOrMatWidth; c++){
+            Blob &currentFrameBlob = currentFrameBlobs.at(c);
+            if(!currentFrameBlob.blnAlreadyTrackedInThisFrame)
+                addNewBlob(currentFrameBlob, blobs);
+        }
+
+        for (auto &existingBlob : blobs) {
+            if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
+                existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
+            }
+            if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 10) {
+                existingBlob.blnStillBeingTracked = false;
+            }
+        }
+
+        // std::cout<<"Debug matchCurrentFrameBlobsToExistingBlobs 5"<<std::endl;
+
+    }
+
+    void YoloObjectDetector::trackDetections(){
+        if (blnFirstFrame) {
+            if (!currentFrameBlobs.empty()){
+                blnFirstFrame = false;
+                for (auto &currentFrameBlob : currentFrameBlobs)
+                    blobs.push_back(currentFrameBlob);
+            }
+        } else {
+            for (auto &existingBlob : blobs) {
+                existingBlob.blnCurrentMatchFoundOrNewBlob = false;
+                existingBlob.blnAlreadyTrackedInThisFrame = false;
+                // >>>> Matrix A
+                auto dT = static_cast<float>(0.04 + (0.04 * existingBlob.intNumOfConsecutiveFramesWithoutAMatch));
+                existingBlob.kf.transitionMatrix.at<float>(2) = dT;//dT;
+                existingBlob.kf.transitionMatrix.at<float>(9) = dT;//dT;
+                // <<<< Matrix A
+                existingBlob.state = existingBlob.kf.predict();
+            }
+
+//            std::cout<<"blob prediction finished"<<std::endl;
+
+            if (!currentFrameBlobs.empty()){
+                matchCurrentDetectionsToExisting();
+            } else {
+                for (auto &existingBlob : blobs) {
+                    if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
+                        existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
+                    }
+                    if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 10) {
+                        existingBlob.blnStillBeingTracked = false;
+                        //blobs.erase(blobs.begin() + i);
+                    }
+                }
+            }
+
+//            std::cout<<"blob association finished"<<std::endl;
+
+        }
+
+        cv::Mat output = camImageCopy_.clone();
+        /*Tracking Result*/
+        std::vector<cv::Scalar> colors;
+        cv::RNG rng(0);
+        for(int i=0; i < blobs.size(); i++)
+            colors.push_back(cv::Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255)));
+        for (long int i = 0; i < blobs.size(); i++) {
+            if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
+//                cv::rectangle(output, blobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+                cv::rectangle(output, blobs[i].boundingRects.back(), colors.at(i), 2);
+                cv::rectangle(output, cv::Rect(blobs[i].boundingRects.back().x, blobs[i].boundingRects.back().y, 20, 15), colors.at(i), CV_FILLED);
+                std::ostringstream str;
+                // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
+                str << i;
+                cv::putText(output, str.str(), cv::Point(blobs[i].boundingRects.back().x, blobs[i].boundingRects.back().y+12) , CV_FONT_HERSHEY_PLAIN, 1, CV_RGB(255,255,255));
+
+                //mot
+                file << frame_num+1 <<", "<< i+1 << ", " << blobs[i].boundingRects.back().x << ", " << blobs[i].boundingRects.back().y << ", "
+                     << blobs[i].boundingRects.back().width << ", " << blobs[i].boundingRects.back().height << ", "
+                     << -1 << ", " << -1 << ", " << -1 << ", " << -1 << std::endl;
+
+
+                //kitti
+//                file << frame_num <<" "<< i << " " << blobs[i].category<< " "<< -1 << " " << -1 <<" " << -10 << " "
+//                     << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y << " "
+//                     << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " "
+//                     << blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " "
+//                     << -1 << " " << -1 << " " << -1 << " " << "-1000 -1000 -1000" << " " << -10 << " " << blobs[i].probability << std::endl;
+
+            }
+        }
+
+
+//        for (long int i = 0; i < currentFrameBlobs.size(); i++) {
+//
+//            cv::rectangle(output, currentFrameBlobs[i].boundingRects.back(), cv::Scalar( 0, 0, 255 ), 2);
+//            //mot det
+//            file << frame_num+1 <<", "<< -1 << ", " << currentFrameBlobs[i].boundingRects.back().x << ", " << currentFrameBlobs[i].boundingRects.back().y << ", "
+//                 << currentFrameBlobs[i].boundingRects.back().width << ", " << currentFrameBlobs[i].boundingRects.back().height << ", "
+//                 << currentFrameBlobs[i].probability << std::endl;
+//        }
+
+
+
+        cv::imshow("debug", output);
+        cv::waitKey(0);
+
+        currentFrameBlobs.clear();
     }
 
     void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
@@ -2232,6 +2440,22 @@ void *YoloObjectDetector::publishInThread()
         existingBlobs[intIndex].blnAlreadyTrackedInThisFrame = true;
         existingBlobs[intIndex].counter = currentFrameBlob.counter + 1;
         existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch =0;
+
+        //update motion model
+        existingBlobs[intIndex].meas.at<float>(0) = currentFrameBlob.meas.at<float>(0);
+        existingBlobs[intIndex].meas.at<float>(1) = currentFrameBlob.meas.at<float>(1);
+        existingBlobs[intIndex].meas.at<float>(2) = currentFrameBlob.meas.at<float>(2);
+        existingBlobs[intIndex].meas.at<float>(3) = currentFrameBlob.meas.at<float>(3);
+        existingBlobs[intIndex].kf.correct(existingBlobs[intIndex].meas); // Kalman Correction
+
+        //update appearance model:: TODO: check for occlusion before updating
+        if(currentFrameBlob.isHead)
+            existingBlobs[intIndex].histHead = currentFrameBlob.histHead;
+        if(currentFrameBlob.isBody)
+            existingBlobs[intIndex].histBody = currentFrameBlob.histBody;
+        if(currentFrameBlob.isLegs)
+            existingBlobs[intIndex].histLegs = currentFrameBlob.histLegs;
+
     }
 
     void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs) {
