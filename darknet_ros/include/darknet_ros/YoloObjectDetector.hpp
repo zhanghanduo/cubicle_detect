@@ -194,9 +194,8 @@ private:
   obstacle_msgs::MapInfo obstacleBoxesResults_;
 
   //! Camera related parameters.
-  int frameWidth_;
-  int frameHeight_;
-  int disp_size, Width, Height;
+  int disp_size, Width, Height, rem_w, rem_h, Width_crp, Height_crp;
+  bool is_even_crop;
 
   //! Lookup Table
 

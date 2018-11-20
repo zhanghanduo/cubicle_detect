@@ -22,13 +22,14 @@ int main(int argc, char** argv) {
 
   std::string image_left_topic, image_right_topic, image_left_info, image_right_info;
 
-  image_left_topic = "/long/left/image_rect";
-
-  image_right_topic = "/long/right/image_rect";
-
-  image_left_info = "/long/left/camera_info";
-
-  image_right_info = "/long/right/camera_info";
+  image_left_topic = "/kitti_stereo/left/image_rect";
+  image_right_topic = "/kitti_stereo/right/image_rect";
+  image_left_info = "/kitti_stereo/left/camera_info";
+  image_right_info = "/kitti_stereo/right/camera_info";
+//    image_left_topic = "/wide/left/image_rect";
+//    image_right_topic = "/wide/right/image_rect";
+//    image_left_info = "/wide/left/camera_info";
+//    image_right_info = "/wide/right/camera_info";
 
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 
@@ -39,10 +40,10 @@ int main(int argc, char** argv) {
     ROS_INFO("Get right image topic: %s", image_right_topic.c_str());
 
   if(nodeHandle.getParam("image_info_left", image_left_info))
-    ROS_INFO("Get left image topic: %s", image_left_info.c_str());
+    ROS_INFO("Get left camera info topic: %s", image_left_info.c_str());
 
   if(nodeHandle.getParam("image_info_right", image_right_info))
-    ROS_INFO("Get right image info topic: %s", image_right_info.c_str());
+    ROS_INFO("Get right camera info topic: %s", image_right_info.c_str());
 
   sensor_msgs::CameraInfoConstPtr left_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(image_left_info);
   sensor_msgs::CameraInfoConstPtr right_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(image_right_info);

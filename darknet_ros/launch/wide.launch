@@ -30,8 +30,6 @@
     <param name="image_right_topic"     value="/wide/right/image_rect" />
     <param name="image_info_left"       value="/wide/left/camera_info" />
     <param name="image_info_right"      value="/wide/right/camera_info" />
-    <param name="image_height"          value="422" />
-    <param name="image_width"           value="640" />
     <param name="scale"                 value="1" />
   </node>
 

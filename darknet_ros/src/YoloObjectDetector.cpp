@@ -40,7 +40,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
       use_grey(false),
       blnFirstFrame(true),
       globalframe(0),
-      isDepthNew(false)
+      isDepthNew(false),
+      is_even_crop(false)
 {
   ROS_INFO("[ObstacleDetector] Node started.");
 
@@ -212,9 +213,9 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
   nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
-                    std::string("/cubicle_detection/long_map_msg"));
+                    std::string("/obs_map"));
   nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("long_obs"));
+  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera_frame"));
 
   objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
                                                            objectDetectorQueueSize,
@@ -272,6 +273,16 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   Width /= Scale;
   Height /= Scale;
 
+  rem_w = Width % 4;
+  rem_h = Height % 4;
+  ROS_WARN("remainder width: %d | remainder height: %d", rem_w, rem_h);
+
+  Width_crp = Width - rem_w;
+  Height_crp = Height - rem_h;
+
+  if(rem_w || rem_h)
+      is_even_crop = true;
+
   assert(intrinsicLeft == intrinsicRight);
 
   const cv::Matx33d &intrinsic = intrinsicLeft;
@@ -281,17 +292,17 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   ROS_INFO_STREAM("baseline: " << stereo_baseline_);
   assert(stereo_baseline_ > 0);
 
-    int ii;
-    xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
-    for(ii = 0; ii < Width; ii++)
-        xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+  int ii;
+  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
+  for(ii = 0; ii < Width; ii++)
+    xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-    yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
-    for(ii = 0; ii < Height; ii++)
-        yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
+  yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
+  for(ii = 0; ii < Height; ii++)
+    yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-    depthTable = static_cast<double *>(calloc(disp_size+1, sizeof(double)));
-//
+  depthTable = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+
 //  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
 //  left_roi_ = cameraLeft.rawRoi();
 //  right_roi_ = cameraRight.rawRoi();
@@ -310,7 +321,7 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
 void YoloObjectDetector::DefineLUTs() {
 
-  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d", u0, v0, focal, stereo_baseline_, Width);
+  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d | Height: %d", u0, v0, focal, stereo_baseline_, Width_crp, Height_crp);
 
     for (int r=0; r<Width; r++) {
         xDirectionPosition[r][0]=0;
@@ -337,101 +348,89 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
-    void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
-                                            const sensor_msgs::ImageConstPtr &image2){
-//                                            const sensor_msgs::CameraInfoConstPtr& left_info,
-//                                            const sensor_msgs::CameraInfoConstPtr& right_info){
-        ROS_DEBUG("[ObstacleDetector] Stereo images received.");
+void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
+                                        const sensor_msgs::ImageConstPtr &image2){
+    ROS_DEBUG("[ObstacleDetector] Stereo images received.");
 
-        // std::cout<<"Debug starting cameraCallBack"<<std::endl;
+    // std::cout<<"Debug starting cameraCallBack"<<std::endl;
+    cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
 
-        cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
+    try {
+        cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
+        cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
 
-        try {
-            cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
-            cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
-
-            if(use_grey) {
-                cv_rgb = cam_image1;
-            }
-            else {
-                cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
-            }
-
-            image_time_ = image1->header.stamp;
-            imageHeader_ = image1->header;
-        } catch (cv_bridge::Exception& e) {
-            ROS_ERROR("cv_bridge exception: %s", e.what());
-            return;
+        if(use_grey) {
+            cv_rgb = cam_image1;
         }
-
-        if (cam_image1) {
-            // std::cout<<"Debug inside cameraCallBack starting first image callback"<<std::endl;
-
-            frameWidth_ = cam_image1->image.size().width;
-            // std::cout<<"Debug inside cameraCallBack reading image width "<<frameWidth_<<std::endl;
-            frameHeight_ = cam_image1->image.size().height;
-            frameWidth_ = frameWidth_ / Scale;
-            frameHeight_ = frameHeight_ / Scale;
-            // std::cout<<"Debug inside cameraCallBack scaling image height "<<frameHeight_<<std::endl;
-            {
-                boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-                origLeft = cam_image1->image;//cv::Mat(cam_image1->image, left_roi_);
-
-                origRight = cam_image2->image;//cv::Mat(cam_image2->image, right_roi_);
-
-                camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
-            }
-            {
-                boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
-                imageStatus_ = true;
-            }
-
-            // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
-
-            cv::Mat left_resized, right_resized, camImageResized;
-            cv::resize(origLeft, left_resized, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(origRight, right_resized, cv::Size(frameWidth_, frameHeight_));
-            cv::resize(camImageOrig, camImageResized, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(origLeft, left_rectified, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(origRight, right_rectified, cv::Size(frameWidth_, frameHeight_));
-            // cv::resize(camImageOrig, camImageCopy_, cv::Size(frameWidth_, frameHeight_));
-
-            // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
-
-//            int widthMiss = frameWidth_%4;
-//            int heightMiss = frameHeight_%4;
-            int widthMiss = 0;
-            int heightMiss = 0;
-
-            cv::Mat left_widthAdj, right_widthAdj, camImageWidthAdj;
-
-            if (widthMiss>0) {
-                copyMakeBorder( left_resized, left_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( right_resized, right_widthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( camImageResized, camImageWidthAdj, 0, 0, 0, widthMiss, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
-            } else {
-                left_widthAdj = left_resized.clone();
-                right_widthAdj = right_resized.clone();
-                camImageWidthAdj = camImageResized.clone();
-            }
-
-            // cv::Mat left_heightAdj, right_heightAdj, camImageHeightAdj;
-
-            if (heightMiss>0) {
-                copyMakeBorder( left_widthAdj, left_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( right_widthAdj, right_rectified, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, 0 );
-                copyMakeBorder( camImageWidthAdj, camImageCopy_, 0, heightMiss, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
-            } else {
-                left_rectified = left_widthAdj.clone();
-                right_rectified = right_widthAdj.clone();
-                camImageCopy_ = camImageWidthAdj.clone();
-            }
-
-//      mpDetection -> getImage(left_rectified, right_rectified);
+        else {
+            cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
         }
-
+        image_time_ = image1->header.stamp;
+        imageHeader_ = image1->header;
+    } catch (cv_bridge::Exception& e) {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
     }
+
+    if (cam_image1) {
+
+        // std::cout<<"Debug inside cameraCallBack scaling image height "<<frameHeight_<<std::endl;
+        {
+            boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
+            origLeft = cam_image1->image;//cv::Mat(cam_image1->image, left_roi_);
+            origRight = cam_image2->image;//cv::Mat(cam_image2->image, right_roi_);
+            camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
+        }
+        {
+            boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
+            imageStatus_ = true;
+        }
+
+        // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
+        cv::Mat left_resized, right_resized, camImageResized;
+
+        if(Scale != 1) {
+            cv::resize(origLeft, left_resized, cv::Size(Width, Height));
+            cv::resize(origRight, right_resized, cv::Size(Width, Height));
+            cv::resize(camImageOrig, camImageResized, cv::Size(Width, Height));
+        }else{
+            left_resized = origLeft.clone();
+            right_resized = origRight.clone();
+            camImageResized = camImageOrig;
+        }
+
+        // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
+
+//        cv::Mat left_widthAdj, right_widthAdj, camImageWidthAdj;
+
+        if (is_even_crop) {
+//            copyMakeBorder( left_resized, left_widthAdj, 0, 0, 0, rem_w, cv::BORDER_CONSTANT, 0 );
+//            copyMakeBorder( right_resized, right_widthAdj, 0, 0, 0, rem_w, cv::BORDER_CONSTANT, 0 );
+//            copyMakeBorder( camImageResized, camImageWidthAdj, 0, 0, 0, rem_w, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+            left_rectified = left_resized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
+            right_rectified = right_resized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
+            camImageCopy_ = camImageResized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
+        } else {
+            left_rectified = left_resized.clone();
+            right_rectified = right_resized.clone();
+            camImageCopy_ = camImageResized.clone();
+        }
+
+        // cv::Mat left_heightAdj, right_heightAdj, camImageHeightAdj;
+//
+//        if (is_even_crop_h) {
+//            copyMakeBorder( left_widthAdj, left_rectified, 0, rem_h, 0, 0, cv::BORDER_CONSTANT, 0 );
+//            copyMakeBorder( right_widthAdj, right_rectified, 0, rem_h, 0, 0, cv::BORDER_CONSTANT, 0 );
+//            copyMakeBorder( camImageWidthAdj, camImageCopy_, 0, rem_h, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
+//        } else {
+//            left_rectified = left_widthAdj;
+//            right_rectified = right_widthAdj;
+//            camImageCopy_ = camImageWidthAdj;
+//        }
+
+//        ROS_WARN("width: %d | height: %d", left_rectified.cols, left_rectified.rows);
+    }
+}
 
 bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
 {
@@ -696,12 +695,12 @@ void YoloObjectDetector:: yolo()
   buffLetter_[0] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
   buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-    disparityFrame[0] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[1] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    disparityFrame[2] = cv::Mat(Height, Width, CV_8UC1, cv::Scalar(0));
-    buff_cv_l_[0] = camImageCopy_.clone();
-    buff_cv_l_[1] = camImageCopy_.clone();
-    buff_cv_l_[2] = camImageCopy_.clone();
+  disparityFrame[0] = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
+  disparityFrame[1] = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
+  disparityFrame[2] = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
+  buff_cv_l_[0] = camImageCopy_.clone();
+  buff_cv_l_[1] = camImageCopy_.clone();
+  buff_cv_l_[2] = camImageCopy_.clone();
   ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
 
   int count = 0;
@@ -797,14 +796,16 @@ void *YoloObjectDetector::publishInThread()
     for (int i = 0; i < numClasses_; i++) {
       if (rosBoxCounter_[i] > 0) {
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
-          auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * frameWidth_);     //2D column
-          auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * frameHeight_);    //2D row
+          auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * Width_crp);     //2D column
+          auto center_r_ = static_cast<int>(rosBoxes_[i][j].y * Height_crp);    //2D row
 
-          auto xmin = static_cast<int>((rosBoxes_[i][j].x - rosBoxes_[i][j].w / 2) * frameWidth_);
-          auto ymin = static_cast<int>((rosBoxes_[i][j].y - rosBoxes_[i][j].h / 2) * frameHeight_);
-          auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * frameWidth_);
-          auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * frameHeight_);
+          auto xmin = static_cast<int>((rosBoxes_[i][j].x - rosBoxes_[i][j].w / 2) * Width_crp);
+          auto ymin = static_cast<int>((rosBoxes_[i][j].y - rosBoxes_[i][j].h / 2) * Height_crp);
+          auto xmax = static_cast<int>((rosBoxes_[i][j].x + rosBoxes_[i][j].w / 2) * Width_crp);
+          auto ymax = static_cast<int>((rosBoxes_[i][j].y + rosBoxes_[i][j].h / 2) * Height_crp);
 
+          if(ymax >= Height_crp)    ymax = Height_crp - 1;
+          if(xmax >= Width_crp)     xmax = Width_crp - 1;
           int median_kernel = std::min(xmax - xmin, ymax - ymin);
 
             // if ((xmin > 2) &&(ymin > 2) && (counter>2) ) {
@@ -832,8 +833,8 @@ void *YoloObjectDetector::publishInThread()
                     // Hog features
                     cv::Mat roi = buff_cv_l_[(buffIndex_ + 1) % 3](rect).clone();
                     cv::resize(roi, roi, cv::Size(22, 22));
-                    std::vector<float> hog_feature;
-                    hog_descriptor -> computeHOG(hog_feature, roi);
+//                    std::vector<float> hog_feature;
+//                    hog_descriptor -> computeHOG(hog_feature, roi);
 //                    ROS_WARN("hog_size: %d", hog_feature.size());
 
                     std::vector<cv::Point3f> cent_2d, cent_3d;
@@ -860,7 +861,7 @@ void *YoloObjectDetector::publishInThread()
 //                    ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
                     outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                     outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                    outputObs.obsHog = hog_feature;
+//                    outputObs.obsHog = hog_feature;
                     outputObs.disparity = dis;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
                     currentFrameBlobs.push_back(outputObs);
@@ -874,7 +875,7 @@ void *YoloObjectDetector::publishInThread()
                 }
 
             } else {
-              ROS_WARN("*********************************************************");
+//              ROS_WARN("*********************************************************");
             }
 
         }
@@ -882,8 +883,8 @@ void *YoloObjectDetector::publishInThread()
     }
 
     cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
-    for (long int i = 0; i < currentFrameBlobs.size(); i++) {
-      cv::rectangle(beforeTracking, currentFrameBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+    for (auto &currentFrameBlob : currentFrameBlobs) {
+      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
     }
 //    cv::imshow("beforeTracking", beforeTracking);
 
