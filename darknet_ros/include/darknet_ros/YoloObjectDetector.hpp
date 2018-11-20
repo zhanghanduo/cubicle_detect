@@ -54,12 +54,9 @@
 // Darknet.
 #ifdef GPU
 // Cuda
-#include "../../sgm/disparity_method.h"
-//#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cuda_runtime_api.h>
-//#include <device_functions.h>
-//#include "device_launch_parameters.h"
+#include "sgm/disparity_method.h"
+//#include <cuda_runtime.h>
+//#include <cuda_runtime_api.h>
 
 #include "curand.h"
 #include "cublas_v2.h"
@@ -336,8 +333,6 @@ private:
     char s[20];
     char im[20];
     int frame_num, counter;
-
-    disparity_sgm* SGM;
 
 };
 

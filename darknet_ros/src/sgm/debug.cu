@@ -18,7 +18,7 @@
 
 **/
 
-#include "debug.h"
+#include "sgm/debug.h"
 
 void debug_log(const char *str) {
 #if LOG

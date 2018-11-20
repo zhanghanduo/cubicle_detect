@@ -174,11 +174,16 @@ if (CUDA_FOUND)
   endif()
 
   cuda_add_library(${PROJECT_NAME}_lib STATIC
-          src/YoloObjectDetector.cpp
+          src/YoloObjectDetector.cu
           src/image_interface.c
-          src/Blob.cpp
+          src/Blob.cu
           src/data.cpp
           src/hog.cpp
+          src/sgm/costs.cu
+          src/sgm/debug.cu
+          src/sgm/disparity_method.cu
+          src/sgm/hamming_cost.cu
+          src/sgm/median_filter.cu
 #          src/track_kalman.hpp
 #          src/track.hpp
 
@@ -215,7 +220,6 @@ if (CUDA_FOUND)
     )
 
   target_link_libraries(${PROJECT_NAME}_lib
-          m
           pthread
           stdc++
           cuda
@@ -228,7 +232,6 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${PROJECT_SOURCE_DIR}/sgm/lib/libstereo_sgm.a
           )
 
   cuda_add_executable(${PROJECT_NAME}

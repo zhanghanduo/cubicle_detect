@@ -53,8 +53,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 //  nullHog.assign(36, 0.0);
   init();
 
-  SGM = new disparity_sgm(7, 86);
-  SGM->init_disparity_method(7, 86);
+  init_disparity_method(7, 86);
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
@@ -66,7 +65,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
 YoloObjectDetector::~YoloObjectDetector()
 {
-  SGM->finish_disparity_method();
+  finish_disparity_method();
     {
     boost::unique_lock<boost::shared_mutex> lockNodeStatus(mutexNodeStatus_);
     isNodeRunning_ = false;
@@ -313,7 +312,7 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
     float elapsed_time_ms;
     cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
 
-    disparity_SGBM = SGM->compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
+    disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
 
     isDepthNew = true;
     return disparity_SGBM;
@@ -1100,10 +1099,11 @@ void YoloObjectDetector::CreateMsg(){
             cv::putText(output1, str.str(), blobs[i].centerPositions.back(), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(255, 250, 255));
         }
     }
-    cv::imshow("debug", color_out);
-    cv::imshow("disparity", output1);
-    // cv::waitKey(0);
-
+    if(viewImage_) {
+      cv::imshow("debug", color_out);
+      cv::imshow("disparity", output1);
+      // cv::waitKey(0);
+    }
     frame_num ++;
     if(enableEvaluation_){
     sprintf(s, "f%03d.txt", frame_num);

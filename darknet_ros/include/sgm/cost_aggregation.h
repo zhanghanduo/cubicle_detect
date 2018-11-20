@@ -21,9 +21,6 @@
 #ifndef COST_AGGREGATION_H_
 #define COST_AGGREGATION_H_
 
-#include "util.h"
-#include <algorithm>
-
 #define ITER_COPY			0
 #define ITER_NORMAL			1
 
@@ -35,7 +32,8 @@
 #define DIR_LEFTRIGHT		2
 #define DIR_RIGHTLEFT		3
 
-unsigned int __vminu4 ( unsigned int  a, unsigned int  b );
+#include "util.h"
+#include "configuration.h"
 
 template<int add_col, bool recompute, bool join_dispcomputation>
 __device__ __forceinline__ void CostAggregationGenericIndexesIncrement(int *index, int *index_im, int *col, const int add_index, const int add_imindex) {
@@ -242,7 +240,7 @@ __device__ __forceinline__ void CostAggregationGenericIteration(int index, int i
 		st_gbl_cs(reinterpret_cast<uint32_t*>(&d_L[index]), *old_values);
 	}
 	if(min_type == MIN_COMPUTE) {
-		int min_cost_scalar = std::min(std::min(*old_value1, *old_value2), std::min(*old_value3, *old_value4));
+		int min_cost_scalar = min(min(*old_value1, *old_value2), min(*old_value3, *old_value4));
 		*min_cost = uchar_to_uint32(warpReduceMin(min_cost_scalar));
 		*min_cost_p2 = *min_cost + p2_vector;
 	}

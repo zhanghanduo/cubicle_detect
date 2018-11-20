@@ -24,13 +24,12 @@
 #include <iostream>
 #include <dirent.h>
 #include <stdio.h>
-#include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 #include <device_functions.h>
 #include <device_launch_parameters.h>
-#include <math.h>
 
+//#define __CUDA_ARCH__ 610
 #define FERMI false
 
 #define GPU_THREADS_PER_BLOCK_FERMI 256
@@ -45,21 +44,24 @@
 
 #define WARP_SIZE		32
 
-uint32_t __byte_perm(uint32_t x, uint32_t y, uint32_t z);
+ void __syncthreads();
 
-void __syncthreads();
-int __shfl(int var, int srcLane, int width=warpSize);
-uint32_t __shfl_sync(uint32_t w, uint32_t x, uint32_t y, uint32_t z);
-
-int __shfl_down(int var, unsigned int delta, int width=warpSize);
-int __shfl_down_sync(unsigned mask, int var, unsigned detla,
-                     int width=warpSize);
-int __shfl_up(int var, unsigned int delta, int width=warpSize);
-
-int __shfl_xor(int var, unsigned int delta, int width=warpSize);
-
-bool __any(bool);
-
+ uint32_t __byte_perm(uint32_t x, uint32_t y, uint32_t z);
+//
+// void __syncthreads();
+// int __shfl(int var, int srcLane, int width=warpSize);
+ uint32_t __shfl_sync(uint32_t w, uint32_t x, uint32_t y, uint32_t z);
+ uint32_t min(uint32_t a, uint32_t b);
+//
+// int __shfl_down(int var, unsigned int delta, int width=warpSize);
+// int __shfl_down_sync(unsigned mask, int var, unsigned detla,
+//                      int width=warpSize);
+// int __shfl_up(int var, unsigned int delta, int width=warpSize);
+//
+// int __shfl_xor(int var, unsigned int delta, int width=warpSize);
+//
+// bool __any(bool);
+unsigned int 	__vminu4 ( unsigned int  a, unsigned int  b );
 
 static void CheckCudaErrorAux (const char *, unsigned, const char *, cudaError_t);
 #define CUDA_CHECK_RETURN(value) CheckCudaErrorAux(__FILE__,__LINE__, #value, value)
@@ -122,43 +124,25 @@ __inline__ __device__ int __emulated_shfl(const int scalarValue, const uint32_t 
 #endif
 
 __inline__ __device__ int shfl_32(int scalarValue, const int lane) {
-	#if FERMI
-		return __emulated_shfl(scalarValue, (uint32_t)lane);
-	#else
-//        #if CUDART_VERSION >= 9010
-//            return __shfl_sync(0xffffffff, scalarValue, lane);
-//        #else
-            return __shfl(scalarValue, lane);
-//        #endif
+    #ifdef __CUDA_ARCH__
+		return __shfl(scalarValue, lane);
 	#endif
 }
 
 __inline__ __device__ int shfl_up_32(int scalarValue, const int n) {
-	#if FERMI
-		int lane = threadIdx.x % WARP_SIZE;
-		lane -= n;
-		return shfl_32(scalarValue, lane);
-	#else
+    #ifdef __CUDA_ARCH__
 		return __shfl_up(scalarValue, n);
 	#endif
 }
 
 __inline__ __device__ int shfl_down_32(int scalarValue, const int n) {
-	#if FERMI
-		int lane = threadIdx.x % WARP_SIZE;
-		lane += n;
-		return shfl_32(scalarValue, lane);
-	#else
+    #ifdef __CUDA_ARCH__
 		return __shfl_down(scalarValue, n);
 	#endif
 }
 
 __inline__ __device__ int shfl_xor_32(int scalarValue, const int n) {
-	#if FERMI
-		int lane = threadIdx.x % WARP_SIZE;
-		lane = lane ^ n;
-		return shfl_32(scalarValue, lane);
-	#else
+    #ifdef __CUDA_ARCH__
 		return __shfl_xor(scalarValue, n);
 	#endif
 }
@@ -190,6 +174,7 @@ __device__ __forceinline__ uint32_t gpu_get_sm_idx(){
 }
 
 __device__ __forceinline__ void uint32_to_uchars(const uint32_t s, int *u1, int *u2, int *u3, int *u4) {
+#ifdef __CUDA_ARCH__
 	//*u1 = s & 0xff;
 	*u1 = __byte_perm(s, 0, 0x4440);
 	//*u2 = (s>>8) & 0xff;
@@ -198,16 +183,21 @@ __device__ __forceinline__ void uint32_to_uchars(const uint32_t s, int *u1, int 
 	*u3 = __byte_perm(s, 0, 0x4442);
 	//*u4 = s>>24;
 	*u4 = __byte_perm(s, 0, 0x4443);
+#endif
 }
 
 __device__ __forceinline__ uint32_t uchars_to_uint32(int u1, int u2, int u3, int u4) {
 	//return u1 | (u2<<8) | (u3<<16) | (u4<<24);
 	//return __byte_perm(u1, u2, 0x7740) + __byte_perm(u3, u4, 0x4077);
+#ifdef __CUDA_ARCH__
 	return u1 | (u2<<8) | __byte_perm(u3, u4, 0x4077);
+#endif
 }
 
 __device__ __forceinline__ uint32_t uchar_to_uint32(int u1) {
+#ifdef __CUDA_ARCH__
 	return __byte_perm(u1, u1, 0x0);
+#endif
 }
 
 __device__ __forceinline__ unsigned int vcmpgeu4(unsigned int a, unsigned int b) {
@@ -306,11 +296,11 @@ __inline__ __device__ int warpReduceMinIndex(int val, int idx) {
 }
 
 __inline__ __device__ int warpReduceMin(int val) {
-	val = std::min(val, shfl_xor_32(val, 1));
-	val = std::min(val, shfl_xor_32(val, 2));
-	val = std::min(val, shfl_xor_32(val, 4));
-	val = std::min(val, shfl_xor_32(val, 8));
-	val = std::min(val, shfl_xor_32(val, 16));
+	val = min(val, shfl_xor_32(val, 1));
+	val = min(val, shfl_xor_32(val, 2));
+	val = min(val, shfl_xor_32(val, 4));
+	val = min(val, shfl_xor_32(val, 8));
+	val = min(val, shfl_xor_32(val, 16));
 	return val;
 }
 
@@ -322,9 +312,10 @@ __inline__ __device__ int blockReduceMin(int val) {
 	val = warpReduceMin(val);     // Each warp performs partial reduction
 
 	if (lane==0) shared[wid]=val; // Write reduced value to shared memory
+#ifdef __CUDA_ARCH__
 
 	__syncthreads();              // Wait for all partial reductions
-
+#endif
 	//read from shared memory only if that warp existed
 	val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : INT_MAX;
 
@@ -345,9 +336,9 @@ __inline__ __device__ int blockReduceMinIndex(int val, int idx) {
 		shared_val[wid]=val;
 		shared_idx[wid]=idx;
 	}
-
+#ifdef __CUDA_ARCH__
 	__syncthreads();              // Wait for all partial reductions
-
+#endif
 	//read from shared memory only if that warp existed
 	val = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared_val[lane] : INT_MAX;
 	idx = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared_idx[lane] : INT_MAX;
@@ -359,7 +350,7 @@ __inline__ __device__ int blockReduceMinIndex(int val, int idx) {
 	return idx;
 }
 
-
+#ifdef __CUDA_ARCH__
 __inline__ __device__ bool blockAny(bool local_condition) {
 	__shared__ bool conditions[WARP_SIZE];
 	const int lane = threadIdx.x % WARP_SIZE;
@@ -382,5 +373,6 @@ __inline__ __device__ bool blockAny(bool local_condition) {
 
 	return local_condition;
 }
+#endif
 
 #endif /* UTIL_H_ */

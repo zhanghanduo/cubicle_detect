@@ -18,7 +18,7 @@
 
 **/
 
-#include "costs.h"
+#include "sgm/costs.h"
 #include <stdio.h>
 
 __global__ void 
