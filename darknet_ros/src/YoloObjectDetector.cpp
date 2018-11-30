@@ -726,7 +726,7 @@ void YoloObjectDetector::DefineLUTs() {
                         }
                     }
                 } else {
-                    if (inputDetkk.bb_height>frameHeight_*.2)
+                    if (inputDetkk.bb_height>90)//frameHeight_*.2)
                         detListCurrFrame.at(kk).validDet = false;
                 }
             }
@@ -801,6 +801,14 @@ void YoloObjectDetector::DefineLUTs() {
                                 cv::Mat maskRoiHead = maskHead(bbox).mul(blobMask);
                                 outputObs.histHead = calculateHistogram(hsvBBoxROI,maskRoiHead);
                                 outputObs.isHead = true;
+
+                                double sumHead = 0.8*cv::sum(maskHead)[0];
+                                double sumNonOccludedHead = cv::sum(maskRoiHead)[0];
+//                                std::cout<<"sumHead: "<<sumHead/0.8<<", sumNonOccludedHead: "<<sumNonOccludedHead<<std::endl;
+//                                cv::Scalar sumNonOccludedHead = cv::sum(cv::sum(maskRoiHead));
+                                if (sumNonOccludedHead>sumHead)
+                                    outputObs.updateHead = true;
+
 //                                cv::imshow("maskRoiHead",maskRoiHead*255);
                             }
                         }
@@ -827,6 +835,13 @@ void YoloObjectDetector::DefineLUTs() {
                                 cv::Mat maskRoiBody = maskBody(bbox).mul(blobMask);
                                 outputObs.histBody = calculateHistogram(hsvBBoxROI,maskRoiBody);
                                 outputObs.isBody = true;
+
+                                double sumBody = 0.8*cv::sum(maskBody)[0];
+                                double sumNonOccludedBody = cv::sum(maskRoiBody)[0];
+//                                std::cout<<"sumBody: "<<sumBody/0.8<<", sumNonOccludedBody: "<<sumNonOccludedBody<<std::endl;
+                                if (sumNonOccludedBody>sumBody)
+                                    outputObs.updateBody = true;
+
 //                                cv::imshow("maskRoiBody",maskRoiBody*255);
                             }
 
@@ -843,6 +858,13 @@ void YoloObjectDetector::DefineLUTs() {
                                 cv::Mat maskRoiBody = maskBody(bbox).mul(blobMask);
                                 outputObs.histBody = calculateHistogram(hsvBBoxROI,maskRoiBody);
                                 outputObs.isBody = true;
+
+                                double sumBody = 0.8*cv::sum(maskBody)[0];
+                                double sumNonOccludedBody = cv::sum(maskRoiBody)[0];
+//                                std::cout<<"sumBody: "<<sumBody/0.8<<", sumNonOccludedBody: "<<sumNonOccludedBody<<std::endl;
+                                if (sumNonOccludedBody>sumBody)
+                                    outputObs.updateBody = true;
+
 //                                cv::imshow("maskRoiBody",maskRoiBody*255);
                             }
 
@@ -870,6 +892,12 @@ void YoloObjectDetector::DefineLUTs() {
                                 cv::Mat maskRoiLegs = maskLegs(bbox).mul(blobMask);
                                 outputObs.histLegs = calculateHistogram(hsvBBoxROI,maskRoiLegs);
                                 outputObs.isLegs = true;
+
+                                double sumLegs = 0.8*cv::sum(maskLegs)[0];
+                                double sumNonOccludedLegs = cv::sum(maskRoiLegs)[0];
+//                                std::cout<<"sumLegs: "<<sumLegs/0.8<<", sumNonOccludedLegs: "<<sumNonOccludedLegs<<std::endl;
+                                if (sumNonOccludedLegs>sumLegs)
+                                    outputObs.updateLegs = true;
 //                                cv::imshow("maskRoiLegs",maskRoiLegs*255);
                             }
                         }
@@ -882,6 +910,7 @@ void YoloObjectDetector::DefineLUTs() {
 
         }
 
+//        std::cout<<std::endl;
         cv::imshow("outputBP",outputBP);
 //        cv::waitKey(0);
 
@@ -1162,7 +1191,7 @@ void YoloObjectDetector::DefineLUTs() {
         detListCurrFrame.clear();
 
         for (size_t i = 0; i < detList.size(); i++) {
-            if(detList.at(i).frameNum==(frame_num+1)){//} && detList.at(i).det_conf>det_conf_th){
+            if(detList.at(i).frameNum==(frame_num+1) && detList.at(i).det_conf>det_conf_th){
                 float width_del = detList.at(i).bb_left+detList.at(i).bb_width-float(frameWidth_);
                 float height_del = detList.at(i).bb_top+detList.at(i).bb_height-float(frameHeight_);
 
@@ -1895,17 +1924,17 @@ void *YoloObjectDetector::publishInThread()
                         int appCount =0;
                         double appSimilarity = 0.0;
 
-                        if(blob.isHead && currBlob.isHead){
+                        if(blob.updateHead && currBlob.isHead){
                             appSimilarity += cv::compareHist(currBlob.histHead, blob.histHead, CV_COMP_CORREL);
                             appCount++;
                         }
 
-                        if(blob.isBody && currBlob.isBody){
+                        if(blob.updateBody && currBlob.isBody){
                             appSimilarity += cv::compareHist(currBlob.histBody, blob.histBody, CV_COMP_CORREL);
                             appCount++;
                         }
 
-                        if(blob.isLegs && currBlob.isLegs){
+                        if(blob.updateLegs && currBlob.isLegs){
                             appSimilarity += cv::compareHist(currBlob.histLegs, blob.histLegs, CV_COMP_CORREL);
                             appCount++;
                         }
@@ -1934,14 +1963,19 @@ void *YoloObjectDetector::publishInThread()
 
         for (int c=0; c<detsOrMatWidth; c++) {
             for (int r = 0; r < tracksOrMatHeight; r++) {
+//                disSimilarity.at<double>(r,c)=motionDisSimilarity.at<double>(r,c);
                 double appDisSimValue = appDisSimilarity.at<double>(r,c);
                 if (appDisSimValue==-1.0){
-                    disSimilarity.at<double>(r,c)=motionDisSimilarity.at<double>(r,c);
+//                    disSimilarity.at<double>(r,c) = 1.0;
+                    disSimilarity.at<double>(r,c)=motionDisSimilarity.at<double>(r,c);//1.0;//motionDisSimilarity.at<double>(r,c);
                 } else{
-                    disSimilarity.at<double>(r,c)=(appDisSimValue+motionDisSimilarity.at<double>(r,c))/2.0;
+//                    disSimilarity.at<double>(r,c) = appDisSimValue;
+                    disSimilarity.at<double>(r,c)=(appDisSimValue+motionDisSimilarity.at<double>(r,c))/2.0;//appDisSimValue;//(appDisSimValue+motionDisSimilarity.at<double>(r,c))/2.0;
                 }
             }
         }
+
+//        std::cout<<disSimilarity<<std::endl<<std::endl;
 
         double min, max;
         cv::minMaxLoc(disSimilarity, &min, &max);
@@ -2082,7 +2116,7 @@ void *YoloObjectDetector::publishInThread()
 
 
         cv::imshow("debug", output);
-        cv::waitKey(0);
+        cv::waitKey(1);
 
         currentFrameBlobs.clear();
     }
@@ -2449,12 +2483,18 @@ void *YoloObjectDetector::publishInThread()
         existingBlobs[intIndex].kf.correct(existingBlobs[intIndex].meas); // Kalman Correction
 
         //update appearance model:: TODO: check for occlusion before updating
-        if(currentFrameBlob.isHead)
+        if(currentFrameBlob.updateHead) {
             existingBlobs[intIndex].histHead = currentFrameBlob.histHead;
-        if(currentFrameBlob.isBody)
+            existingBlobs[intIndex].updateHead = true;
+        }
+        if(currentFrameBlob.updateBody) {
             existingBlobs[intIndex].histBody = currentFrameBlob.histBody;
-        if(currentFrameBlob.isLegs)
+            existingBlobs[intIndex].updateBody = true;
+        }
+        if(currentFrameBlob.updateLegs) {
             existingBlobs[intIndex].histLegs = currentFrameBlob.histLegs;
+            existingBlobs[intIndex].updateLegs = true;
+        }
 
     }
 

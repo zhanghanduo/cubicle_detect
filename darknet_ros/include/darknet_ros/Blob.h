@@ -29,6 +29,7 @@ namespace darknet_ros {
         cv::MatND histHead , histBody, histLegs;
 
         bool isHead, isBody, isLegs;
+        bool updateHead, updateBody, updateLegs;
 
         cv::KalmanFilter kf;//(stateSize, measSize, contrSize, CV_32F);
         cv::Mat state;//(stateSize, 1, CV_32F);  // [x,y,v_x,v_y,w,h]

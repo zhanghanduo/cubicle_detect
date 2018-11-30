@@ -27,6 +27,10 @@ namespace darknet_ros {
         isHead = false;
         isLegs = false;
 
+        updateBody = false;
+        updateHead = false;
+        updateLegs = false;
+
 //        double currentSize = currentBoundingRect.width * currentBoundingRect.height;
 //
 //        size.push_back(currentSize);
