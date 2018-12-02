@@ -44,6 +44,7 @@
 
 // darknet_ros_msgs
 #include "darknet_ros/Blob.h"
+#include "darknet_ros/Hungarian.h"
 //#include "../../src/track_kalman.hpp"
 #include "utils/timing.h"
 #include "utils/hog.h"

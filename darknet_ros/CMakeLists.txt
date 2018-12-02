@@ -179,6 +179,7 @@ if (CUDA_FOUND)
           src/Blob.cu
           src/data.cpp
           src/hog.cpp
+          src/Hungarian.cpp
           src/sgm/costs.cu
           src/sgm/debug.cu
           src/sgm/disparity_method.cu
