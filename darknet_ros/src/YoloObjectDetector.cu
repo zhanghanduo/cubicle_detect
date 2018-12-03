@@ -821,7 +821,7 @@ void *YoloObjectDetector::publishInThread()
                                                        static_cast<int>(xmax - xmin),
                                                        static_cast<int>(ymax - ymin));
 
-                  if(dis!=0) {
+                  if(dis>=12) {
 
 //                    if(dis < 12){
 
@@ -875,13 +875,13 @@ void *YoloObjectDetector::publishInThread()
       }
     }
 
-    std::cout<<"currentFrameBlobs: "<<currentFrameBlobs.size()<<std::endl;
+//    std::cout<<"currentFrameBlobs: "<<currentFrameBlobs.size()<<std::endl;
 
-    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
-    for (auto &currentFrameBlob : currentFrameBlobs) {
-      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-    }
-    cv::imshow("beforeTracking", beforeTracking);
+//    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
+//    for (auto &currentFrameBlob : currentFrameBlobs) {
+//      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+//    }
+//    cv::imshow("beforeTracking", beforeTracking);
 
         // TODO: wait until isDepth_new to be true
 //      Tracking();
@@ -898,6 +898,7 @@ void *YoloObjectDetector::publishInThread()
 //    std::cout << "************************************************num 0" << std::endl;
   }
 
+//    std::cout << "************************************************new frame" << std::endl;
     Tracking();
     CreateMsg();
 
@@ -938,6 +939,8 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
                     predRect.height = static_cast<int>(blob.state.at<float>(5));
                     predRect.x = static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
                     predRect.y = static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
+
+//                    std::cout<< r <<" predRect: "<< predRect <<", "<<c<<" detectRect: " << currBlob.currentBoundingRect <<std::endl;
 
                     cv::Rect intersection = predRect & currBlob.currentBoundingRect;//currBlob.boundingRects.back();
                     cv::Rect unio = predRect | currBlob.currentBoundingRect;//currBlob.boundingRects.back();
@@ -994,7 +997,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
         if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
         }
-        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 30) {
+        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 50) {
             existingBlob.blnStillBeingTracked = false;
         }
     }
@@ -1070,7 +1073,7 @@ void YoloObjectDetector::Tracking (){
                 if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
                     existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
                 }
-                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 30) {
+                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 50) {
                     existingBlob.blnStillBeingTracked = false;
                     //blobs.erase(blobs.begin() + i);
                 }
