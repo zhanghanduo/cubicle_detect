@@ -45,6 +45,7 @@
 // darknet_ros_msgs
 #include "darknet_ros/Blob.h"
 #include "darknet_ros/Hungarian.h"
+#include "darknet_ros/Obstacles.h"
 //#include "../../src/track_kalman.hpp"
 #include "utils/timing.h"
 #include "utils/hog.h"
@@ -216,6 +217,7 @@ private:
 //  Util::CPPTimer timer_yolo, timer_1, timer_2;
 
   Util::HOGFeatureDescriptor* hog_descriptor;
+  ObstaclesDetection ObstacleDetector;
 
   // Yolo running on thread.
   std::thread yoloThread_;

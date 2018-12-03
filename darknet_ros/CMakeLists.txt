@@ -180,6 +180,7 @@ if (CUDA_FOUND)
           src/data.cpp
           src/hog.cpp
           src/Hungarian.cpp
+          src/Obstacles.cpp
           src/sgm/costs.cu
           src/sgm/debug.cu
           src/sgm/disparity_method.cu

@@ -242,8 +242,8 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*left_info);
   sensor_msgs::CameraInfoPtr right_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*right_info);
-  left_info_copy->header.frame_id = "stereo";
-  right_info_copy->header.frame_id = "stereo";
+//  left_info_copy->header.frame_id = "stereo";
+//  right_info_copy->header.frame_id = "stereo";
 
   // Get Stereo Camera Model from Camera Info message
   image_geometry::StereoCameraModel stereoCameraModel;
@@ -301,6 +301,9 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
     yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
   depthTable = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+
+  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_);
+
 
 //  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
 //  left_roi_ = cameraLeft.rawRoi();
@@ -899,6 +902,7 @@ void *YoloObjectDetector::publishInThread()
   }
 
 //    std::cout << "************************************************new frame" << std::endl;
+  ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3]);
     Tracking();
     CreateMsg();
 
