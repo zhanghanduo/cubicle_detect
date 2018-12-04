@@ -198,9 +198,9 @@ private:
 
   //! Lookup Table
 
-  double **xDirectionPosition;
-  double **yDirectionPosition;
-  double *depthTable;
+  double **x3DPosition;
+  double **y3DPosition;
+  double *depth3D;
 //  double xDirectionPosition[1280][129] ={{}};
 //  double yDirectionPosition[844][129] ={{}};
 //  double depthTable[129] = {};

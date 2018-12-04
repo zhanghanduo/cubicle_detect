@@ -71,9 +71,9 @@ YoloObjectDetector::~YoloObjectDetector()
     isNodeRunning_ = false;
   }
   yoloThread_.join();
-  free(depthTable);
-  free(xDirectionPosition);
-  free(yDirectionPosition);
+  free(depth3D);
+  free(x3DPosition);
+  free(y3DPosition);
   free(cfg);
   free(weights);
   free(detectionNames);
@@ -292,17 +292,17 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   assert(stereo_baseline_ > 0);
 
   int ii;
-  xDirectionPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
+  x3DPosition = static_cast<double **>(calloc(Width, sizeof(double *)));
   for(ii = 0; ii < Width; ii++)
-    xDirectionPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+    x3DPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  yDirectionPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
+  y3DPosition = static_cast<double **>(calloc(Height, sizeof(double *)));
   for(ii = 0; ii < Height; ii++)
-    yDirectionPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+    y3DPosition[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  depthTable = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+  depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_);
+  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height);
 
 
 //  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
@@ -326,25 +326,25 @@ void YoloObjectDetector::DefineLUTs() {
   ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d | Height: %d", u0, v0, focal, stereo_baseline_, Width_crp, Height_crp);
 
     for (int r=0; r<Width; r++) {
-        xDirectionPosition[r][0]=0;
+        x3DPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
-            xDirectionPosition[r][c]=(r-u0)*stereo_baseline_/c;
+            x3DPosition[r][c]=(r-u0)*stereo_baseline_/c;
 //        std::cout<<xDirectionPosition[r][c]<<std::endl;
         }
     }
 
     for (int r=0; r<Height; r++) {
 //    for (int r=300; r<301; r++) {
-        yDirectionPosition[r][0]=0;
+        y3DPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
-            yDirectionPosition[r][c]=(v0-r)*stereo_baseline_/c;
+            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c;
 //      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
         }
     }
 
-    depthTable[0] =0;
+    depth3D[0] =0;
     for( int i = 1; i < disp_size+1; ++i){
-        depthTable[i]=focal*stereo_baseline_/i; //Y*dx/B
+        depth3D[i]=focal*stereo_baseline_/i; //Y*dx/B
 //      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
     }
 
@@ -839,9 +839,9 @@ void *YoloObjectDetector::publishInThread()
 //                    obstacle_msgs::obs outputObs;
                       outputObs.category = classLabels_[i];
                       outputObs.probability = rosBoxes_[i][j].prob;
-                      outputObs.position_3d[0] = xDirectionPosition[center_c_][dis];
-                      outputObs.position_3d[1] = yDirectionPosition[center_r_][dis];
-                      outputObs.position_3d[2] = depthTable[dis];
+                      outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                      outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                      outputObs.position_3d[2] = depth3D[dis];
                       outputObs.xmin = xmin;
                       outputObs.xmax = xmax;
                       outputObs.ymin = ymin;
@@ -850,10 +850,10 @@ void *YoloObjectDetector::publishInThread()
 //                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
 
                       double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
-                      xmin_3d = xDirectionPosition[static_cast<int>(xmin)][dis];
-                      xmax_3d = xDirectionPosition[static_cast<int>(xmax)][dis];
-                      ymin_3d = yDirectionPosition[static_cast<int>(ymin)][dis];
-                      ymax_3d = yDirectionPosition[static_cast<int>(ymax)][dis];
+                      xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                      xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                      ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                      ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
 //                    ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
 //                    ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
                       outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
