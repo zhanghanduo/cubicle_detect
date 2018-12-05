@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <opencv2/opencv.hpp>
-#include "darknet_ros/Blob.h"
+//#include "darknet_ros/Blob.h"
 
 struct u_span {
     int u_left; int u_right; int u_d;
@@ -49,15 +49,27 @@ private:
     void RoadProfileCalculation ();
     void InitiateObstaclesMap();
     void RefineObstaclesMap();
+    bool colinear();
+    void SurfaceNormal();
+    void SurfaceNormalCalculation();
+    void RoadSlopeCalculation();
+    void RoadSlopeInit();
     void DisplayRoad();
     void DisplayPosObs();
 
-    cv::Mat disparity_map, roadmap, obstaclemap, road, v_disparity_map, u_disparity_map;
-    cv::Mat obstacleDisparityMap, u_disparity_map_new, u_thresh_map, negObsMap;
+    cv::Mat disparity_map, roadmap, obstaclemap, road, v_disparity_map, u_disparity_map; //road
+    cv::Mat obstacleDisparityMap, u_disparity_map_new, u_thresh_map, negObsMap; //positive obstacle detection
+    cv::Mat slope_map, prvSlopeMap; //slope
 
-    std::vector<cv::Point2i> initialRoadProfile, refinedRoadProfile;
-    std::vector<obsBlobs> currentFrameObsBlobs;
+    std::vector<cv::Point2i> initialRoadProfile, refinedRoadProfile; // road
+    std::vector<obsBlobs> currentFrameObsBlobs; // positive obstacle
+    std::vector<cv::Vec3d> randomRoadPoints; //slope
+    std::vector<cv::Point2i> randomRoadPoints2D; //slope
+    std::vector<int> selectedIndexes; // slope
+
     std::string pubName;
+    cv::Vec3d surfaceN; // slope
+    bool imuDetected = false; // slope
 //    cv::Rect region_of_interest;
 
     int roadNotVisibleDisparity = 0;
@@ -65,6 +77,11 @@ private:
     int rdProfileRowDistanceTh, rdProfileColDistanceTh, intensityThVDisPointForSlope;
     int disp_size;
     int road_starting_row, minNoOfPixelsForObject;
+    int yResolutionForSlopeMap = 2;//how many cm per pixel -- slope
+    int zResolutionForSlopeMap = 10;//how many cm per pixel -- slope
+    int heightForSlope = 800, humpEndFrames = 0;//cm both direction -- slope
+    int disForSlope, disForSlopeStart; // slope
+    int slopeAdjHeight, slopeAdjLength;//cm -- slope
 
     int *uDispThresh;
     int *uHysteresisLowThresh;
@@ -76,6 +93,9 @@ private:
     double widthOfInterest = 15.0;//in meters in one direction
     double heightOfInterest = 2.5;//in meters in one direction
     double meanValUPrv =0.0, meanValVPrv =0.0;
+    double depthForSlpoe, depthForSlopeStart; //slope
+    double imuAngularVelocityY = 0.0; //slope
+    double minDepthDiffToCalculateSlope;//cm -- slope
 
     double **xDirectionPosition;
     double **yDirectionPosition;

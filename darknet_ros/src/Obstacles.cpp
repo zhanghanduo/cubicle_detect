@@ -602,6 +602,329 @@ void ObstaclesDetection::RefineObstaclesMap () {
 //    }
 }
 
+bool ObstaclesDetection::colinear() {
+
+//    cv::Point2i a = randomRoadPoints2D[selectedIndexes[0]];
+//    cv::Point2i b = randomRoadPoints2D[selectedIndexes[1]];
+//    cv::Point2i c = randomRoadPoints2D[selectedIndexes[2]];
+    cv::Vec3d a = randomRoadPoints[selectedIndexes[0]];
+    cv::Vec3d b = randomRoadPoints[selectedIndexes[1]];
+    cv::Vec3d c = randomRoadPoints[selectedIndexes[2]];
+
+    double len_ab = norm(a-b);
+    double len_ac = norm(a-c);
+    double len_bc = norm(b-c);
+
+    bool val = false;
+
+    if (len_ab * 1.2 > (len_ac + len_bc))
+        val = true;
+    if (len_bc * 1.2 > (len_ac + len_ab))
+        val = true;
+    if (len_ac * 1.2 > (len_bc + len_ab))
+        val = true;
+
+//    if (len_ab>len_ac) {
+//        if (len_ab > len_bc) {
+//            if (len_ab * 1.1 > (len_ac + len_bc))
+//                val = true;
+//        } else {
+//            if (len_bc * 1.1 > (len_ac + len_ab))
+//                val = true;
+//        }
+//    } else if (len_bc>len_ac){
+//        if (len_bc * 1.1 > (len_ac + len_ab))
+//            val = true;
+//    } else {
+//        if (len_ac * 1.1 > (len_bc + len_ab))
+//            val = true;
+//    }
+//    ((y3 - y2) * (x2 - x1) - (y2 - y1) * (x3 - x2))
+//    (y3 - y2)/(x3 - x2) = (y2 - y1)/(x2 - x1)
+//    double val =0.0;
+//    if((c.x-b.x)!=0 && (b.x-a.x)!=0)
+//        val = fabs((double)(c.y-b.y)/(c.x-b.x) - (double)(b.y-a.y)/(b.x-a.x));
+
+    return val;
+
+}
+
+void ObstaclesDetection::SurfaceNormal (){
+    cv::Vec3d a = randomRoadPoints[selectedIndexes[0]];
+    cv::Vec3d b = randomRoadPoints[selectedIndexes[1]];
+    cv::Vec3d c = randomRoadPoints[selectedIndexes[2]];
+//    std::cout<<"a: "<<a<<", b:"<<b<<", c:"<<c<<std::endl;
+//    std::cout<<"a-b: "<<a-b<<", b-c:"<<b-c<<std::endl;
+
+//    if(a[1]>-100.0 or b[1]>-100.0 or c[1]>-100.0)
+//        std::cout<<"a: "<<a<<", b:"<<b<<", c:"<<c<<std::endl;
+
+
+
+    surfaceN = (a-b).cross((b-c));
+
+//    if(norm(surfaceN)>0) {
+//        surfaceN = surfaceN / norm(surfaceN);
+//        cv::Vec3d hori_N = cv::Vec3d(0.0,0.0,1.0);
+//        cv::Vec3d hori_N = cv::Vec3d(0.0, 1.0, 0.0);
+//        double angle = acos(fabs(surfaceN.dot(hori_N)));//* 180.0 / 3.14159265;
+//        if(angle * 180.0 / 3.14159265 > 5){
+//            std::cout << angle << ", " << angle * 180.0 / 3.14159265 << std::endl;
+//            std::cout<<"a: "<<a<<", b:"<<b<<", c:"<<c<<std::endl;
+//            std::cout<<"colinearity: "<<colinear()<<std::endl;
+
+//            for (int i=0;i<3;i++){
+//                cv::circle(output,randomRoadPoints2D[selectedIndexes[i]],3,cv::Scalar(0, 0, 255),2);
+//                cv::line(output, randomRoadPoints2D[selectedIndexes[i]], randomRoadPoints2D[selectedIndexes[(i+1)%3]], cv::Scalar(255, 0, 0), 2);
+//            }
+
+//        }
+//    }
+//    std::cout<<"surfaceN: "<<surfaceN<<std::endl;
+//    cv::Vec3d noN;// = N/norm(N);
+//    double angle =0.0;//=acos(fabs(noN.dot(hori_N)))* 180.0 / 3.14159265;
+
+//    if(norm(N)>0){
+//        noN = N/norm(N);
+//        angle =acos(fabs(noN.dot(hori_N)))* 180.0 / 3.14159265;
+//    }
+//    N = N*10;
+//    std::cout<<"N: "<<N<<", "<<a<<", "<<b<<", "<<c<<", "<<norm(N)<<", "<<norm(hori_N)<<", "<<N.dot(hori_N)<<", "<<angle<<std::endl;
+//    std::vector<cv::Vec3d> worldPoints;
+//    worldPoints.push_back(N);//(cv::Point3d(N[0],N[1],N[2]));
+//    std::vector<cv::Vec2d> imgPoints;
+//    cv::Mat rVec(3, 1, cv::DataType<double>::type); // Rotation vector
+//    rVec.at<double>(0) = -3.9277902400761393e-002;
+//    rVec.at<double>(1) = 3.7803824407602084e-002;
+//    rVec.at<double>(2) = 2.6445674487856268e-002;
+
+//    cv::Mat tVec(3, 1, cv::DataType<double>::type); // Translation vector
+//    tVec.at<double>(0) = t1.at<double>(0,0);
+//    tVec.at<double>(1) = t1.at<double>(1,0);
+//    tVec.at<double>(2) = t1.at<double>(2,0);
+//    tVec.at<double>(0) = 2.1158489381208221e+000;
+//    tVec.at<double>(1) = -7.6847683212704716e+000;
+//    tVec.at<double>(2) = 2.6169795190294256e+001;
+//    cv::projectPoints(worldPoints, r1,tVec,k1,d1,imgPoints);
+//    std::cout<<"N: "<<N<<", "<<imgPoints[0]<<std::endl;
+//    std::cout<<tVec<<std::endl;
+//    std::cout<<r1<<std::endl;
+
+//    cv::ellipse(output, cv::Point(output.cols/2,output.rows*5/6),cv::Size(8,16),angle,0,360,cv::Scalar( 255, 0, 0 ), CV_FILLED );
+
+//    for (int i=0;i<3;i++){
+//        cv::circle(output,randomRoadPoints2D[selectedIndexes[i]],3,cv::Scalar(0, 0, 255),2);
+//        cv::line(output, randomRoadPoints2D[selectedIndexes[i]], randomRoadPoints2D[selectedIndexes[(i+1)%3]], cv::Scalar(255, 0, 0), 2);
+//    }
+
+//    sameWindow.spin();
+//    sameWindow.spinOnce(1, true);
+//    while(!sameWindow.wasStopped())
+//    {
+//        sameWindow.spinOnce(1, true);
+//    }
+}
+
+void ObstaclesDetection::SurfaceNormalCalculation () {
+    int size = static_cast<int>(randomRoadPoints.size());
+    if(size==3){
+        for (int i=0;i<3;i++)
+            selectedIndexes.push_back(i);
+        if (!colinear())
+            SurfaceNormal();
+    } else if (size>3) {
+        selectedIndexes.push_back(0);
+        selectedIndexes.push_back((int)size/2);
+        selectedIndexes.push_back(size-1);
+        if (colinear()){
+            selectedIndexes.clear();
+            selectedIndexes.push_back(1);
+            selectedIndexes.push_back((int)size/2);
+            selectedIndexes.push_back(size-1);
+            if (!colinear())
+                SurfaceNormal();
+        } else {
+            SurfaceNormal();
+        }
+    }
+
+
+
+    randomRoadPoints.clear();
+    randomRoadPoints2D.clear();
+    selectedIndexes.clear();
+}
+
+void ObstaclesDetection::RoadSlopeCalculation () {
+
+    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap, CV_8UC3);
+    int rowForDisparity35 = dynamicLookUpTableRoad[disForSlope];
+//        int inRdHeight = 150;//cm
+    int roadStartDis = refinedRoadProfile[0].y;
+    double inRdHeight = abs(yDirectionPosition[dynamicLookUpTableRoad[disForSlopeStart]][disForSlopeStart] * 100);
+
+//        std::cout<<"roadStartDis: "<<roadStartDis<<"; disForSlopeStart: "<< disForSlopeStart <<"; inRdHeight: "<<inRdHeight<<std::endl;
+    int maxDispForSlopeStart = disForSlopeStart;
+    if (disForSlopeStart > roadStartDis) {
+        inRdHeight = abs(yDirectionPosition[dynamicLookUpTableRoad[roadStartDis]][roadStartDis] * 100);
+        int currentY = slope_map.rows / 2;// - (int) ((1.5+yDirectionPosition[dynamicLookUpTableRoad[roadStartDis]+topShift][roadStartDis])*100/2);
+        for (int d = disForSlopeStart; d > roadStartDis; d--) {
+            int currentZ = (int) (depthTable[d] * 100 / zResolutionForSlopeMap);
+            for (int c = slope_map.rows - 1; c > currentY; c--) {
+                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+            }
+        }
+        maxDispForSlopeStart = roadStartDis;
+    }
+
+    int minDispForSlope = disForSlope;
+    if (roadNotVisibleDisparity > disForSlope) {
+        minDispForSlope = roadNotVisibleDisparity;
+    }
+
+    double startDepth = depthTable[maxDispForSlopeStart] * 100;
+    double point1Z = startDepth;
+    int point1R = dynamicLookUpTableRoad[maxDispForSlopeStart];
+    double point1Y = yDirectionPosition[point1R][maxDispForSlopeStart] * 100;
+//    cv::line(output, cv::Point(0, point1R), cv::Point(output.cols - 1, point1R), cv::Scalar(0, 200, 0), 2);
+    int rowDiff = 0;
+
+//        std::cout<<"point1Y: "<<point1Y<<", inRdHeight: "<<inRdHeight<<", pointY: "<<point1Y-((point1Z-startDepth)*slopeAdjHeight/slopeAdjLength)<<std::endl;
+
+    bool toggle = true;
+    for (int d = maxDispForSlopeStart; d > minDispForSlope; d--) {
+        double pointZ = depthTable[d] * 100;
+        int pointR = dynamicLookUpTableRoad[d];
+        double pointY = yDirectionPosition[pointR][d]*100-((pointZ-startDepth)*slopeAdjHeight/slopeAdjLength);
+        int currentZ = (int) (pointZ / zResolutionForSlopeMap);
+        int currentY = slope_map.rows / 2 - (int) ((inRdHeight + pointY) / yResolutionForSlopeMap);
+
+//        if(d%2 == 0){
+        if(toggle){
+            bool criteria = false;
+            double pointX = 0.0;
+            int selectedCol = roadmap.cols*0.4;
+            for (int c=selectedCol;c<roadmap.cols-50;c++){
+                int rdDis = (int)disparity_map.at<uchar>(pointR,c);
+                if((int)roadmap.at<uchar>(pointR,c)==1 && rdDis==d){
+                    criteria = true;
+                    if (c>selectedCol){
+                        selectedCol = c;
+                        pointX = xDirectionPosition[c][d]*100;
+                    }
+//                    c = roadmap.cols;
+                }
+            }
+            randomRoadPoints.push_back(cv::Vec3d(pointX,pointY,pointZ));
+            randomRoadPoints2D.push_back(cv::Point2i(selectedCol,pointR));
+            toggle = false;
+        } else {
+            bool criteria = false;
+            double pointX = 0.0;
+            int selectedCol = roadmap.cols*0.8;
+            for (int c=roadmap.cols*0.8;c>100;c--){
+                int rdDis = (int)disparity_map.at<uchar>(pointR,c);
+                if((int)roadmap.at<uchar>(pointR,c)==1 && rdDis==d){
+                    criteria = true;
+                    if (c<selectedCol){
+                        selectedCol = c;
+                        pointX = xDirectionPosition[c][d]*100;
+                    }
+//                    c=0;
+                }
+            }
+            randomRoadPoints.push_back(cv::Vec3d(pointX,pointY,pointZ));
+            randomRoadPoints2D.push_back(cv::Point2i(selectedCol,pointR));
+            toggle = true;
+        }
+
+        if (currentY < slope_map.rows && currentZ < slope_map.cols) {
+            for (int c = slope_map.rows - 1; c > currentY; c--) {
+                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+            }
+        }
+
+        if ((pointZ - point1Z) > minDepthDiffToCalculateSlope) {
+            double slope = cvRound(atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265);
+            std::ostringstream strSlope;
+            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
+                     << " deg";//<<road_height;
+            cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
+                        CV_RGB(0, 250, 0));
+//            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+//            cv::line(output, cv::Point(0, pointR), cv::Point(output.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+
+            if (!imuDetected)
+                SurfaceNormalCalculation();
+
+            point1Z = pointZ;
+            point1Y = pointY;
+            rowDiff = rowDiff + 10;
+
+        } else if (d == minDispForSlope + 1) {
+            double slope = cvRound(atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265);
+            std::ostringstream strSlope;
+            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
+                     << " deg";//<<road_height;
+            cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
+                        CV_RGB(0, 250, 0));
+//            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+//            cv::line(output, cv::Point(0, pointR), cv::Point(output.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+
+        }
+    }
+
+    cv::putText(slope_map, "Slope w.r.t. camera plane:", cv::Point(50,30), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
+    for (int c=50;c<slope_map.cols;c=c+50){
+        std::ostringstream str;
+        str << c*zResolutionForSlopeMap/100<<"m";
+        cv::putText(slope_map, str.str(), cv::Point(c,10), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+    }
+    for (int r=20;r<slope_map.rows;r=r+20){
+        std::ostringstream str;
+        str << (slope_map.rows/2-r)*yResolutionForSlopeMap<<"cm";
+        cv::putText(slope_map, str.str(), cv::Point(5,r), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+    }
+    /*double curr_road_slope = round(atan((refinedRoadProfile[0].x-rowForDisparity35)/(refinedRoadProfile[0].y-disForSlope))*180/3.14159265 - 63.4349);
+    road_slope = curr_road_slope;// - prv_road_slope;
+    prv_road_slope = curr_road_slope;
+  for(int i=0; i < refinedRoadProfile.size(); i++) {
+    int row_r = refinedRoadProfile[i].x;
+    for (int c = 1; c < roadmap.cols; c++) {
+      int disparity_value = disparity_map.at<uchar>(row_r, c);
+      int prv_disparity_value = disparity_map.at<uchar>(row_r, c - 1);
+      if (disparity_value != 0 && prv_disparity_value != 0) {
+        double currentY = yDirectionPosition[row_r][disparity_value];
+        double previousY = yDirectionPosition[row_r][prv_disparity_value];
+        double currentX = xDirectionPosition[c][disparity_value];
+        double previousX = xDirectionPosition[c-1][prv_disparity_value];
+      }
+    }
+  }*/
+    prvSlopeMap = slope_map;
+
+}
+
+void ObstaclesDetection::RoadSlopeInit (){
+    if (imuDetected){
+        if (abs(imuAngularVelocityY)>0.1){
+            humpEndFrames = 0;
+            slope_map = prvSlopeMap;
+//                std::cout<<"Slope Corrected Frame ID: "<< globalframe<<std::endl;
+        } else {
+            humpEndFrames ++;
+            if (humpEndFrames<6){
+                slope_map = prvSlopeMap;
+//                    std::cout<<"Slope Corrected Frame ID: "<< globalframe<<std::endl;
+            } else {
+                RoadSlopeCalculation();
+            }
+        }
+    } else {
+        RoadSlopeCalculation();
+    }
+}
+
 void ObstaclesDetection::DisplayRoad() {
     cv::imshow("road",road);
     cv::imshow("v_disparity_map",v_disparity_map);
@@ -719,6 +1042,11 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
         rdProfileColDistanceTh = 4;
         intensityThVDisPointForSlope = 100;
         pubName = "/long/map_msg";
+        depthForSlpoe = 30; //m -- slope
+        depthForSlopeStart = 10; //m -- slope
+        slopeAdjHeight = 35; // cm -- slope
+        slopeAdjLength = 2000; // cm -- slope
+        minDepthDiffToCalculateSlope = 1000; // cm -- slope
     } else if (camera_type == "wide_camera") {
         rdRowToDisRegard = 30;
         rdStartCheckLines = 24;
@@ -728,7 +1056,15 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
         rdProfileColDistanceTh = 16;
         intensityThVDisPointForSlope = 100;
         pubName = "/wide/map_msg";
+        depthForSlpoe = 18; //m -- slope
+        depthForSlopeStart = 6.5; //m -- slope
+        slopeAdjHeight = 0; // cm -- slope
+        slopeAdjLength = 1; // cm -- slope
+        minDepthDiffToCalculateSlope = 400; // cm -- slope
     }
+
+    disForSlope = cvRound(focal * baseline / depthForSlpoe);
+    disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
 
 }
 
@@ -767,6 +1103,17 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat disp_img){
         RefineObstaclesMap();
 
 //        DisplayPosObs();
+
+        randomRoadPoints.clear();
+        randomRoadPoints2D.clear();
+        selectedIndexes.clear();
+        surfaceN = cv::Vec3d(0.0,0.0,0.0);
+
+        RoadSlopeInit();
+
+        cv::imshow("Slope_map", slope_map);
+        cv::waitKey(1);
+
     }
 
 }
