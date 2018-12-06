@@ -201,6 +201,8 @@ void YoloObjectDetector::init()
   bool detectionImageLatch;
   std::string obstacleBoxesTopicName;
   int obstacleBoxesQueueSize;
+  std::string disparityTopicName;
+  int disparityQueueSize;
 
   nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName,
                     std::string("found_object"));
@@ -215,10 +217,16 @@ void YoloObjectDetector::init()
                     std::string("/obs_map"));
   nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
   nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera_frame"));
+  nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
+                      std::string("/wide/disparity"));
+  nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
 
   objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
                                                            objectDetectorQueueSize,
                                                            objectDetectorLatch);
+
+  disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
+                                                           disparityQueueSize);
 
   obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
           obstacleBoxesTopicName, obstacleBoxesQueueSize);
@@ -608,6 +616,21 @@ void *YoloObjectDetector::fetchInThread()
   if(counter > 2) {
 
       disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
+
+      disparity_info.header.stamp = image_time;
+      cv_bridge::CvImage out_msg;
+      out_msg.header.frame_id = "/wide_camera";
+      out_msg.header.stamp = image_time;
+      out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+      out_msg.image = disparity_map;
+      disparity_info.image = *out_msg.toImageMsg();
+
+      disparity_info.f = focal;
+      disparity_info.T = stereo_baseline_;
+      disparity_info.min_disparity = min_disparity;
+      disparity_info.max_disparity = disp_size; //128
+
+      disparityPublisher_.publish(disparity_info);
   }
 
   counter ++;

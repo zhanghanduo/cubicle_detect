@@ -28,6 +28,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
+#include <stereo_msgs/DisparityImage.h>
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <image_transport/image_transport.h>
@@ -184,6 +185,7 @@ private:
   ros::Publisher objectPublisher_;
   ros::Publisher boundingBoxesPublisher_;
   ros::Publisher obstaclePublisher_;
+  ros::Publisher disparityPublisher_;
 
   std::string pub_obs_frame_id;
 
@@ -329,7 +331,7 @@ private:
     std::vector<double> depth;
     int min_disparity;
 // Disparity
-
+    stereo_msgs::DisparityImage disparity_info;
     std::ofstream file;
     std::string file_name;
     std::string img_name;

@@ -31,6 +31,10 @@ publishers:
     queue_size: 1
     latch: true
 
+  disparity_map:
+    topic: /disparity
+    queue_size: 10
+
 image_view:
 
   enable_opencv: true
