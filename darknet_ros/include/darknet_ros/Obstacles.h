@@ -40,7 +40,7 @@ public:
     ObstaclesDetection();
     ~ObstaclesDetection();
     void Initiate(std::string camera_type, int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height);
-    void ExecuteDetection(cv::Mat disparity_map);
+    void ExecuteDetection(cv::Mat &disparity_map, cv::Mat &img);
 
 private:
     cv::Mat GenerateUDisparityMap (cv::Mat disp_map);
@@ -57,6 +57,7 @@ private:
     void DisplayRoad();
     void DisplayPosObs();
 
+    cv::Mat left_rect;
     cv::Mat disparity_map, roadmap, obstaclemap, road, v_disparity_map, u_disparity_map; //road
     cv::Mat obstacleDisparityMap, u_disparity_map_new, u_thresh_map, negObsMap; //positive obstacle detection
     cv::Mat slope_map, prvSlopeMap; //slope

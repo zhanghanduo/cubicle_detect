@@ -902,7 +902,10 @@ void *YoloObjectDetector::publishInThread()
   }
 
 //    std::cout << "************************************************new frame" << std::endl;
-  ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3]);
+    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
+//    cv::imshow("beforeTracking", beforeTracking);
+
+  ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3], beforeTracking);
     Tracking();
     CreateMsg();
 

@@ -712,10 +712,10 @@ void ObstaclesDetection::SurfaceNormal (){
 
 //    cv::ellipse(output, cv::Point(output.cols/2,output.rows*5/6),cv::Size(8,16),angle,0,360,cv::Scalar( 255, 0, 0 ), CV_FILLED );
 
-//    for (int i=0;i<3;i++){
-//        cv::circle(output,randomRoadPoints2D[selectedIndexes[i]],3,cv::Scalar(0, 0, 255),2);
-//        cv::line(output, randomRoadPoints2D[selectedIndexes[i]], randomRoadPoints2D[selectedIndexes[(i+1)%3]], cv::Scalar(255, 0, 0), 2);
-//    }
+    for (int i=0;i<3;i++){
+        cv::circle(left_rect,randomRoadPoints2D[selectedIndexes[i]],3,cv::Scalar(0, 0, 255),2);
+        cv::line(left_rect, randomRoadPoints2D[selectedIndexes[i]], randomRoadPoints2D[selectedIndexes[(i+1)%3]], cv::Scalar(255, 0, 0), 2);
+    }
 
 //    sameWindow.spin();
 //    sameWindow.spinOnce(1, true);
@@ -786,7 +786,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
     double point1Z = startDepth;
     int point1R = dynamicLookUpTableRoad[maxDispForSlopeStart];
     double point1Y = yDirectionPosition[point1R][maxDispForSlopeStart] * 100;
-//    cv::line(output, cv::Point(0, point1R), cv::Point(output.cols - 1, point1R), cv::Scalar(0, 200, 0), 2);
+    cv::line(left_rect, cv::Point(0, point1R), cv::Point(left_rect.cols - 1, point1R), cv::Scalar(0, 200, 0), 2);
     int rowDiff = 0;
 
 //        std::cout<<"point1Y: "<<point1Y<<", inRdHeight: "<<inRdHeight<<", pointY: "<<point1Y-((point1Z-startDepth)*slopeAdjHeight/slopeAdjLength)<<std::endl;
@@ -845,14 +845,14 @@ void ObstaclesDetection::RoadSlopeCalculation () {
         }
 
         if ((pointZ - point1Z) > minDepthDiffToCalculateSlope) {
-            double slope = cvRound(atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265);
+            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
             std::ostringstream strSlope;
             strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
-//            cv::line(output, cv::Point(0, pointR), cv::Point(output.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+            cv::line(left_rect, cv::Point(0, pointR), cv::Point(left_rect.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
 
             if (!imuDetected)
                 SurfaceNormalCalculation();
@@ -862,14 +862,14 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             rowDiff = rowDiff + 10;
 
         } else if (d == minDispForSlope + 1) {
-            double slope = cvRound(atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265);
+            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
             std::ostringstream strSlope;
             strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
-//            cv::line(output, cv::Point(0, pointR), cv::Point(output.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+            cv::line(left_rect, cv::Point(0, pointR), cv::Point(left_rect.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
 
         }
     }
@@ -948,21 +948,21 @@ void ObstaclesDetection::DisplayRoad() {
 
 void ObstaclesDetection::DisplayPosObs() {
     cv::imshow("obstacleDisparityMap", obstacleDisparityMap*255/disp_size);
-    cv::Mat posObsOutput;
-    cv::cvtColor(obstaclemap*255, posObsOutput, CV_GRAY2RGB);
+//    cv::Mat posObsOutput;
+//    cv::cvtColor(left_rect, posObsOutput, CV_GRAY2RGB);
 
 //    std::cout << "Completed GenerateObstaclesMap function in posObstacles.cpp" << std::endl;
     for (long int i = 0; i < currentFrameObsBlobs.size(); i++) {
-        cv::rectangle(posObsOutput, currentFrameObsBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+        cv::rectangle(left_rect, currentFrameObsBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
         for(int j=0; j<currentFrameObsBlobs[i].obsPoints.size();j++){
-            posObsOutput.at<cv::Vec3b>(currentFrameObsBlobs[i].obsPoints[j].x, currentFrameObsBlobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
+            left_rect.at<cv::Vec3b>(currentFrameObsBlobs[i].obsPoints[j].x, currentFrameObsBlobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
         }
         std::ostringstream str;
         str << depthTable[currentFrameObsBlobs[i].max_disparity]<<"m";
-        cv::putText(posObsOutput, str.str(), cv::Point(currentFrameObsBlobs[i].currentBoundingRect.x,currentFrameObsBlobs[i].currentBoundingRect.y+12),
+        cv::putText(left_rect, str.str(), cv::Point(currentFrameObsBlobs[i].currentBoundingRect.x,currentFrameObsBlobs[i].currentBoundingRect.y+12),
                 CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
     }
-    cv::imshow("posObsOutput", posObsOutput);
+//    cv::imshow("posObsOutput", posObsOutput);
     cv::imshow("obstaclemap",obstaclemap*255);
     cv::imshow("roadmap",roadmap*255);
     cv::waitKey(1);
@@ -1068,9 +1068,13 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
 
 }
 
-void ObstaclesDetection::ExecuteDetection(cv::Mat disp_img){
+void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 
     disp_img.copyTo(disparity_map);
+    cv::cvtColor(img, left_rect, CV_GRAY2RGB);
+//    cv::imshow("left_rect", left_rect);
+//    cv::waitKey(1);
+//    img.copyTo(left_rect);
 
     roadmap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
     obstaclemap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
@@ -1090,30 +1094,31 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat disp_img){
 //    DisplayRoad();
 
     int minNoOfPointsForRdProfile =50;
-    if (refinedRoadProfile.size()>minNoOfPointsForRdProfile){
-
-        obstacleDisparityMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
-        negObsMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
-        currentFrameObsBlobs.clear();
-
-        memset(dynamicLookUpTableRoad, 0, sizeof(dynamicLookUpTableRoad));
-        memset(dynamicLookUpTableRoadProfile, 0, sizeof(dynamicLookUpTableRoadProfile));
-
-        InitiateObstaclesMap();
-        RefineObstaclesMap();
-
-//        DisplayPosObs();
-
-        randomRoadPoints.clear();
-        randomRoadPoints2D.clear();
-        selectedIndexes.clear();
-        surfaceN = cv::Vec3d(0.0,0.0,0.0);
-
-        RoadSlopeInit();
-
-        cv::imshow("Slope_map", slope_map);
-        cv::waitKey(1);
-
-    }
+//    if (refinedRoadProfile.size()>minNoOfPointsForRdProfile){
+//
+//        obstacleDisparityMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+//        negObsMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+//        currentFrameObsBlobs.clear();
+//
+//        memset(dynamicLookUpTableRoad, 0, sizeof(dynamicLookUpTableRoad));
+//        memset(dynamicLookUpTableRoadProfile, 0, sizeof(dynamicLookUpTableRoadProfile));
+//
+//        InitiateObstaclesMap();
+//        RefineObstaclesMap();
+//
+////        DisplayPosObs();
+//
+//        randomRoadPoints.clear();
+//        randomRoadPoints2D.clear();
+//        selectedIndexes.clear();
+//        surfaceN = cv::Vec3d(0.0,0.0,0.0);
+//
+////        RoadSlopeInit();
+//
+//        cv::imshow("Slope_map", slope_map);
+//        cv::imshow("left_rect", left_rect);
+//        cv::waitKey(1);
+//
+//    }
 
 }
