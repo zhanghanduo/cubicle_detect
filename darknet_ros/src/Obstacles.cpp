@@ -748,11 +748,11 @@ void ObstaclesDetection::SurfaceNormalCalculation () {
         }
     }
 
-
-
     randomRoadPoints.clear();
     randomRoadPoints2D.clear();
     selectedIndexes.clear();
+
+
 }
 
 void ObstaclesDetection::RoadSlopeCalculation () {
@@ -854,8 +854,41 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
             cv::line(left_rect, cv::Point(0, pointR), cv::Point(left_rect.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
 
-            if (!imuDetected)
+//            if (!imuDetected)
                 SurfaceNormalCalculation();
+
+            if(norm(surfaceN)>0){
+                surfaceN = surfaceN/norm(surfaceN);
+//        cv::Vec3d hori_N = cv::Vec3d(0.0,0.0,1.0);
+                cv::Vec3d hori_N = cv::Vec3d(0.0,1.0,0.0);
+                double angle =acos(fabs(surfaceN.dot(hori_N)));//* 180.0 / 3.14159265;
+//        std::cout<<angle<<", "<<angle*180.0/3.14159265<<std::endl;
+
+                /* Rotation using rodrigues */
+                cv::Mat rot_vec = cv::Mat::zeros(1,3,CV_32F);
+                rot_vec.at<float>(0,0) = (float) angle;
+                rot_vec.at<float>(0,1) = 0.0;//(float) yaw;
+                rot_vec.at<float>(0,2) = 0.0;
+
+//    std::cout<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
+
+                cv::Mat rot_mat;
+                cv::Rodrigues(rot_vec, rot_mat);
+
+                /// Construct pose
+                cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
+
+                std::ostringstream strRollPitch;
+                strRollPitch << "Relative Road Pitch: "<<((int) (1000*angle*180.0/3.14159265))/1000.0;
+                cv::putText(slope_map, strRollPitch.str(), cv::Point(155, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
+                            CV_RGB(0, 250, 0));
+
+            } else {
+                std::ostringstream strRollPitch;
+                strRollPitch << "Relative Road Pitch: "<<0.0;
+                cv::putText(slope_map, strRollPitch.str(), cv::Point(155, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
+                            CV_RGB(0, 250, 0));
+            }
 
             point1Z = pointZ;
             point1Y = pointY;

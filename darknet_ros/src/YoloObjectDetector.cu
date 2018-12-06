@@ -617,12 +617,12 @@ void *YoloObjectDetector::fetchInThread()
 
       disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
 
-      disparity_info.header.stamp = image_time;
+      disparity_info.header.stamp = image_time_;
       cv_bridge::CvImage out_msg;
       out_msg.header.frame_id = "/wide_camera";
-      out_msg.header.stamp = image_time;
+      out_msg.header.stamp = image_time_;
       out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-      out_msg.image = disparity_map;
+      out_msg.image = disparityFrame[(buffIndex_ + 2) % 3];
       disparity_info.image = *out_msg.toImageMsg();
 
       disparity_info.f = focal;
@@ -847,7 +847,7 @@ void *YoloObjectDetector::publishInThread()
                                                        static_cast<int>(xmax - xmin),
                                                        static_cast<int>(ymax - ymin));
 
-                  if(dis>=12) {
+                  if(dis>=min_disparity) {
 
 //                    if(dis < 12){
 
