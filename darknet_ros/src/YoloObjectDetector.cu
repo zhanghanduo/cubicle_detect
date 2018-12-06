@@ -151,6 +151,8 @@ void YoloObjectDetector::init()
   nodeHandle_.param<int>("min_disparity", min_disparity, 12);
   nodeHandle_.param<int>("disparity_scope", disp_size, 128);
   nodeHandle_.param<bool>("use_grey", use_grey, false);
+  nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
+  nodeHandle_.param<bool>("enable_classification", enableClassification, true);
   nodeHandle_.param<int>("scale", Scale, 1);
 
   // Threshold of object detection.
@@ -613,7 +615,7 @@ void *YoloObjectDetector::fetchInThread()
   buff_cv_l_[(buffIndex_)] = left_rectified.clone();
   buff_cv_r_[(buffIndex_)] = right_rectified.clone();
 
-  if(counter > 2) {
+  if(counter > 2 && enableStereo) {
 
       disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3], buff_cv_r_[(buffIndex_ + 2) % 3]);
 
@@ -745,7 +747,8 @@ void YoloObjectDetector:: yolo()
   while (!demoDone_) {
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
-    detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+    if (enableClassification)
+        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
 
     if (!demoPrefix_) {
       fps_ = 1./(what_time_is_it_now() - demoTime_);
@@ -761,7 +764,8 @@ void YoloObjectDetector:: yolo()
     }
 
     fetch_thread.join();
-    detect_thread.join();
+    if (enableClassification)
+        detect_thread.join();
 
 //    if(!disparityFrame.empty()) {
 //        cv::imshow("disparity_map", disparityFrame);
@@ -841,13 +845,17 @@ void *YoloObjectDetector::publishInThread()
               if((classLabels_[i] == "car") || (classLabels_[i] == "bus")|| (classLabels_[i] == "motor") || (classLabels_[i] == "bike")
                  || (classLabels_[i] == "truck")  || (classLabels_[i] == "rider") || (classLabels_[i] == "person")) {
 
-                  auto dis = static_cast<int>(Util::median_mat(disparityFrame[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
+                  int dis = 0;
+
+                  if (enableStereo)
+                      dis = static_cast<int>(Util::median_mat(disparityFrame[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
+
                   cv::Rect_<int> rect = cv::Rect_<int>(static_cast<int>(xmin),
                                                        static_cast<int>(ymin),
                                                        static_cast<int>(xmax - xmin),
                                                        static_cast<int>(ymax - ymin));
 
-                  if(dis>=min_disparity) {
+//                  if(dis>=min_disparity) {
 
 //                    if(dis < 12){
 
@@ -861,10 +869,14 @@ void *YoloObjectDetector::publishInThread()
                                      static_cast<float>(ymax - ymin));
 //                    obstacle_msgs::obs outputObs;
                       outputObs.category = classLabels_[i];
+                      if((classLabels_[i] == "bus")|| (classLabels_[i] == "truck")) {
+                          outputObs.category = "bus";
+                      } else if ((classLabels_[i] == "rider") || (classLabels_[i] == "person")){
+                          outputObs.category = "person";
+                      } else if ((classLabels_[i] == "motor") || (classLabels_[i] == "bike")) {
+                          outputObs.category = "bike";
+                      }
                       outputObs.probability = rosBoxes_[i][j].prob;
-                      outputObs.position_3d[0] = x3DPosition[center_c_][dis];
-                      outputObs.position_3d[1] = y3DPosition[center_r_][dis];
-                      outputObs.position_3d[2] = depth3D[dis];
                       outputObs.xmin = xmin;
                       outputObs.xmax = xmax;
                       outputObs.ymin = ymin;
@@ -872,24 +884,38 @@ void *YoloObjectDetector::publishInThread()
 //                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
 //                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
 
-                      double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
-                      xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
-                      xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
-                      ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
-                      ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
-//                    ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
-//                    ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
-                      outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
-                      outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
 //                    outputObs.obsHog = hog_feature;
-                      outputObs.disparity = dis;
+//                      outputObs.disparity = dis;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
-                      currentFrameBlobs.push_back(outputObs);
+//                      currentFrameBlobs.push_back(outputObs);
+                      if (enableStereo) {
+                          if(dis>=min_disparity) {
+                              outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                              outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                              outputObs.position_3d[2] = depth3D[dis];
+                              double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                              xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                              xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                              ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                              ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+//                              ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
+//                              ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
+                              outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                              outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+                              outputObs.disparity = dis;
+                              currentFrameBlobs.push_back(outputObs);
+                          } else {
+                              std::string classname = classLabels_[i];
+                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
+                          }
+                      } else {
+                          currentFrameBlobs.push_back(outputObs);
+                      }
 
-                  } else {
-                      std::string classname = classLabels_[i];
-                      ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
-                  }
+//                  } else {
+//                      std::string classname = classLabels_[i];
+//                      ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
+//                  }
 
               }
 
@@ -928,7 +954,10 @@ void *YoloObjectDetector::publishInThread()
 //    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
 //    cv::imshow("beforeTracking", beforeTracking);
 
-  ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3], buff_cv_l_[(buffIndex_ + 1) % 3]);
+    if (enableStereo) {
+        ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3], buff_cv_l_[(buffIndex_ + 1) % 3]);
+    }
+
     Tracking();
     CreateMsg();
 
@@ -1123,9 +1152,9 @@ void YoloObjectDetector::Tracking (){
 }
 
 void YoloObjectDetector::CreateMsg(){
-    cv::Mat color_out;
-
-    cv::Mat output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
+    cv::Mat color_out, output1;
+    if (enableStereo)
+        output1 = disparityFrame[(buffIndex_ + 1) % 3].clone();
     cv::Mat output = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
     if(output.type() == CV_8UC1)
         cv::cvtColor(output, color_out, CV_GRAY2RGB);
@@ -1149,12 +1178,13 @@ void YoloObjectDetector::CreateMsg(){
             str << i;
             cv::putText(color_out, str.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,255,255));
 
-            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
+//            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
         }
     }
     if(viewImage_) {
-      cv::imshow("debug", color_out);
-      cv::imshow("disparity", output1);
+        cv::imshow("debug", color_out);
+        if (enableStereo)
+            cv::imshow("disparity", output1);
       // cv::waitKey(0);
     }
     frame_num ++;

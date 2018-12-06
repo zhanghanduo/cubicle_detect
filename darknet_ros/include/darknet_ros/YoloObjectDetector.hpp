@@ -330,6 +330,8 @@ private:
 
     std::vector<double> depth;
     int min_disparity;
+    bool enableStereo = true;
+    bool enableClassification = true;
 // Disparity
     stereo_msgs::DisparityImage disparity_info;
     std::ofstream file;
