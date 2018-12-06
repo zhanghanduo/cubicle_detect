@@ -1071,10 +1071,7 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
 void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 
     disp_img.copyTo(disparity_map);
-    cv::cvtColor(img, left_rect, CV_GRAY2RGB);
-//    cv::imshow("left_rect", left_rect);
-//    cv::waitKey(1);
-//    img.copyTo(left_rect);
+    img.copyTo(left_rect);
 
     roadmap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
     obstaclemap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
@@ -1094,31 +1091,31 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //    DisplayRoad();
 
     int minNoOfPointsForRdProfile =50;
-//    if (refinedRoadProfile.size()>minNoOfPointsForRdProfile){
-//
-//        obstacleDisparityMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
-//        negObsMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
-//        currentFrameObsBlobs.clear();
-//
-//        memset(dynamicLookUpTableRoad, 0, sizeof(dynamicLookUpTableRoad));
-//        memset(dynamicLookUpTableRoadProfile, 0, sizeof(dynamicLookUpTableRoadProfile));
-//
-//        InitiateObstaclesMap();
-//        RefineObstaclesMap();
-//
-////        DisplayPosObs();
-//
-//        randomRoadPoints.clear();
-//        randomRoadPoints2D.clear();
-//        selectedIndexes.clear();
-//        surfaceN = cv::Vec3d(0.0,0.0,0.0);
-//
-////        RoadSlopeInit();
-//
-//        cv::imshow("Slope_map", slope_map);
-//        cv::imshow("left_rect", left_rect);
-//        cv::waitKey(1);
-//
-//    }
+    if (refinedRoadProfile.size()>minNoOfPointsForRdProfile){
+
+        obstacleDisparityMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+        negObsMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+        currentFrameObsBlobs.clear();
+
+        memset(dynamicLookUpTableRoad, 0, sizeof(dynamicLookUpTableRoad));
+        memset(dynamicLookUpTableRoadProfile, 0, sizeof(dynamicLookUpTableRoadProfile));
+
+        InitiateObstaclesMap();
+        RefineObstaclesMap();
+
+//        DisplayPosObs();
+
+        randomRoadPoints.clear();
+        randomRoadPoints2D.clear();
+        selectedIndexes.clear();
+        surfaceN = cv::Vec3d(0.0,0.0,0.0);
+
+        RoadSlopeInit();
+
+        cv::imshow("Slope_map", slope_map);
+        cv::imshow("left_rect", left_rect);
+        cv::waitKey(1);
+
+    }
 
 }
