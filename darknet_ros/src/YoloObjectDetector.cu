@@ -219,7 +219,7 @@ void YoloObjectDetector::init()
                     std::string("/obs_map"));
   nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
   nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera_frame"));
-  nodeHandle_.param("publishers/disparity_map/topic", disdisparity_mapparityTopicName,
+  nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
                       std::string("/wide/disparity_map"));
   nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
 
