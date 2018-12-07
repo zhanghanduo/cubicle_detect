@@ -57,7 +57,7 @@ private:
     void DisplayRoad();
     void DisplayPosObs();
 
-    cv::Mat left_rect;
+    cv::Mat left_rect_clr;
     cv::Mat disparity_map, roadmap, obstaclemap, road, v_disparity_map, u_disparity_map; //road
     cv::Mat obstacleDisparityMap, u_disparity_map_new, u_thresh_map, negObsMap; //positive obstacle detection
     cv::Mat slope_map, prvSlopeMap; //slope

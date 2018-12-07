@@ -905,11 +905,12 @@ void *YoloObjectDetector::publishInThread()
                               outputObs.disparity = dis;
                               currentFrameBlobs.push_back(outputObs);
                           } else {
-                              std::string classname = classLabels_[i];
-                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
+//                              std::string classname = classLabels_[i];
+//                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
                           }
                       } else {
-                          currentFrameBlobs.push_back(outputObs);
+                          if (rect.area()>400)
+                              currentFrameBlobs.push_back(outputObs);
                       }
 
 //                  } else {
@@ -954,7 +955,7 @@ void *YoloObjectDetector::publishInThread()
 //    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
 //    cv::imshow("beforeTracking", beforeTracking);
 
-    if (enableStereo) {
+    if (counter>2 && enableStereo) {
         ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 1) % 3], buff_cv_l_[(buffIndex_ + 1) % 3]);
     }
 
@@ -1056,7 +1057,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
         if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
         }
-        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 50) {
+        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 100) {
             existingBlob.blnStillBeingTracked = false;
         }
     }
@@ -1132,7 +1133,7 @@ void YoloObjectDetector::Tracking (){
                 if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
                     existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
                 }
-                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 50) {
+                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 100) {
                     existingBlob.blnStillBeingTracked = false;
                     //blobs.erase(blobs.begin() + i);
                 }
