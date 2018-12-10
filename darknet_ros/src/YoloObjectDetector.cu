@@ -327,6 +327,16 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
     disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
 
+    for (int r=0; r<disparity_SGBM.rows;r++){
+        for (int c=0; c<disparity_SGBM.cols;c++){
+            int dispAtPoint = (int)disparity_SGBM.at<uchar>(r,c);
+            if (dispAtPoint>disp_size)
+                disparity_SGBM.at<uchar>(r,c) = 0;
+            else if (dispAtPoint<min_disparity)
+                disparity_SGBM.at<uchar>(r,c) = 0;
+        }
+    }
+
     isDepthNew = true;
     return disparity_SGBM;
 }
@@ -1185,7 +1195,7 @@ void YoloObjectDetector::CreateMsg(){
     if(viewImage_) {
         cv::imshow("debug", color_out);
         if (enableStereo)
-            cv::imshow("disparity", output1);
+            cv::imshow("disparity", output1*255/disp_size);
       // cv::waitKey(0);
     }
     frame_num ++;
