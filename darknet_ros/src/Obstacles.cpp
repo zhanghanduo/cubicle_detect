@@ -780,11 +780,14 @@ void ObstaclesDetection::SurfaceNormalCalculation () {
 
 void ObstaclesDetection::RoadSlopeCalculation () {
 
-    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap, CV_8UC3);
+    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
     int rowForDisparity35 = dynamicLookUpTableRoad[disForSlope];
 //        int inRdHeight = 150;//cm
     int roadStartDis = refinedRoadProfile[0].y;
     double inRdHeight = abs(yDirectionPosition[dynamicLookUpTableRoad[disForSlopeStart]][disForSlopeStart] * 100);
+
+    cv::putText(slope_map, "Relative Slope at;", cv::Point(slope_map.cols-180, 40), CV_FONT_HERSHEY_PLAIN, 0.6,
+                CV_RGB(0, 250, 0));
 
 //        std::cout<<"roadStartDis: "<<roadStartDis<<"; disForSlopeStart: "<< disForSlopeStart <<"; inRdHeight: "<<inRdHeight<<std::endl;
     int maxDispForSlopeStart = disForSlopeStart;
@@ -811,6 +814,8 @@ void ObstaclesDetection::RoadSlopeCalculation () {
     double point1Y = yDirectionPosition[point1R][maxDispForSlopeStart] * 100;
     cv::line(left_rect_clr, cv::Point(0, point1R), cv::Point(left_rect_clr.cols - 1, point1R), cv::Scalar(0, 200, 0), 2);
     int rowDiff = 0;
+    int rowDiff2 = 10;
+    int rightLeft = 230;
 
 //        std::cout<<"point1Y: "<<point1Y<<", inRdHeight: "<<inRdHeight<<", pointY: "<<point1Y-((point1Z-startDepth)*slopeAdjHeight/slopeAdjLength)<<std::endl;
 
@@ -861,11 +866,25 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             toggle = true;
         }
 
-        if (currentY < slope_map.rows && currentZ < slope_map.cols) {
+        if (currentY < slope_map.rows && currentZ < slope_map.cols-250) {
             for (int c = slope_map.rows - 1; c > currentY; c--) {
                 slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
             }
+
+            if (rowDiff2>(slope_map.rows-80)){
+                rowDiff2 = 10;
+                rightLeft = 115;
+            }
+            if (point1Z<pointZ) {
+                double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
+                std::ostringstream strSlope;
+                strSlope << (pointZ / 100) << "m: " << slope << " deg";//<<road_height;
+                cv::putText(slope_map, strSlope.str(), cv::Point(slope_map.cols-rightLeft, 40 + rowDiff2), CV_FONT_HERSHEY_PLAIN, 0.6,
+                            CV_RGB(0, 250, 0));
+                rowDiff2 = rowDiff2 + 10;
+            }
         }
+
 
         if ((pointZ - point1Z) > minDepthDiffToCalculateSlope) {
             double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
@@ -1114,7 +1133,7 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
         intensityThVDisPointForSlope = 100;
         pubName = "/wide/map_msg";
         depthForSlpoe = 18; //m -- slope
-        depthForSlopeStart = 6.5; //m -- slope
+        depthForSlopeStart = 5; //m -- slope
         slopeAdjHeight = 30; // cm -- slope
         slopeAdjLength = 1500; // cm -- slope
         minDepthDiffToCalculateSlope = 400; // cm -- slope
@@ -1133,6 +1152,12 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //    std::cout<<img.channels()<<", "<<img.type()<<std::endl;
 //    std::cout<<left_rect_clr.channels()<<", "<<left_rect_clr.type()<<std::endl;
     cv::cvtColor(left_rect_gray, left_rect_clr, cv::COLOR_GRAY2BGR);
+
+//    std::string img_name1;
+//    char im1[20];
+//    sprintf(im1, "f%03d.png", frameCount);
+//    img_name1 = std::string("/home/ugv/slope/") + im1;
+//    cv::imwrite(img_name1, left_rect_clr);
 
     roadmap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
     obstaclemap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
@@ -1175,9 +1200,18 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 
         cv::imshow("Slope_map", slope_map);
         cv::imshow("left_rect_clr", left_rect_clr);
+
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
         cv::waitKey(1);
+
+//        std::string img_name;
+//        char im[20];
+//        sprintf(im, "s%03d.png", frameCount);
+//        img_name = std::string("/home/ugv/slope/") + im;
+//        cv::imwrite(img_name, slope_map);
 //
     }
+
+    frameCount++;
 
 }

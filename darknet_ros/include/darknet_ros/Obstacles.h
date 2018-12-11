@@ -83,6 +83,7 @@ private:
     int heightForSlope = 800, humpEndFrames = 0;//cm both direction -- slope
     int disForSlope, disForSlopeStart; // slope
     int slopeAdjHeight, slopeAdjLength;//cm -- slope
+    int frameCount = 0;
 
     int *uDispThresh;
     int *uHysteresisLowThresh;
