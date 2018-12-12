@@ -163,6 +163,8 @@ private:
 
   void CreateMsg();
 
+  void Process();
+
   void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex);
 
   void addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs);
@@ -207,6 +209,7 @@ private:
 //  double yDirectionPosition[844][129] ={{}};
 //  double depthTable[129] = {};
   bool blnFirstFrame;
+  bool notInitiated = true;
 
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;
@@ -223,6 +226,9 @@ private:
 
   // Yolo running on thread.
   std::thread yoloThread_;
+  std::thread detect_thread;
+  std::thread fetch_thread;
+  std::thread stereo_thread;
 
   // Darknet.
   char **demoNames_;
@@ -230,13 +236,13 @@ private:
   int demoClasses_;
 
   network *net_;
-  image buff_[3];
-  image buffLetter_[3];
-  cv::Mat buff_cv_l_[3];
-  cv::Mat buff_cv_r_[3];
-  cv::Mat disparityFrame[3];
-  int buffId_[3];
-  int buffIndex_ = 0;
+  image buff_;//[3];
+  image buffLetter_;//[3];
+  cv::Mat buff_cv_l_;//[3];
+  cv::Mat buff_cv_r_;//[3];
+  cv::Mat disparityFrame;//[3];
+  int buffId_;//[3];
+//  int buffIndex_ = 0;
 
   IplImage * ipl_;
   double fps_ = 0;
@@ -266,7 +272,8 @@ private:
   ros::Time image_time_;
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
-  cv::Mat left_rectified, right_rectified;
+  cv::Mat left_rectified, right_rectified, output;
+//  bool updateOutput = true;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
@@ -285,6 +292,8 @@ private:
   void rememberNetwork(network *net);
 
   detection *avgPredictions(network *net, int *nboxes);
+
+  void *stereoInThread();
 
   void *detectInThread();
 

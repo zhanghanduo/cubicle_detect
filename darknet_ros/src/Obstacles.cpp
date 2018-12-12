@@ -1019,7 +1019,7 @@ void ObstaclesDetection::DisplayRoad() {
 //    cv::imshow("intial_road_map", intial_road_map);
     cv::imshow("refined_road_map", refined_road_map);
 //    cv::imshow("disparity_map",disparity_map);
-    cv::waitKey(1);
+//    cv::waitKey(1);
 }
 
 void ObstaclesDetection::DisplayPosObs() {
@@ -1041,7 +1041,7 @@ void ObstaclesDetection::DisplayPosObs() {
 //    cv::imshow("posObsOutput", posObsOutput);
 //    cv::imshow("obstaclemap",obstaclemap*255);
 //    cv::imshow("roadmap",roadmap*255);
-    cv::waitKey(1);
+//    cv::waitKey(1);
 }
 
 void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, double baseline,
@@ -1202,7 +1202,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         cv::imshow("left_rect_clr", left_rect_clr);
 
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
-        cv::waitKey(1);
+//        cv::waitKey(1);
 
 //        std::string img_name;
 //        char im[20];
