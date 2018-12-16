@@ -2,3 +2,7 @@ cmake-build-debug/
 vscode/
 evaluation/
 seq_1/
+seq_2/
+dis_1/
+dis_2/
+*.png

@@ -9,6 +9,11 @@
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/imgproc/imgproc.hpp>
 #include<opencv2/video/tracking.hpp>
+#include <opencv2/tracking.hpp>
+#include <opencv2/tracking/kalman_filters.hpp>
+#include <opencv2/opencv.hpp>
+
+#define Mat_t CV_32FC
 
 namespace darknet_ros {
 
@@ -27,9 +32,15 @@ namespace darknet_ros {
         double depth, diameter, height, probability;
         double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
 
-        cv::KalmanFilter kf;//(stateSize, measSize, contrSize, CV_32F);
-        cv::Mat state;//(stateSize, 1, CV_32F);  // [x,y,v_x,v_y,w,h]
-        cv::Mat meas;//(measSize, 1, CV_32F);    // [z_x,z_y,z_w,z_h]
+//        cv::KalmanFilter kf;//(stateSize, measSize, contrSize, CV_32F);
+//        cv::Mat state;//(stateSize, 1, CV_32F);  // [x,y,v_x,v_y,w,h]
+//        cv::Mat meas;//(measSize, 1, CV_32F);    // [z_x,z_y,z_w,z_h]
+        cv::Ptr<cv::tracking::UnscentedKalmanFilter> uncsentedKF;
+        bool t_initialized;
+        std::deque<cv::Rect> t_initialRects;
+        cv::Rect_<float> t_lastRectResult;
+        static const size_t MIN_INIT_VALS = 4;
+        cv::Rect preditcRect;
 
         cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
 
@@ -56,6 +67,12 @@ namespace darknet_ros {
         int intNumOfConsecutiveFramesWithoutAMatch;
 
         Blob(float x, float y, float width, float height);
+
+        void CreateAugmentedUnscentedKF(cv::Rect_<float> rect0, cv::Point_<float> rectv0);
+
+        cv::Rect GetRectPrediction();
+
+        cv::Rect UpdateAUKF(bool dataCorrect);
 
 //        Blob(cv::Rect _BBoxRect);
 //

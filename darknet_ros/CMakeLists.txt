@@ -178,7 +178,7 @@ if (CUDA_FOUND)
           src/image_interface.c
           src/Blob.cu
           src/data.cpp
-          src/hog.cpp
+          #src/hog.cpp
           src/Hungarian.cpp
           src/Obstacles.cpp
           src/sgm/costs.cu

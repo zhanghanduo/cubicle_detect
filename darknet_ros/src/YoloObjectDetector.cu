@@ -57,7 +57,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
-  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
+//  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
   img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
   file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
   frame_num = 0;
@@ -986,22 +986,62 @@ void *YoloObjectDetector::publishInThread()
 //                      outputObs.disparity = dis;
 //                    obstacleBoxesResults_.obsData.push_back(outputObs);
 //                      currentFrameBlobs.push_back(outputObs);
+//                if (classLabels_[i] == "car"){
+//                    std::cout<<frame_num<<": "<<rect.area()<<std::endl;
+//                }
+
                 if (enableStereo) {
-                    if(dis>=min_disparity) {
-                        outputObs.position_3d[0] = x3DPosition[center_c_][dis];
-                        outputObs.position_3d[1] = y3DPosition[center_r_][dis];
-                        outputObs.position_3d[2] = depth3D[dis];
-                        double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
-                        xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
-                        xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
-                        ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
-                        ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+                    if(dis>=min_disparity ) { //(3600-200)*(dis-12)/(128-12)
+                        if (outputObs.category == "bus" || outputObs.category == "car"){
+                            if (rect.area()>(400+31*(dis-12))){
+                                outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                                outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                                outputObs.position_3d[2] = depth3D[dis];
+                                double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                                xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                                xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                                ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                                ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
 //                              ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
 //                              ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
-                        outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
-                        outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                        outputObs.disparity = dis;
-                        currentFrameBlobs.push_back(outputObs);
+                                outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                                outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+                                outputObs.disparity = dis;
+                                currentFrameBlobs.push_back(outputObs);
+                            }
+                        } else {
+                            if (rect.area()>400){
+                                outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                                outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                                outputObs.position_3d[2] = depth3D[dis];
+                                double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                                xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                                xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                                ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                                ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+//                              ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
+//                              ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
+                                outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                                outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+                                outputObs.disparity = dis;
+                                currentFrameBlobs.push_back(outputObs);
+                            }
+
+                        }
+//                        outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+//                        outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+//                        outputObs.position_3d[2] = depth3D[dis];
+//                        double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+//                        xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+//                        xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+//                        ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+//                        ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+////                              ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
+////                              ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
+//                        outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+//                        outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+//                        outputObs.disparity = dis;
+//                        currentFrameBlobs.push_back(outputObs);
                     } else {
 //                              std::string classname = classLabels_[i];
 //                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
@@ -1089,10 +1129,10 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
                 if (currBlob.category == blob.category) {
 
                     cv::Rect predRect;
-                    predRect.width = static_cast<int>(blob.state.at<float>(4));
-                    predRect.height = static_cast<int>(blob.state.at<float>(5));
-                    predRect.x = static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
-                    predRect.y = static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
+                    predRect.width = static_cast<int>(blob.t_lastRectResult.width);//static_cast<int>(blob.state.at<float>(4));
+                    predRect.height = static_cast<int>(blob.t_lastRectResult.height);;//static_cast<int>(blob.state.at<float>(5));
+                    predRect.x = static_cast<int>(blob.t_lastRectResult.x);//static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
+                    predRect.y = static_cast<int>(blob.t_lastRectResult.y);//static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
 
 //                    std::cout<< r <<" predRect: "<< predRect <<", "<<c<<" detectRect: " << currBlob.currentBoundingRect <<std::endl;
 
@@ -1118,7 +1158,8 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
         costMatrix.push_back(costForEachTrack);
     }
 
-//        std::cout<<"costMatrix: "<<costMatrix.size()<<", "<<costMatrix[0].size()<<"; simHeight: "<<simHeight<<", simWidth: "<<simWidth<<std::endl;
+//    std::cout<<frame_num<<" costMatrix: "<<costMatrix.size()<<", "<<costMatrix[0].size()<<"; tracksOrMatHeight: "<<tracksOrMatHeight<<", detsOrMatWidth: "<<detsOrMatWidth<<std::endl;
+//    std::cout<<disSimilarity<<std::endl;
 
     HungarianAlgorithm HungAlgo;
     std::vector<int> assignment;
@@ -1127,11 +1168,11 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
 //        std::cout<<"hungarianCost: "<<hungarianCost<<std::endl;
 
     for (int trackID = 0; trackID < costMatrix.size(); trackID++){
-//            std::cout << trackID << "," << assignment[trackID] << "\t";
+//        std::cout << trackID << "," << assignment[trackID] << "\t";
         if (assignment[trackID]>-1) {
             Blob &currentFrameBlob = currentFrameBlobs.at(static_cast<unsigned long>(assignment[trackID]));
             double disSimValue = disSimilarity.at<double>(trackID,assignment[trackID]);
-            if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && disSimValue<0.7 ) { //(minDisSimilarity < max)
+            if ( (!blobs[trackID].blnAlreadyTrackedInThisFrame) && disSimValue<0.95 ) { //(minDisSimilarity < max)
                 currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
                 addBlobToExistingBlobs(currentFrameBlob, blobs, trackID);
             } else {
@@ -1139,7 +1180,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
             }
         }
     }
-//        std::cout<<std::endl;
+//    std::cout<<std::endl;
 
     for (int c=0; c<detsOrMatWidth; c++){
         Blob &currentFrameBlob = currentFrameBlobs.at(c);
@@ -1150,8 +1191,9 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
     for (auto &existingBlob : blobs) {
         if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
+            existingBlob.UpdateAUKF(false);
         }
-        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 100) {
+        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 40) {
             existingBlob.blnStillBeingTracked = false;
         }
     }
@@ -1177,23 +1219,24 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].blnStillBeingTracked = true;
     existingBlobs[intIndex].blnCurrentMatchFoundOrNewBlob = true;
     existingBlobs[intIndex].blnAlreadyTrackedInThisFrame = true;
-    existingBlobs[intIndex].counter = currentFrameBlob.counter + 1;
+    existingBlobs[intIndex].counter ++;
     existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch =0;
 
     //update motion model
-    existingBlobs[intIndex].meas.at<float>(0) = currentFrameBlob.meas.at<float>(0);
-    existingBlobs[intIndex].meas.at<float>(1) = currentFrameBlob.meas.at<float>(1);
-    existingBlobs[intIndex].meas.at<float>(2) = currentFrameBlob.meas.at<float>(2);
-    existingBlobs[intIndex].meas.at<float>(3) = currentFrameBlob.meas.at<float>(3);
-    existingBlobs[intIndex].kf.correct(existingBlobs[intIndex].meas); // Kalman Correction
+//    existingBlobs[intIndex].meas.at<float>(0) = currentFrameBlob.meas.at<float>(0);
+//    existingBlobs[intIndex].meas.at<float>(1) = currentFrameBlob.meas.at<float>(1);
+//    existingBlobs[intIndex].meas.at<float>(2) = currentFrameBlob.meas.at<float>(2);
+//    existingBlobs[intIndex].meas.at<float>(3) = currentFrameBlob.meas.at<float>(3);
+//    existingBlobs[intIndex].kf.correct(existingBlobs[intIndex].meas); // Kalman Correction
+    existingBlobs[intIndex].UpdateAUKF(true);
 
 }
 
 void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs) {
 
     currentFrameBlob.blnCurrentMatchFoundOrNewBlob = true;
-
     currentFrameBlob.blnStillBeingTracked = true;
+    currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
 
     existingBlobs.push_back(currentFrameBlob);
 }
@@ -1201,6 +1244,7 @@ void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &e
 void YoloObjectDetector::Tracking (){
 
     if (blnFirstFrame) {
+        prvImageTime = image_time_;
         if (!currentFrameBlobs.empty()){
             blnFirstFrame = false;
             for (auto &currentFrameBlob : currentFrameBlobs)
@@ -1211,11 +1255,15 @@ void YoloObjectDetector::Tracking (){
             existingBlob.blnCurrentMatchFoundOrNewBlob = false;
             existingBlob.blnAlreadyTrackedInThisFrame = false;
             // >>>> Matrix A
-            auto dT = static_cast<float>(0.04 + (0.04 * existingBlob.intNumOfConsecutiveFramesWithoutAMatch));
-            existingBlob.kf.transitionMatrix.at<float>(2) = dT;//dT;
-            existingBlob.kf.transitionMatrix.at<float>(9) = dT;//dT;
+//            double timeDiff = (image_time_-prvImageTime).toNSec() * 1e-9;
+//            std::cout<< timeDiff <<std::endl;
+//            prvImageTime = image_time_;
+//            auto dT = static_cast<float>(0.04 + (0.04 * existingBlob.intNumOfConsecutiveFramesWithoutAMatch));
+//            existingBlob.kf.transitionMatrix.at<float>(2) = dT;//dT;
+//            existingBlob.kf.transitionMatrix.at<float>(9) = dT;//dT;
             // <<<< Matrix A
-            existingBlob.state = existingBlob.kf.predict();
+//            existingBlob.state = existingBlob.kf.predict();
+            existingBlob.preditcRect = existingBlob.GetRectPrediction();
         }
 
 //            std::cout<<"blob prediction finished"<<std::endl;
@@ -1226,8 +1274,9 @@ void YoloObjectDetector::Tracking (){
             for (auto &existingBlob : blobs) {
                 if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
                     existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
+                    existingBlob.UpdateAUKF(false);
                 }
-                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 100) {
+                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 40) {
                     existingBlob.blnStillBeingTracked = false;
                     //blobs.erase(blobs.begin() + i);
                 }
@@ -1275,7 +1324,46 @@ void YoloObjectDetector::CreateMsg(){
             str << i;
             cv::putText(color_out, str.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,255,255));
 
-            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
+//            cv::Rect predRect;
+//            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
+//            predRect.height = static_cast<int>(blobs[i].t_lastRectResult.height);//static_cast<int>(blobs[i].state.at<float>(5));
+//            predRect.x = static_cast<int>(blobs[i].t_lastRectResult.x);//static_cast<int>(blobs[i].state.at<float>(0) - predRect.width / 2);
+//            predRect.y = static_cast<int>(blobs[i].t_lastRectResult.y);//static_cast<int>(blobs[i].state.at<float>(1) - predRect.height / 2);
+//
+//            cv::rectangle(color_out, blobs[i].preditcRect, CV_RGB(255,255,255), 2);
+
+
+//            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
+        } else if (blobs[i].blnStillBeingTracked && blobs[i].counter>4
+                        && blobs[i].intNumOfConsecutiveFramesWithoutAMatch<3) {
+
+            cv::Rect predRect = blobs[i].preditcRect;
+//            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
+//            predRect.height = static_cast<int>(blobs[i].t_lastRectResult.height);//static_cast<int>(blobs[i].state.at<float>(5));
+//            predRect.x = static_cast<int>(blobs[i].t_lastRectResult.x);//static_cast<int>(blobs[i].state.at<float>(0) - predRect.width / 2);
+//            predRect.y = static_cast<int>(blobs[i].t_lastRectResult.y);//static_cast<int>(blobs[i].state.at<float>(1) - predRect.height / 2);
+
+            cv::Rect_<int> leftRect = cv::Rect_<int>(0, 0, 80, color_out.rows-1);
+            cv::Rect_<int> rightRect = cv::Rect_<int>(color_out.cols-81, 0, 80, color_out.rows-1);
+
+            cv::Rect leftIntersection = leftRect & blobs[i].currentBoundingRect;
+            cv::Rect rightIntersection = rightRect & blobs[i].currentBoundingRect;
+            double leftIntersect = leftIntersection.area()/blobs[i].currentBoundingRect.area();
+            double rightIntersect = rightIntersection.area()/blobs[i].currentBoundingRect.area();
+//            cv::rectangle(color_out, leftRect, CV_RGB(255,255,255), 2);
+//            cv::rectangle(color_out, rightRect, CV_RGB(255,255,255), 2);
+
+//            cv::rectangle(color_out, leftIntersection, CV_RGB(255,255,255), 1);
+//            cv::rectangle(color_out, rightIntersection, CV_RGB(255,255,255), 1);
+
+            if (leftIntersect<0.5 && rightIntersect<0.5){
+                cv::rectangle(color_out, predRect, CV_RGB(255,255,255), 2);
+                cv::rectangle(color_out, cv::Rect(predRect.x, predRect.y, 40, 20), CV_RGB(255,255,255), CV_FILLED);
+                std::ostringstream str;
+                // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
+                str << i;
+                cv::putText(color_out, str.str(), cv::Point(predRect.x, predRect.y+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(0,0,0));
+            }
         }
     }
     if(viewImage_) {
@@ -1286,12 +1374,13 @@ void YoloObjectDetector::CreateMsg(){
     }
 
     if(enableEvaluation_){
-    sprintf(s, "f%03d.txt", frame_num);
-    sprintf(s, "d%03d.png", frame_num);
-    sprintf(im, "f%03d.png", frame_num);
-//    file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;
-        file_name = ros::package::getPath("cubicle_detect") + "/dis_1/" + s;
-    img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
+        sprintf(s, "f%03d.txt", frame_num);
+//         sprintf(s, "d%03d.png", frame_num);
+        sprintf(im, "f%03d.png", frame_num);
+//        file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;
+//        file_name = ros::package::getPath("cubicle_detect") + "/dis_1/" + s;
+//        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
+        img_name = std::string("/home/ugv/seq_1/") + im;
 
 //    file.open(file_name.c_str(), std::ios::app);
     }
@@ -1319,19 +1408,19 @@ void YoloObjectDetector::CreateMsg(){
 
                 tmpObs.identityID = i;
 
-                tmpObs.centerPos.x = blobs[i].position_3d[0];
-                tmpObs.centerPos.y = blobs[i].position_3d[1];
-                tmpObs.centerPos.z = blobs[i].position_3d[2];
-                tmpObs.diameter = blobs[i].diameter;
-                tmpObs.height = blobs[i].height;
-                tmpObs.xmin = blobs[i].xmin;
-                tmpObs.ymin = blobs[i].ymin;
-                tmpObs.xmax = blobs[i].xmax;
-                tmpObs.ymax = blobs[i].ymax;
+                tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
+                tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
+                tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
+                tmpObs.diameter = static_cast<float>(blobs[i].diameter);
+                tmpObs.height = static_cast<float>(blobs[i].height);
+                tmpObs.xmin = static_cast<unsigned int>(blobs[i].xmin);
+                tmpObs.ymin = static_cast<unsigned int>(blobs[i].ymin);
+                tmpObs.xmax = static_cast<unsigned int>(blobs[i].xmax);
+                tmpObs.ymax = static_cast<unsigned int>(blobs[i].ymax);
 
                 tmpObs.counter = blobs[i].counter;
                 tmpObs.classes = blobs[i].category;
-                tmpObs.probability = blobs[i].probability;
+                tmpObs.probability = static_cast<float>(blobs[i].probability);
 //            tmpObs.histogram = blobs[i].obsHog;
 
                 obstacleBoxesResults_.obsData.push_back(tmpObs);
@@ -1354,7 +1443,7 @@ void YoloObjectDetector::CreateMsg(){
     if(enableEvaluation_){
 //        file.close();
         cv::imwrite(img_name, color_out);
-        cv::imwrite(file_name, output1*255/disp_size);
+//        cv::imwrite(file_name, output1*255/disp_size);
     }
 }
 
@@ -1391,9 +1480,9 @@ void YoloObjectDetector::Process(){
     displayInThread();
     CreateMsg();
 
-//    char name[256];
-//    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
-//    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
+    char name[256];
+    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
+    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
     if ( frame_num%20==1 ) {
         printf("FPS:%.1f\n", fps_);

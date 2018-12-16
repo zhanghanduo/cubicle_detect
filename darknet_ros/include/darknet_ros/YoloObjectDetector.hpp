@@ -49,7 +49,7 @@
 #include "darknet_ros/Obstacles.h"
 //#include "../../src/track_kalman.hpp"
 #include "utils/timing.h"
-#include "utils/hog.h"
+//#include "utils/hog.h"
 // Obstacle ros msgs
 #include <obstacle_msgs/MapInfo.h>
 #include <obstacle_msgs/obs.h>
@@ -221,7 +221,7 @@ private:
 
 //  Util::CPPTimer timer_yolo, timer_1, timer_2;
 
-  Util::HOGFeatureDescriptor* hog_descriptor;
+//  Util::HOGFeatureDescriptor* hog_descriptor;
   ObstaclesDetection ObstacleDetector;
 
   // Yolo running on thread.
@@ -269,7 +269,7 @@ private:
   int fullScreen_;
   char *demoPrefix_;
 
-  ros::Time image_time_;
+  ros::Time image_time_, prvImageTime;;
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
   cv::Mat left_rectified, right_rectified, output;
