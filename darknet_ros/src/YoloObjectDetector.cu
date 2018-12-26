@@ -1126,13 +1126,13 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
         for (int r = 0; r < tracksOrMatHeight; r++) {
             Blob blob = blobs[r];
             if (blob.blnStillBeingTracked) {
-                if (currBlob.category == blob.category) {
+//                if (currBlob.category == blob.category) {
 
-                    cv::Rect predRect;
-                    predRect.width = static_cast<int>(blob.t_lastRectResult.width);//static_cast<int>(blob.state.at<float>(4));
-                    predRect.height = static_cast<int>(blob.t_lastRectResult.height);;//static_cast<int>(blob.state.at<float>(5));
-                    predRect.x = static_cast<int>(blob.t_lastRectResult.x);//static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
-                    predRect.y = static_cast<int>(blob.t_lastRectResult.y);//static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
+                    cv::Rect predRect = blob.preditcRect ;
+//                    predRect.width = static_cast<int>(blob.t_lastRectResult.width);//static_cast<int>(blob.state.at<float>(4));
+//                    predRect.height = static_cast<int>(blob.t_lastRectResult.height);;//static_cast<int>(blob.state.at<float>(5));
+//                    predRect.x = static_cast<int>(blob.t_lastRectResult.x);//static_cast<int>(blob.state.at<float>(0) - predRect.width / 2);
+//                    predRect.y = static_cast<int>(blob.t_lastRectResult.y);//static_cast<int>(blob.state.at<float>(1) - predRect.height / 2);
 
 //                    std::cout<< r <<" predRect: "<< predRect <<", "<<c<<" detectRect: " << currBlob.currentBoundingRect <<std::endl;
 
@@ -1140,7 +1140,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
                     cv::Rect unio = predRect | currBlob.currentBoundingRect;//currBlob.boundingRects.back();
                     disSimilarity.at<double>(r,c) = 1.0 - (double)intersection.area()/unio.area();
 
-                }
+//                }
             }
         }
     }
@@ -1191,9 +1191,9 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
     for (auto &existingBlob : blobs) {
         if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
             existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
-            existingBlob.UpdateAUKF(false);
+//            existingBlob.UpdateAUKF(false);
         }
-        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 40) {
+        if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 10) {
             existingBlob.blnStillBeingTracked = false;
         }
     }
@@ -1210,6 +1210,7 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].probability = currentFrameBlob.probability;
     existingBlobs[intIndex].disparity = currentFrameBlob.disparity;
     existingBlobs[intIndex].position_3d = currentFrameBlob.position_3d;
+    existingBlobs[intIndex].boundingRects.push_back(currentFrameBlob.boundingRects.back());
 
     existingBlobs[intIndex].xmin = currentFrameBlob.xmin;
     existingBlobs[intIndex].xmax = currentFrameBlob.xmax;
@@ -1228,7 +1229,7 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
 //    existingBlobs[intIndex].meas.at<float>(2) = currentFrameBlob.meas.at<float>(2);
 //    existingBlobs[intIndex].meas.at<float>(3) = currentFrameBlob.meas.at<float>(3);
 //    existingBlobs[intIndex].kf.correct(existingBlobs[intIndex].meas); // Kalman Correction
-    existingBlobs[intIndex].UpdateAUKF(true);
+//    existingBlobs[intIndex].UpdateAUKF(true);
 
 }
 
@@ -1254,6 +1255,11 @@ void YoloObjectDetector::Tracking (){
         for (auto &existingBlob : blobs) {
             existingBlob.blnCurrentMatchFoundOrNewBlob = false;
             existingBlob.blnAlreadyTrackedInThisFrame = false;
+            existingBlob.predictNextPosition();
+            existingBlob.predictWidthHeight();
+            int xmin = existingBlob.predictedNextPosition.x - existingBlob.predictedWidth/2;
+            int ymin = existingBlob.predictedNextPosition.y - existingBlob.predictedHeight/2;
+            existingBlob.preditcRect = cv::Rect(xmin, ymin, existingBlob.predictedWidth, existingBlob.predictedHeight);
             // >>>> Matrix A
 //            double timeDiff = (image_time_-prvImageTime).toNSec() * 1e-9;
 //            std::cout<< timeDiff <<std::endl;
@@ -1263,7 +1269,7 @@ void YoloObjectDetector::Tracking (){
 //            existingBlob.kf.transitionMatrix.at<float>(9) = dT;//dT;
             // <<<< Matrix A
 //            existingBlob.state = existingBlob.kf.predict();
-            existingBlob.preditcRect = existingBlob.GetRectPrediction();
+//            existingBlob.preditcRect = existingBlob.GetRectPrediction();
         }
 
 //            std::cout<<"blob prediction finished"<<std::endl;
@@ -1274,9 +1280,9 @@ void YoloObjectDetector::Tracking (){
             for (auto &existingBlob : blobs) {
                 if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
                     existingBlob.intNumOfConsecutiveFramesWithoutAMatch++;
-                    existingBlob.UpdateAUKF(false);
+//                    existingBlob.UpdateAUKF(false);
                 }
-                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 40) {
+                if (existingBlob.intNumOfConsecutiveFramesWithoutAMatch >= 10) {
                     existingBlob.blnStillBeingTracked = false;
                     //blobs.erase(blobs.begin() + i);
                 }
@@ -1356,13 +1362,15 @@ void YoloObjectDetector::CreateMsg(){
 //            cv::rectangle(color_out, leftIntersection, CV_RGB(255,255,255), 1);
 //            cv::rectangle(color_out, rightIntersection, CV_RGB(255,255,255), 1);
 
-            if (leftIntersect<0.5 && rightIntersect<0.5){
+            if (leftIntersect<0.2 && rightIntersect<0.2){
                 cv::rectangle(color_out, predRect, CV_RGB(255,255,255), 2);
                 cv::rectangle(color_out, cv::Rect(predRect.x, predRect.y, 40, 20), CV_RGB(255,255,255), CV_FILLED);
                 std::ostringstream str;
                 // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
                 str << i;
                 cv::putText(color_out, str.str(), cv::Point(predRect.x, predRect.y+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(0,0,0));
+            } else {
+//                blobs[i].blnStillBeingTracked = false;
             }
         }
     }

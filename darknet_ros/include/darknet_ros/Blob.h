@@ -46,6 +46,8 @@ namespace darknet_ros {
 
         std::vector<cv::Point> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
 
+        std::vector<cv::Rect> boundingRects;
+
         cv::Vec3d position_3d;
 
         std::string category;
@@ -53,6 +55,8 @@ namespace darknet_ros {
         int disparity;
 
         cv::Point predictedNextPosition;
+
+        int predictedWidth, predictedHeight;
 
         int dblCurrentDiagonalSize;
 
@@ -73,6 +77,10 @@ namespace darknet_ros {
         cv::Rect GetRectPrediction();
 
         cv::Rect UpdateAUKF(bool dataCorrect);
+
+        void predictNextPosition();
+
+        void predictWidthHeight();
 
 //        Blob(cv::Rect _BBoxRect);
 //
