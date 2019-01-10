@@ -274,9 +274,9 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
   cv::Mat projectionRight = cv::Mat(cameraRight.projectionMatrix());
   cv::Matx33d intrinsicRight = projectionRight(cv::Rect(0, 0, 3, 3));
 
-  u0 = left_info->K[2];
-  v0 = left_info->K[5];
-  focal = left_info->K[0];
+  u0 = left_info->P[2];
+  v0 = left_info->P[6];
+  focal = left_info->P[0];
   Width = left_info->width;
   Height = left_info->height;
 
@@ -938,7 +938,7 @@ void *YoloObjectDetector::publishInThread()
 
           if(ymax >= Height_crp)    ymax = Height_crp - 1;
           if(xmax >= Width_crp)     xmax = Width_crp - 1;
-          int median_kernel = std::min(xmax - xmin, ymax - ymin);
+          int median_kernel = static_cast<int>(std::min(xmax - xmin, ymax - ymin) / 2);
 
           if((classLabels_[i] == "car") || (classLabels_[i] == "bus")|| (classLabels_[i] == "motor") || (classLabels_[i] == "bike")
                || (classLabels_[i] == "truck")  || (classLabels_[i] == "rider") || (classLabels_[i] == "person")) {
@@ -1211,6 +1211,9 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].disparity = currentFrameBlob.disparity;
     existingBlobs[intIndex].position_3d = currentFrameBlob.position_3d;
     existingBlobs[intIndex].boundingRects.push_back(currentFrameBlob.boundingRects.back());
+
+    existingBlobs[intIndex].height = currentFrameBlob.height;
+    existingBlobs[intIndex].diameter = currentFrameBlob.diameter;
 
     existingBlobs[intIndex].xmin = currentFrameBlob.xmin;
     existingBlobs[intIndex].xmax = currentFrameBlob.xmax;

@@ -1123,6 +1123,7 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
         slopeAdjHeight = 90;//35; // cm -- slope
         slopeAdjLength = 2000;//2000; // cm -- slope
         minDepthDiffToCalculateSlope = 1000; // cm -- slope
+        minNoOfPixelsForObject = 45;
     } else if (camera_type == "wide_camera") {
         rdRowToDisRegard = 30;
         rdStartCheckLines = 30;
@@ -1137,6 +1138,7 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
         slopeAdjHeight = 30; // cm -- slope
         slopeAdjLength = 1500; // cm -- slope
         minDepthDiffToCalculateSlope = 400; // cm -- slope
+        minNoOfPixelsForObject = 80;
     }
 
     disForSlope = cvRound(focal * baseline / depthForSlpoe);
