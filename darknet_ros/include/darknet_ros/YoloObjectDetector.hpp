@@ -20,6 +20,7 @@
 #include <map>
 
 #include <fstream>
+#include "libsgm.h"
 
 // ROS
 #include <ros/ros.h>
@@ -246,6 +247,9 @@ private:
 
   IplImage * ipl_;
   double fps_ = 0;
+  double stereo_fps_ = 0;
+  double classi_fps_ = 0;
+  double obs_fps_ = 0;
   float demoThresh_ = 0;
   float demoHier_ = .5;
   int running_ = 0;

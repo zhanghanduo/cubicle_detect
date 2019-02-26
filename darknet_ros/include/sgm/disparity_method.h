@@ -31,6 +31,10 @@
 #include "cost_aggregation.h"
 #include "debug.h"
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 void init_disparity_method(const uint8_t _p1, const uint8_t _p2);
 cv::Mat compute_disparity_method(cv::Mat left, cv::Mat right, float *elapsed_time_ms);
 void finish_disparity_method();

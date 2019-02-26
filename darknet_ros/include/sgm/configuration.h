@@ -28,6 +28,8 @@
 
 #define PATH_AGGREGATION	4
 #define	MAX_DISPARITY		128
+//#define CENSUS_WIDTH		3
+//#define CENSUS_HEIGHT		3
 #define CENSUS_WIDTH		9
 #define CENSUS_HEIGHT		7
 

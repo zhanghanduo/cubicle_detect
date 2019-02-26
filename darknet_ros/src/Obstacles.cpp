@@ -1016,7 +1016,7 @@ void ObstaclesDetection::DisplayRoad() {
         refined_road_map.at<cv::Vec3b>(refinedRoadProfile[i].x, refinedRoadProfile[i].y) = cv::Vec3b(0,0,255);
     }
 
-//    cv::imshow("intial_road_map", intial_road_map);
+    cv::imshow("intial_road_map", intial_road_map);
     cv::imshow("refined_road_map", refined_road_map);
 //    cv::imshow("disparity_map",disparity_map);
 //    cv::waitKey(1);
@@ -1045,7 +1045,7 @@ void ObstaclesDetection::DisplayPosObs() {
 }
 
 void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, double baseline,
-        double u0, double v0, double focal, int Width, int Height){
+        double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity){
 
 //    std::cout<<camera_type<<", "<<disparity_size<<", "<<baseline<<std::endl;
 
@@ -1054,6 +1054,7 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
     double minWidthToSeperate = 0.5; //0.5m
     double minDepthToSeperate = 6; //6m
     disp_size = disparity_size;
+    minimum_disparity = min_disparity;
 
     uDispThresh = static_cast<int *>(calloc(disp_size + 1, sizeof(int)));
     for( int i = 0; i < disp_size+1; ++i) {
@@ -1109,6 +1110,21 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
     dynamicLookUpTableRoad = static_cast<int *>(calloc(disp_size + 1, sizeof(int)));
     dynamicLookUpTableRoadProfile = static_cast<int *>(calloc(Height, sizeof(int)));
 
+    rdRowToDisRegard = 10/scale;
+    rdStartCheckLines = 10/scale;
+    intensityThVDisPoint = 10/scale;
+    thHorizon = 20/scale;
+    rdProfileRowDistanceTh = 6/scale;
+    rdProfileColDistanceTh = 16/scale;
+    intensityThVDisPointForSlope = 100/scale;
+    pubName = "/wide/map_msg";
+    depthForSlpoe = 18/scale; //m -- slope
+    depthForSlopeStart = 5/scale; //m -- slope
+    slopeAdjHeight = 30/scale; // cm -- slope
+    slopeAdjLength = 1500/scale; // cm -- slope
+    minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
+    minNoOfPixelsForObject = 80/scale;
+
     if (camera_type == "long_camera") {
         rdRowToDisRegard = 10;
         rdStartCheckLines = 30;
@@ -1149,6 +1165,22 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
 void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 
     disp_img.copyTo(disparity_map);
+
+    for (int r=0; r<disparity_map.rows;r++){
+        for (int c=0; c<disparity_map.cols;c++){
+            int dispAtPoint = (int)disparity_map.at<uchar>(r,c);
+//            int dispAtPoint2 = (int)disparity_SGM.at<uchar>(r,c);
+            if (dispAtPoint>disp_size)
+                disparity_map.at<uchar>(r,c) = 0;
+            else if (dispAtPoint<minimum_disparity)
+                disparity_map.at<uchar>(r,c) = 0;
+//            if (dispAtPoint2>disp_size)
+//                disparity_SGM.at<uchar>(r,c) = 0;
+//            else if (dispAtPoint2<min_disparity)
+//                disparity_SGM.at<uchar>(r,c) = 0;
+        }
+    }
+
     cv::Mat left_rect_gray;
     img.copyTo(left_rect_gray);
 //    std::cout<<img.channels()<<", "<<img.type()<<std::endl;
@@ -1210,7 +1242,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //        char im[20];
 //        sprintf(im, "s%03d.png", frameCount);
 //        img_name = std::string("/home/ugv/slope/") + im;
-//        cv::imwrite(img_name, slope_map);
+//        cv::imwrite(img_name, left_rect_clr);
 //
     }
 

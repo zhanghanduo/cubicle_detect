@@ -25,6 +25,8 @@ static uint8_t *d_im0;
 static uint8_t *d_im1;
 static cost_t *d_transform0;
 static cost_t *d_transform1;
+//static cost_t *h_transform0;
+//static cost_t *h_transform1;
 static uint8_t *d_cost;
 static uint8_t *d_disparity;
 static uint8_t *d_disparity_filtered_uchar;
@@ -100,6 +102,7 @@ cv::Mat compute_disparity_method(cv::Mat left, cv::Mat right, float *elapsed_tim
 		CUDA_CHECK_RETURN(cudaMalloc((void **)&d_disparity, sizeof(uint8_t)*size));
 		CUDA_CHECK_RETURN(cudaMalloc((void **)&d_disparity_filtered_uchar, sizeof(uint8_t)*size));
 		h_disparity = new uint8_t[size];
+//		h_transform0 = new uint32_t[size];
 	}
 	debug_log("Copying images to the GPU");
 	CUDA_CHECK_RETURN(cudaMemcpyAsync(d_im0, left.ptr<uint8_t>(), sizeof(uint8_t)*size, cudaMemcpyHostToDevice, stream1));
@@ -128,6 +131,7 @@ cv::Mat compute_disparity_method(cv::Mat left, cv::Mat right, float *elapsed_tim
 
 	// Hamming distance
 	CUDA_CHECK_RETURN(cudaStreamSynchronize(stream1));
+//	CUDA_CHECK_RETURN(cudaMemcpy(h_transform0, d_transform0, sizeof(cost_t)*size, cudaMemcpyDeviceToHost));
 	debug_log("Calling Hamming Distance");
 	HammingDistanceCostKernel<<<rows, MAX_DISPARITY, 0, stream1>>>(d_transform0, d_transform1, d_cost, rows, cols);
 	err = cudaGetLastError();
@@ -213,8 +217,20 @@ cv::Mat compute_disparity_method(cv::Mat left, cv::Mat right, float *elapsed_tim
 
 	debug_log("Copying final disparity to CPU");
 	CUDA_CHECK_RETURN(cudaMemcpy(h_disparity, d_disparity_filtered_uchar, sizeof(uint8_t)*size, cudaMemcpyDeviceToHost));
+//    CUDA_CHECK_RETURN(cudaMemcpy(h_disparity, d_disparity, sizeof(uint8_t)*size, cudaMemcpyDeviceToHost));
+
+//	CUDA_CHECK_RETURN(cudaMemcpy(h_transform0, d_transform0, sizeof(uint32_t)*size, cudaMemcpyDeviceToHost));
+//	cv::Mat censusTransform0(rows, cols, CV_32FC1, h_transform0);
+//	cv::Mat ucharTransform0;//, ucharMatScaled;
+//	censusTransform0.convertTo(ucharTransform0, CV_8UC1, 255, 0);
+//	cv::imshow("transform0", ucharTransform0);
+//	cv::waitKey(1);
 
 	cv::Mat disparity(rows, cols, CV_8UC1, h_disparity);
+
+//	cv::imshow("disparity", disparity);
+//	cv::waitKey(1);
+
 	return disparity;
 }
 
@@ -238,6 +254,7 @@ static void free_memory() {
 	CUDA_CHECK_RETURN(cudaFree(d_cost));
 
 	delete[] h_disparity;
+//	delete[] h_transform0;
 }
 
 void finish_disparity_method() {

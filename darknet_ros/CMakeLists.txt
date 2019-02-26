@@ -99,7 +99,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-find_package(OpenCV 3.4 REQUIRED)
+find_package(OpenCV 3.2.0 REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
@@ -132,6 +132,7 @@ catkin_package(
         include
   LIBRARIES
         ${PROJECT_NAME}_lib
+#        ${DARKNET_PATH}/lib
   CATKIN_DEPENDS
         cv_bridge
         roscpp
@@ -234,6 +235,7 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
+          ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsgm.a
           )
 
   cuda_add_executable(${PROJECT_NAME}

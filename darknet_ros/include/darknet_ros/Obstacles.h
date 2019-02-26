@@ -39,7 +39,7 @@ class ObstaclesDetection
 public:
     ObstaclesDetection();
     ~ObstaclesDetection();
-    void Initiate(std::string camera_type, int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height);
+    void Initiate(std::string camera_type, int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity);
     void ExecuteDetection(cv::Mat &disparity_map, cv::Mat &img);
 
 private:
@@ -76,7 +76,7 @@ private:
     int roadNotVisibleDisparity = 0;
     int rdRowToDisRegard, rdStartCheckLines, intensityThVDisPoint, thHorizon;
     int rdProfileRowDistanceTh, rdProfileColDistanceTh, intensityThVDisPointForSlope;
-    int disp_size;
+    int disp_size, minimum_disparity;
     int road_starting_row, minNoOfPixelsForObject;
     int yResolutionForSlopeMap = 2;//how many cm per pixel -- slope
     int zResolutionForSlopeMap = 10;//how many cm per pixel -- slope

@@ -10,6 +10,8 @@
 // yolo object detector
 #include "darknet_ros/YoloObjectDetector.hpp"
 #include "utils/data.h"
+#include "../include/darknet_ros/YoloObjectDetector.hpp"
+#include <math.h>
 #include <ros/package.h>
 // Check for xServer
 #include <X11/Xlib.h>
@@ -53,7 +55,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 //  nullHog.assign(36, 0.0);
   init();
 
-  init_disparity_method(7, 86);
+  init_disparity_method(7, 110);
 
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
@@ -282,6 +284,9 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   Width /= Scale;
   Height /= Scale;
+    u0 /= Scale;
+    v0 /= Scale;
+    focal /= Scale;
 
   rem_w = Width % 4;
   rem_h = Height % 4;
@@ -313,7 +318,7 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height);
+  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
 
 
 //  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
@@ -325,18 +330,36 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
     float elapsed_time_ms;
     cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
+//    cv::Mat disparity_SGM(leftFrame.size(), CV_8UC1);
 
-    disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
+//    sgm::StereoSGM ssgm(leftFrame.cols, leftFrame.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
+//    ssgm.execute(leftFrame.data, rightFrame.data, (void**)&disparity_SGBM.data);
+//    demoTime_ = what_time_is_it_now();
 
-    for (int r=0; r<disparity_SGBM.rows;r++){
-        for (int c=0; c<disparity_SGBM.cols;c++){
-            int dispAtPoint = (int)disparity_SGBM.at<uchar>(r,c);
-            if (dispAtPoint>disp_size)
-                disparity_SGBM.at<uchar>(r,c) = 0;
-            else if (dispAtPoint<min_disparity)
-                disparity_SGBM.at<uchar>(r,c) = 0;
-        }
-    }
+    sgm::StereoSGM ssgm(leftFrame.cols, leftFrame.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
+	ssgm.execute(leftFrame.data, rightFrame.data, disparity_SGBM.data);
+
+//    disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
+
+//    for (int r=0; r<disparity_SGBM.rows;r++){
+//        for (int c=0; c<disparity_SGBM.cols;c++){
+//            int dispAtPoint = (int)disparity_SGBM.at<uchar>(r,c);
+////            int dispAtPoint2 = (int)disparity_SGM.at<uchar>(r,c);
+//            if (dispAtPoint>disp_size)
+//                disparity_SGBM.at<uchar>(r,c) = 0;
+////            else if (dispAtPoint<min_disparity)
+////                disparity_SGBM.at<uchar>(r,c) = 0;
+////            if (dispAtPoint2>disp_size)
+////                disparity_SGM.at<uchar>(r,c) = 0;
+////            else if (dispAtPoint2<min_disparity)
+////                disparity_SGM.at<uchar>(r,c) = 0;
+//        }
+//    }
+
+//    fps_ = 1./(what_time_is_it_now() - demoTime_);
+
+//    cv::imshow("sgm",disparity_SGM);
+//    cv::imshow("sgbm",disparity_SGBM);
 
     isDepthNew = true;
     return disparity_SGBM;
@@ -379,8 +402,8 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
     cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
 
     try {
-        cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::MONO8);
-        cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::MONO8);
+        cam_image1 = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
+        cam_image2 = cv_bridge::toCvShare(image2, sensor_msgs::image_encodings::BGR8);
 
         if(use_grey) {
             cv_rgb = cam_image1;
@@ -402,7 +425,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
             boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
             origLeft = cam_image1->image.clone();//cv::Mat(cam_image1->image, left_roi_);
             origRight = cam_image2->image.clone();//cv::Mat(cam_image2->image, right_roi_);
-            cv::cvtColor(origLeft, camImageOrig, cv::COLOR_GRAY2BGR);
+//            cv::cvtColor(origLeft, camImageOrig, cv::COLOR_GRAY2BGR);
 //            camImageOrig = origLeft.clone();//cam_image1->image.clone();//cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
         }
         {
@@ -416,11 +439,11 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
         if(Scale != 1) {
             cv::resize(origLeft, left_resized, cv::Size(Width, Height));
             cv::resize(origRight, right_resized, cv::Size(Width, Height));
-            cv::resize(camImageOrig, camImageResized, cv::Size(Width, Height));
+//            cv::resize(camImageOrig, camImageResized, cv::Size(Width, Height));
         }else{
             left_resized = origLeft.clone();
             right_resized = origRight.clone();
-            camImageResized = camImageOrig.clone();
+//            camImageResized = camImageOrig.clone();
         }
 
         // std::cout<<"Debug inside cameraCallBack starting image padding"<<std::endl;
@@ -433,12 +456,13 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
 //            copyMakeBorder( camImageResized, camImageWidthAdj, 0, 0, 0, rem_w, cv::BORDER_CONSTANT, cv::Scalar(0,0,0) );
             left_rectified = left_resized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
             right_rectified = right_resized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
-            camImageCopy_ = camImageResized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
+//            camImageCopy_ = camImageResized(cv::Rect(0, 0, Width_crp, Height_crp)).clone();
         } else {
             left_rectified = left_resized.clone();
             right_rectified = right_resized.clone();
-            camImageCopy_ = camImageResized.clone();
+//            camImageCopy_ = camImageResized.clone()0
         }
+        camImageCopy_ = left_rectified.clone();
 
         // cv::Mat left_heightAdj, right_heightAdj, camImageHeightAdj;
 //
@@ -533,6 +557,8 @@ detection *YoloObjectDetector::avgPredictions(network *net, int *nboxes)
 
 void *YoloObjectDetector::detectInThread()
 {
+
+    double classi_time_ = what_time_is_it_now();
   globalframe++;
   running_ = 1;
   float nms = .45;
@@ -614,6 +640,9 @@ void *YoloObjectDetector::detectInThread()
   free_detections(dets, nboxes);
   demoIndex_ = (demoIndex_ + 1) % demoFrame_;
   running_ = 0;
+
+    classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
+
   return nullptr;
 }
 
@@ -623,29 +652,31 @@ void *YoloObjectDetector::stereoInThread()
 
 //        disparityFrame[(buffIndex_ + 2) % 3] = getDepth(buff_cv_l_[(buffIndex_ + 2) % 3],
 //                                                        buff_cv_r_[(buffIndex_ + 2) % 3]);
+    double stereo_time_ = what_time_is_it_now();
     disparityFrame = getDepth(buff_cv_l_, buff_cv_r_);
+    stereo_fps_ = 1./(what_time_is_it_now() - stereo_time_);
 
-//    cv::imshow("left_rectified", buff_cv_l_[(buffIndex_ + 2) % 3]);
-//    cv::imshow("disp",  disparityFrame[(buffIndex_ + 2) % 3]);
+//    cv::imshow("left_rectified", buff_cv_l_);
+//    cv::imshow("right_rectified",  buff_cv_r_);
 //    cv::waitKey(1);
 
 //        output = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
 
-        disparity_info.header.stamp = image_time_;
-        cv_bridge::CvImage out_msg;
-        out_msg.header.frame_id = "/wide_camera";
-        out_msg.header.stamp = image_time_;
-        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-        out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
-        disparity_info.image = *out_msg.toImageMsg();
-
-        disparity_info.f = focal;
-        disparity_info.T = stereo_baseline_;
-        disparity_info.min_disparity = min_disparity;
-        disparity_info.max_disparity = disp_size; //128
-
-//    if(counter > 2){
-        disparityPublisher_.publish(disparity_info);
+//        disparity_info.header.stamp = image_time_;
+//        cv_bridge::CvImage out_msg;
+//        out_msg.header.frame_id = "/wide_camera";
+//        out_msg.header.stamp = image_time_;
+//        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+//        out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
+//        disparity_info.image = *out_msg.toImageMsg();
+//
+//        disparity_info.f = focal;
+//        disparity_info.T = stereo_baseline_;
+//        disparity_info.min_disparity = min_disparity;
+//        disparity_info.max_disparity = disp_size; //128
+//
+////    if(counter > 2){
+//        disparityPublisher_.publish(disparity_info);
 //        ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 2) % 3], output);
 //    }
 
@@ -671,8 +702,22 @@ void *YoloObjectDetector::fetchInThread()
 
   letterbox_image_into(buff_, net_->w, net_->h, buffLetter_);//[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
 
-  buff_cv_l_ = left_rectified.clone();//[(buffIndex_)] = left_rectified.clone();
-  buff_cv_r_ = right_rectified.clone();//[(buffIndex_)] = right_rectified.clone();
+//  buff_cv_l_ = left_rectified.clone();//[(buffIndex_)] = left_rectified.clone();
+//  buff_cv_r_ = right_rectified.clone();//[(buffIndex_)] = right_rectified.clone();
+
+  /* Make image gray */
+  cv::cvtColor(left_rectified,buff_cv_l_, CV_BGR2GRAY);
+  cv::cvtColor(right_rectified,buff_cv_r_, CV_BGR2GRAY);
+//  cv::Mat filteredLeft, filteredRight;
+//
+//  cv::bilateralFilter ( left_rectified, filteredLeft, 5, 80, 80 );
+//  cv::bilateralFilter ( right_rectified, filteredRight, 5, 80, 80 );
+//
+//  buff_cv_l_ = filteredLeft.clone();//[(buffIndex_)] = left_rectified.clone();
+//  buff_cv_r_ = filteredRight.clone();//[(buffIndex_)] = right_rectified.clone();
+
+  //cv::imshow("left_rectified", buff_cv_l_);
+  //cv::imshow("right_rectified", buff_cv_r_);
 
 //    cv::imshow("left_rectified", buff_cv_l_[(buffIndex_)]);
 //    cv::imshow("disp",  buff_cv_r_[(buffIndex_)]);
@@ -940,7 +985,7 @@ void *YoloObjectDetector::publishInThread()
           if(xmax >= Width_crp)     xmax = Width_crp - 1;
           int median_kernel = static_cast<int>(std::min(xmax - xmin, ymax - ymin) / 2);
 
-          if((classLabels_[i] == "car") || (classLabels_[i] == "bus")|| (classLabels_[i] == "motor") || (classLabels_[i] == "bike")
+          if((classLabels_[i] == "car") || (classLabels_[i] == "bus")|| (classLabels_[i] == "motorbike") || (classLabels_[i] == "bicycle")
                || (classLabels_[i] == "truck")  || (classLabels_[i] == "rider") || (classLabels_[i] == "person")) {
 
                 int dis = 0;
@@ -971,7 +1016,7 @@ void *YoloObjectDetector::publishInThread()
                     outputObs.category = "bus";
                 } else if ((classLabels_[i] == "rider") || (classLabels_[i] == "person")){
                     outputObs.category = "person";
-                } else if ((classLabels_[i] == "motor") || (classLabels_[i] == "bike")) {
+                } else if ((classLabels_[i] == "motorbike") || (classLabels_[i] == "bicycle")) {
                     outputObs.category = "bike";
                 }
                 outputObs.probability = rosBoxes_[i][j].prob;
@@ -991,9 +1036,10 @@ void *YoloObjectDetector::publishInThread()
 //                }
 
                 if (enableStereo) {
-                    if(dis>=min_disparity ) { //(3600-200)*(dis-12)/(128-12)
-                        if (outputObs.category == "bus" || outputObs.category == "car"){
-                            if (rect.area()>(400+31*(dis-12))){
+                    if(dis>0){//min_disparity ) { //(3600-200)*(dis-12)/(128-12)
+                        if (outputObs.category == "bus" || outputObs.category == "car" || outputObs.category == "person" || outputObs.category == "bike" ){
+//                        if (outputObs.category == "bus" || outputObs.category == "car"){
+//                            if (rect.area()>(400+31*(dis-12))){
                                 outputObs.position_3d[0] = x3DPosition[center_c_][dis];
                                 outputObs.position_3d[1] = y3DPosition[center_r_][dis];
                                 outputObs.position_3d[2] = depth3D[dis];
@@ -1008,7 +1054,7 @@ void *YoloObjectDetector::publishInThread()
                                 outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
                                 outputObs.disparity = dis;
                                 currentFrameBlobs.push_back(outputObs);
-                            }
+//                            }
                         } else {
                             if (rect.area()>400){
                                 outputObs.position_3d[0] = x3DPosition[center_c_][dis];
@@ -1042,9 +1088,9 @@ void *YoloObjectDetector::publishInThread()
 //                        outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
 //                        outputObs.disparity = dis;
 //                        currentFrameBlobs.push_back(outputObs);
-                    } else {
-//                              std::string classname = classLabels_[i];
-//                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
+//                    } else {
+////                              std::string classname = classLabels_[i];
+////                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
                     }
                 } else {
                     if (rect.area()>400)
@@ -1310,7 +1356,7 @@ void YoloObjectDetector::CreateMsg(){
     if (enableStereo)
         output1 = disparityFrame.clone();//[(buffIndex_ + 1) % 3].clone();
 //    cv::Mat output = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
-    output = buff_cv_l_.clone();
+    output = camImageCopy_.clone();// buff_cv_l_.clone();
     if(output.type() == CV_8UC1)
         cv::cvtColor(output, color_out, CV_GRAY2RGB);
     else
@@ -1329,9 +1375,10 @@ void YoloObjectDetector::CreateMsg(){
             int rectMinY = blobs[i].currentBoundingRect.y;
             cv::rectangle(color_out, cv::Rect(rectMinX, rectMinY, 40, 20), colors.at(i), CV_FILLED);
             std::ostringstream str;
-            // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
-            str << i;
-            cv::putText(color_out, str.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,255,255));
+            int distance = sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2));
+             str << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
+//            str << i;
+            cv::putText(color_out, str.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 0.8, CV_RGB(255,255,255));
 
 //            cv::Rect predRect;
 //            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
@@ -1368,20 +1415,72 @@ void YoloObjectDetector::CreateMsg(){
             if (leftIntersect<0.2 && rightIntersect<0.2){
                 cv::rectangle(color_out, predRect, CV_RGB(255,255,255), 2);
                 cv::rectangle(color_out, cv::Rect(predRect.x, predRect.y, 40, 20), CV_RGB(255,255,255), CV_FILLED);
-                std::ostringstream str;
-                // str << blobs[i].position_3d[2] <<"m, ID="<<i<<"; "<<blobs[i].disparity;
-                str << i;
-                cv::putText(color_out, str.str(), cv::Point(predRect.x, predRect.y+16) , CV_FONT_HERSHEY_PLAIN, 1.5, CV_RGB(0,0,0));
+                int distance = sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2));
+                str << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
+//                str << i;
+                cv::putText(color_out, str.str(), cv::Point(predRect.x, predRect.y+16) , CV_FONT_HERSHEY_PLAIN, 0.8, CV_RGB(0,0,0));
             } else {
 //                blobs[i].blnStillBeingTracked = false;
             }
         }
     }
+
+//    cv::Mat imgIn = output.clone();
+//    cv::Mat imgInR = buff_cv_r_.clone();
+//    cv::Size imgSize = imgIn.size();
+//    cv::Mat imgTemp = cv::Mat::zeros(imgSize, CV_8U);
+//    cv::Mat imgTempR = cv::Mat::zeros(imgSize, CV_8U);
+
+//    unsigned int census = 0, censusR = 0;
+//    unsigned int bit = 0, bitR = 0;
+//    int m = 3;//7;
+//    int n = 3;//9;//window size
+//    int i,j,x,y;
+//    int shiftCount = 0;
+//    for (x = m/2; x < imgSize.height - m/2; x++) {
+//        for(y = n/2; y < imgSize.width - n/2; y++) {
+//            census = 0;
+//            censusR = 0;
+//            shiftCount = 0;
+//            for (i = x - m/2; i <= x + m/2; i++) {
+//                for (j = y - n/2; j <= y + n/2; j++) {
+//                    if( shiftCount != m*n/2 )//skip the center pixel
+//                    {
+//                        census <<= 1;
+//                        if( imgIn.at<uchar>(i,j) < imgIn.at<uchar>(x,y) )//compare pixel values in the neighborhood
+//                            bit = 1;
+//                        else
+//                            bit = 0;
+//                        census = census + bit;
+//                        //cout<<census<<" ";*/
+//                        censusR <<= 1;
+//                        if( imgInR.at<uchar>(i,j) < imgInR.at<uchar>(x,y) )//compare pixel values in the neighborhood
+//                            bitR = 1;
+//                        else
+//                            bitR = 0;
+//                        censusR = censusR + bitR;
+//
+//                    }
+//                    shiftCount ++;
+//                }
+//            }
+//            //cout<<endl;
+//
+//            imgTemp.ptr<uchar>(x)[y] = census;
+//            imgTempR.ptr<uchar>(x)[y] = censusR;
+//        }
+//    }
+
+
     if(viewImage_) {
         cv::imshow("debug", color_out);
+//        cv::imshow("census", imgTemp);
+//        cv::imshow("censusR", imgTempR);
+//        cv::imshow("left", left_rectified);
+//        cv::imshow("right", right_rectified);
         if (enableStereo)
             cv::imshow("disparity", output1*255/disp_size);
-       cv::waitKey(1);
+       cv::waitKey(waitKeyDelay_);
     }
 
     if(enableEvaluation_){
@@ -1470,33 +1569,40 @@ void YoloObjectDetector::Process(){
 //        detectInThread();
 
     if (enableClassification)
-        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+//        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+        detectInThread();
     if (enableStereo)
-        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
+//        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
+        stereoInThread();
 
     if (enableStereo) {
-        stereo_thread.join();
+//        stereo_thread.join();
+        double obs_time_ = what_time_is_it_now();
         ObstacleDetector.ExecuteDetection(disparityFrame, buff_cv_l_);
+        obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
 
-    if (enableClassification){
-        detect_thread.join();
-    }
+
+//    if (enableClassification){
+//        detect_thread.join();
+//    }
 
     publishInThread();
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
-    demoTime_ = what_time_is_it_now();
+//    demoTime_ = what_time_is_it_now();
 
-    displayInThread();
+    if (enableClassification)
+        displayInThread();
+
     CreateMsg();
 
-    char name[256];
-    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
-    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
+//    char name[256];
+//    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
+//    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
     if ( frame_num%20==1 ) {
-        printf("FPS:%.1f\n", fps_);
+        printf("FPS:%.1f, Stereo:%.1f, Obs:%.1f, Classification:%.1f\n", fps_, stereo_fps_, obs_fps_, classi_fps_);
     }
 
     frame_num++;
