@@ -22,14 +22,14 @@ int main(int argc, char** argv) {
 
   std::string image_left_topic, image_right_topic, image_left_info, image_right_info;
 
-  image_left_topic = "/kitti_stereo/left/image_rect";
-  image_right_topic = "/kitti_stereo/right/image_rect";
-  image_left_info = "/kitti_stereo/left/camera_info";
-  image_right_info = "/kitti_stereo/right/camera_info";
-//    image_left_topic = "/wide/left/image_rect";
-//    image_right_topic = "/wide/right/image_rect";
-//    image_left_info = "/wide/left/camera_info";
-//    image_right_info = "/wide/right/camera_info";
+//  image_left_topic = "/kitti_stereo/left/image_rect";
+//  image_right_topic = "/kitti_stereo/right/image_rect";
+//  image_left_info = "/kitti_stereo/left/camera_info";
+//  image_right_info = "/kitti_stereo/right/camera_info";
+    image_left_topic = "/left/image_rect_color";
+    image_right_topic = "/right/image_rect_color";
+    image_left_info = "/left/camera_info";
+    image_right_info = "/right/camera_info";
 
   darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
 

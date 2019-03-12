@@ -99,9 +99,8 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-find_package(OpenCV 3.2.0 REQUIRED)
+find_package(OpenCV 3.4.0 REQUIRED)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
 find_package(catkin REQUIRED
         COMPONENTS
         cv_bridge
@@ -152,6 +151,7 @@ include_directories(
         ${DARKNET_PATH}/src
         ${DARKNET_PATH}/include
         include
+        ${OpenCV_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
@@ -195,7 +195,7 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/avgpool_layer.c           ${DARKNET_PATH}/src/layer.c
     ${DARKNET_PATH}/src/batchnorm_layer.c         ${DARKNET_PATH}/src/list.c
     ${DARKNET_PATH}/src/blas.c                    ${DARKNET_PATH}/src/local_layer.c
-    ${DARKNET_PATH}/src/box.c                    # ${DARKNET_PATH}/src/lstm_layer.c
+    ${DARKNET_PATH}/src/box.c                     ${DARKNET_PATH}/src/lstm_layer.c
     ${DARKNET_PATH}/src/col2im.c                  ${DARKNET_PATH}/src/matrix.c
     ${DARKNET_PATH}/src/connected_layer.c         ${DARKNET_PATH}/src/maxpool_layer.c
     ${DARKNET_PATH}/src/convolutional_layer.c     ${DARKNET_PATH}/src/network.c
@@ -289,25 +289,25 @@ install(
 ## Testing ##
 #############
 
-if(CATKIN_ENABLE_TESTING)
-  # Download yolov2.weights
-  set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
-  set(FILE "${PATH}/yolov2.weights")
-  message(STATUS "Checking and downloading yolov2.weights if needed ...")
-#  if (NOT EXISTS "${FILE}")
-#    message(STATUS "... file does not exist. Downloading now ...")
-#    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
-#  endif()
-
-  find_package(rostest REQUIRED)
-
-  # Object detection in images.
-  add_rostest_gtest(${PROJECT_NAME}_object_detection-test
-    test/object_detection.test
-    test/test_main.cpp
-    test/ObjectDetection.cpp
-  )
-  target_link_libraries(${PROJECT_NAME}_object_detection-test
-    ${catkin_LIBRARIES}
-  )
-endif()
+#if(CATKIN_ENABLE_TESTING)
+#  # Download yolov2.weights
+#  set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
+#  set(FILE "${PATH}/yolov2.weights")
+#  message(STATUS "Checking and downloading yolov2.weights if needed ...")
+##  if (NOT EXISTS "${FILE}")
+##    message(STATUS "... file does not exist. Downloading now ...")
+##    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
+##  endif()
+#
+#  find_package(rostest REQUIRED)
+#
+#  # Object detection in images.
+#  add_rostest_gtest(${PROJECT_NAME}_object_detection-test
+#    test/object_detection.test
+#    test/test_main.cpp
+#    test/ObjectDetection.cpp
+#  )
+#  target_link_libraries(${PROJECT_NAME}_object_detection-test
+#    ${catkin_LIBRARIES}
+#  )
+#endif()
