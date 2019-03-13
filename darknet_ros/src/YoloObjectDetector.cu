@@ -653,23 +653,23 @@ void *YoloObjectDetector::stereoInThread()
 
 //        output = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
 
-//        disparity_info.header.stamp = image_time_;
-//        cv_bridge::CvImage out_msg;
-//        out_msg.header.frame_id = "/wide_camera";
-//        out_msg.header.stamp = image_time_;
-//        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-//        out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
-//        disparity_info.image = *out_msg.toImageMsg();
-//
-//        disparity_info.f = focal;
-//        disparity_info.T = stereo_baseline_;
-//        disparity_info.min_disparity = min_disparity;
-//        disparity_info.max_disparity = disp_size; //128
-//
-////    if(counter > 2){
-//        disparityPublisher_.publish(disparity_info);
+        disparity_info.header.stamp = image_time_;
+        cv_bridge::CvImage out_msg;
+        out_msg.header.frame_id = "/camera";
+        out_msg.header.stamp = image_time_;
+        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+        out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
+        disparity_info.image = *out_msg.toImageMsg();
+
+        disparity_info.f = focal;
+        disparity_info.T = stereo_baseline_;
+        disparity_info.min_disparity = min_disparity;
+        disparity_info.max_disparity = disp_size; //128
+
+    if(counter > 2){
+        disparityPublisher_.publish(disparity_info);
 //        ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 2) % 3], output);
-//    }
+    }
 
     counter ++;
 
@@ -1474,6 +1474,17 @@ void YoloObjectDetector::CreateMsg(){
 
     for (unsigned long int i = 0; i < blobs.size(); i++) {
 
+        obstacle_msgs::obs tmpObs;
+        tmpObs.identityID = i;
+
+        tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
+        tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
+        tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
+        tmpObs.diameter = static_cast<float>(blobs[i].diameter);
+        tmpObs.height = static_cast<float>(blobs[i].height);
+        tmpObs.counter = blobs[i].counter;
+        tmpObs.classes = blobs[i].category;
+        tmpObs.probability = static_cast<float>(blobs[i].probability);
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
 
             if((blobs[i].category == "car") || (blobs[i].category == "bus")|| (blobs[i].category == "misc")
@@ -1488,23 +1499,11 @@ void YoloObjectDetector::CreateMsg(){
                     else if( (blobs[i].category == "person") || (blobs[i].category == "misc") )
                         cate = 1;
                 }
-                obstacle_msgs::obs tmpObs;
 
-                tmpObs.identityID = i;
-
-                tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
-                tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
-                tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
-                tmpObs.diameter = static_cast<float>(blobs[i].diameter);
-                tmpObs.height = static_cast<float>(blobs[i].height);
                 tmpObs.xmin = static_cast<unsigned int>(blobs[i].boundingRects.back().x);
                 tmpObs.ymin = static_cast<unsigned int>(blobs[i].boundingRects.back().y);
                 tmpObs.xmax = tmpObs.xmin + blobs[i].boundingRects.back().width;
                 tmpObs.ymax = tmpObs.ymin + blobs[i].boundingRects.back().height;
-
-                tmpObs.counter = blobs[i].counter;
-                tmpObs.classes = blobs[i].category;
-                tmpObs.probability = static_cast<float>(blobs[i].probability);
 //            tmpObs.histogram = blobs[i].obsHog;
 
                 obstacleBoxesResults_.obsData.push_back(tmpObs);
@@ -1522,6 +1521,21 @@ void YoloObjectDetector::CreateMsg(){
                          << std::endl;
                 }
             }
+        } else if (blobs[i].blnStillBeingTracked && blobs[i].counter>4
+                   && blobs[i].intNumOfConsecutiveFramesWithoutAMatch<3) {
+          tmpObs.xmin = static_cast<unsigned int>(blobs[i].preditcRect.x);
+          tmpObs.ymin = static_cast<unsigned int>(blobs[i].preditcRect.y);
+          tmpObs.xmax = tmpObs.xmin + blobs[i].preditcRect.width;
+          tmpObs.ymax = tmpObs.ymin + blobs[i].preditcRect.height;
+
+          obstacleBoxesResults_.obsData.push_back(tmpObs);
+          ////*--------------Generate Evaluation files----------------------*////
+          if(enableEvaluation_){
+            file << i << " " << blobs[i].currentBoundingRect.x << " " << blobs[i].currentBoundingRect.y << " "
+                 << blobs[i].currentBoundingRect.x + blobs[i].currentBoundingRect.width << " " <<
+                 blobs[i].currentBoundingRect.y + blobs[i].currentBoundingRect.height << " " << cate
+                 << std::endl;
+          }
         }
     }
     if(enableEvaluation_){
