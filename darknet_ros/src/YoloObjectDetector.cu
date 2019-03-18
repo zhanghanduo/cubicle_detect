@@ -152,7 +152,7 @@ void YoloObjectDetector::init()
   nodeHandle_.param<int>("min_disparity", min_disparity, 7);
   nodeHandle_.param<int>("disparity_scope", disp_size, 128);
   nodeHandle_.param<bool>("use_grey", use_grey, false);
-  nodeHandle_.param<bool>("enable_stereo", enableStereo, false);
+  nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
   nodeHandle_.param<bool>("enable_classification", enableClassification, true);
   nodeHandle_.param<int>("scale", Scale, 1);
 
