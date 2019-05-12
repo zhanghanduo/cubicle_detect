@@ -212,6 +212,8 @@ private:
 //  double depthTable[129] = {};
   bool blnFirstFrame;
   bool notInitiated = true;
+  bool publish_pcl_;
+  bool publish_pcl_filtered_;
 
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;

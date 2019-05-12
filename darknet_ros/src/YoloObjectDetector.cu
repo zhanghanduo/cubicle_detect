@@ -155,7 +155,8 @@ void YoloObjectDetector::init()
   nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
   nodeHandle_.param<bool>("enable_classification", enableClassification, true);
   nodeHandle_.param<int>("scale", Scale, 1);
-
+  nodeHandle_.param<bool>("publish_pcl", publish_pcl_, false);
+  nodeHandle_.param<bool>("publish_pcl_filtered", publish_pcl_filtered_, true);
   // Threshold of object detection.
   float thresh;
   nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
@@ -697,8 +698,8 @@ void *YoloObjectDetector::fetchInThread()
 //  buff_cv_r_ = right_rectified.clone();//[(buffIndex_)] = right_rectified.clone();
 
   /* Make image gray */
-  cv::cvtColor(left_rectified,buff_cv_l_, CV_BGR2GRAY);
-  cv::cvtColor(right_rectified,buff_cv_r_, CV_BGR2GRAY);
+  cv::cvtColor(left_rectified, buff_cv_l_, CV_BGR2GRAY);
+  cv::cvtColor(right_rectified, buff_cv_r_, CV_BGR2GRAY);
 //  cv::Mat filteredLeft, filteredRight;
 //
 //  cv::bilateralFilter ( left_rectified, filteredLeft, 5, 80, 80 );
@@ -1095,9 +1096,6 @@ void *YoloObjectDetector::publishInThread()
 //    }
 //    cv::imshow("beforeTracking", beforeTracking);
 
-        // TODO: wait until isDepth_new to be true
-//      Tracking();
-//      CreateMsg();
 //      roiBoxes_[0].num = 0;
 //    boundingBoxesResults_.header.stamp = ros::Time::now();
 //    boundingBoxesResults_.header.frame_id = "detection";
@@ -1339,7 +1337,7 @@ void YoloObjectDetector::CreateMsg(){
     std::vector<cv::Scalar> colors;
     cv::RNG rng(0);
     for(int i=0; i < blobs.size(); i++)
-        colors.push_back(cv::Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255)));
+        colors.emplace_back(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
 
     for (long int i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
@@ -1569,7 +1567,6 @@ void YoloObjectDetector::Process(){
         ObstacleDetector.ExecuteDetection(disparityFrame, buff_cv_l_);
         obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
-
 
     if (enableClassification){
         detect_thread.join();
