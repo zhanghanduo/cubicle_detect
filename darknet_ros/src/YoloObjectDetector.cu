@@ -18,6 +18,8 @@
 
 #ifdef DARKNET_FILE_PATH
 std::string darknetFilePath_ = DARKNET_FILE_PATH;
+
+#include "../../darknet/src/image_opencv.h"
 #else
 #error Path of darknet repository is not defined in CMakeLists.txt.
 #endif
@@ -683,8 +685,11 @@ void *YoloObjectDetector::stereoInThread()
 
 void *YoloObjectDetector::fetchInThread()
 {
-  IplImage* ROS_img = getIplImage();
-  ipl_into_image(ROS_img, buff_);//[buffIndex_]);
+//  IplImage* ROS_img = getIplImage();
+//  ipl_into_image(ROS_img, buff_);//[buffIndex_]);
+
+  buff_ = mat_to_image(camImageCopy_);
+
   {
     boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
     buffId_ = actionId_;//[buffIndex_] = actionId_;
@@ -746,11 +751,8 @@ void *YoloObjectDetector::fetchInThread()
 
 void *YoloObjectDetector::displayInThread()
 {
-  show_image_cv(buff_, "YOLO V3", ipl_);//[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-  // cv::imshow("disparity_map",disparityFrame); // * 256 / disp_size);
-//  cv::imshow("left_rect", origLeft);
-//  cv::imshow("right_rect", origRight);
-//  int c = cvWaitKey(waitKeyDelay_);
+//  show_image_cv(buff_, "YOLO V3", ipl_);//[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
+  show_image_cv(buff_, "YOLO V3");
   int c = cv::waitKey(waitKeyDelay_);
   if (c != -1) c = c%256;
   if (c == 27) {
@@ -821,8 +823,7 @@ void YoloObjectDetector:: yolo()
   layer l = net_->layers[net_->n - 1];
   roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
 
-  IplImage* ROS_img = getIplImage();
-  buff_ = ipl_to_image(ROS_img);
+  buff_ = mat_to_image(camImageCopy_);
 //  buff_[1] = copy_image(buff_[0]);
 //  buff_[2] = copy_image(buff_[0]);
   buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
@@ -837,8 +838,8 @@ void YoloObjectDetector:: yolo()
   buff_cv_r_ = right_rectified.clone();
 //  buff_cv_r_[1] = right_rectified.clone();
 //  buff_cv_r_[2] = right_rectified.clone();
-//  ipl_ = cvCreateImage(cvSize(buff_[0].w, buff_[0].h), IPL_DEPTH_8U, buff_[0].c);
-  ipl_ = cvCreateImage(cvSize(buff_.w, buff_.h), IPL_DEPTH_8U, buff_.c);
+//  ipl_ = cvCreateImage(cvSize(buff_.w, buff_.h), IPL_DEPTH_8U, buff_.c);
+  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
 //  cv::imshow("left_rectified", left_rectified);
 //  cv::waitKey(1);
@@ -917,12 +918,12 @@ void YoloObjectDetector:: yolo()
 
 }
 
-IplImage* YoloObjectDetector::getIplImage()
-{
-  boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-  auto * ROS_img = new IplImage(camImageCopy_);
-  return ROS_img;
-}
+//IplImage* YoloObjectDetector::getIplImage()
+//{
+//  boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
+//  auto * ROS_img = new IplImage(camImageCopy_);
+//  return ROS_img;
+//}
 
 bool YoloObjectDetector::getImageStatus()
 {
@@ -939,8 +940,8 @@ bool YoloObjectDetector::isNodeRunning()
 void *YoloObjectDetector::publishInThread()
 {
   // Publish image.
-  cv::Mat cvImage = cv::cvarrToMat(ipl_);
-  if (!publishDetectionImage(cv::Mat(cvImage))) {
+//  cv::Mat cvImage = cv::cvarrToMat(ipl_);
+  if (!publishDetectionImage(cv::Mat(ipl_cv))) {
     ROS_DEBUG("Detection image has not been broadcasted.");
   }
 

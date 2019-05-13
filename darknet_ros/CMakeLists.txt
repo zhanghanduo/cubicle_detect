@@ -4,7 +4,7 @@ project(cubicle_detect)
 # Configure CCache if available
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE cc=
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
@@ -14,6 +14,11 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE "Release")
 #-DEIGEN_USE_MKL_ALL")
 
+enable_language(C)
+enable_language(CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../darknet/cmake/Modules/" ${CMAKE_MODULE_PATH})
 
 #######################
 # Print option status #
@@ -55,20 +60,52 @@ if (CUDA_FOUND)
   find_package(CUDA REQUIRED)
   message(STATUS "CUDA Version: ${BoldGreen} ${CUDA_VERSION_STRINGS} ${ColourReset}")
   message(STATUS "CUDA Libararies: ${BoldGreen} ${CUDA_LIBRARIES} ${ColourReset}")
+
+  if ("${CUDA_VERSION}" VERSION_LESS "10.0")
+    set(
+      CUDA_NVCC_FLAGS
+      ${CUDA_NVCC_FLAGS};
+      -O3
+      -gencode arch=compute_30,code=sm_30
+      -gencode arch=compute_35,code=sm_35
+      -gencode arch=compute_50,code=[sm_50,compute_50]
+      -gencode arch=compute_52,code=[sm_52,compute_52]
+      -gencode arch=compute_61,code=[sm_61,compute_61]
+      -gencode arch=compute_62,code=[sm_62,compute_62]  # GTX 1080 (Ti)
+    )
+  else()
+  # Add SM 75 for CUDA versions >= 10.0
   set(
-    CUDA_NVCC_FLAGS
-    ${CUDA_NVCC_FLAGS};
-    -O3
-    -gencode arch=compute_30,code=sm_30
-    -gencode arch=compute_35,code=sm_35
-    -gencode arch=compute_50,code=[sm_50,compute_50]
-    -gencode arch=compute_52,code=[sm_52,compute_52]
-    -gencode arch=compute_61,code=[sm_61,compute_61]
-    -gencode arch=compute_62,code=[sm_62,compute_62]
+          CUDA_NVCC_FLAGS
+          ${CUDA_NVCC_FLAGS};
+          -O3
+          -gencode arch=compute_50,code=[sm_50,compute_50]
+          -gencode arch=compute_52,code=[sm_52,compute_52]
+          -gencode arch=compute_61,code=[sm_61,compute_61]
+          -gencode arch=compute_62,code=[sm_62,compute_62]  # GTX 1080 (Ti)
+          -gencode arch=compute_75,code=[sm_75,compute_75]  # RTX 2080 (Ti)
   )
+  endif()
+
   add_definitions(-DGPU)
 else()
   list(APPEND LIBRARIES "m")
+endif()
+
+if(USE_INTEGRATED_LIBS)
+  set(PThreads_windows_DIR ${CMAKE_CURRENT_LIST_DIR}/3rdparty/pthreads CACHE PATH "Path where pthreads for windows can be located")
+  add_definitions(-D_TIMESPEC_DEFINED)
+endif()
+set(Stb_DIR ${CMAKE_CURRENT_LIST_DIR}/3rdparty/stb CACHE PATH "Path where Stb image library can be located")
+
+set(CMAKE_DEBUG_POSTFIX d)
+add_definitions(-DUSE_CMAKE_LIBS)
+
+if(CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_CXX_FLAGS "-Wno-unused-result -Wno-write-strings ${CMAKE_CXX_FLAGS}")
+  string(REGEX REPLACE "-O0" "-Og" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+  string(REGEX REPLACE "-O3" "-Ofast" CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE})
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffp-contract=fast -mavx -mavx2 -msse3 -msse4.1 -msse4.2 -msse4a")
 endif()
 
 # Find CUDNN
@@ -198,6 +235,7 @@ if (CUDA_FOUND)
           src/sgm/disparity_method.cu
           src/sgm/hamming_cost.cu
           src/sgm/median_filter.cu
+#          src/image_opencv.cpp
 #          src/track_kalman.hpp
 #          src/track.hpp
 
@@ -213,7 +251,7 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/cost_layer.c              ${DARKNET_PATH}/src/normalization_layer.c
     ${DARKNET_PATH}/src/crnn_layer.c              ${DARKNET_PATH}/src/option_list.c
     ${DARKNET_PATH}/src/crop_layer.c              ${DARKNET_PATH}/src/parser.c
-    ${DARKNET_PATH}/src/cuda.c                    ${DARKNET_PATH}/src/region_layer.c
+    ${DARKNET_PATH}/src/dark_cuda.c               ${DARKNET_PATH}/src/region_layer.c
     ${DARKNET_PATH}/src/data.c                    ${DARKNET_PATH}/src/reorg_layer.c
     ${DARKNET_PATH}/src/deconvolutional_layer.c   ${DARKNET_PATH}/src/rnn_layer.c
     ${DARKNET_PATH}/src/demo.c                    ${DARKNET_PATH}/src/route_layer.c
@@ -222,7 +260,7 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/gemm.c                    ${DARKNET_PATH}/src/tree.c
     ${DARKNET_PATH}/src/gru_layer.c               ${DARKNET_PATH}/src/utils.c
     ${DARKNET_PATH}/src/upsample_layer.c          # ${DARKNET_PATH}/src/logistic_layer.c
-    ${DARKNET_PATH}/src/reorg_old_layer.c
+    ${DARKNET_PATH}/src/reorg_old_layer.c         ${DARKNET_PATH}/src/image_opencv.cpp
     ${DARKNET_PATH}/src/yolo_layer.c              ${DARKNET_PATH}/src/http_stream.cpp
 
     ${DARKNET_PATH}/src/activation_kernels.cu     ${DARKNET_PATH}/src/crop_layer_kernels.cu

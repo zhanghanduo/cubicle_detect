@@ -60,9 +60,6 @@
 #ifdef GPU
 // Cuda
 #include "sgm/disparity_method.h"
-//#include <cuda_runtime.h>
-//#include <cuda_runtime_api.h>
-
 #include "curand.h"
 #include "cublas_v2.h"
 #endif
@@ -76,13 +73,16 @@ extern "C" {
 #include "parser.h"
 #include "blas.h"
 #include "box.h"
+#include "image.h"
 #include "darknet_ros/image_interface.h"
 #include <sys/time.h>
 }
 
-extern "C" void ipl_into_image(IplImage* src, image im);
-extern "C" image ipl_to_image(IplImage* src);
-extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
+//extern "C" void ipl_into_image(IplImage* src, image im);
+//extern "C" image ipl_to_image(IplImage* src);
+extern "C" image mat_to_image(cv::Mat mat);
+extern "C" cv::Mat image_to_mat(image img);
+//extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
 
 namespace darknet_ros {
 
@@ -249,6 +249,7 @@ private:
 //  int buffIndex_ = 0;
 
   IplImage * ipl_;
+  cv::Mat ipl_cv;
   double fps_ = 0;
   double stereo_fps_ = 0;
   double classi_fps_ = 0;
