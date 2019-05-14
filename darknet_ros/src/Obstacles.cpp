@@ -218,18 +218,18 @@ void ObstaclesDetection::InitiateObstaclesMap () {
 //    region_of_interest = cv::Rect(left_offset, road_starting_row, disparity_map.cols-left_offset-right_offset, disparity_map.rows-road_starting_row-bottom_offset);
 
     int compare_patch = 3;
-    for (int c=1; c<roadmap.cols-1; c++) {
+    for (int c = 1; c < roadmap.cols - 1; c++) {
         int patch_length = 0;
-        for (int r=roadmap.rows; r>roadmap_row; r--) {
-            if((int)roadmap.at<uchar>(r,c) == 0 && r>roadmap_row+1){
+        for (int r = roadmap.rows; r > roadmap_row; r--) {
+            if((int)roadmap.at<uchar>(r,c) == 0 && r > roadmap_row + 1) {
                 patch_length +=1;
             } else {
-                if (patch_length<compare_patch){
-                    if(r+patch_length+1<roadmap.rows){
-                        if((int)roadmap.at<uchar>(r,c)==1 && (int)roadmap.at<uchar>(r+patch_length+1,c)==1){
-                            for (int i=0; i<patch_length; i++){
-                                roadmap.at<uchar>(r+i+1,c) = 1;
-                                obstaclemap.at<uchar>(r+i+1,c) = 0;
+                if (patch_length < compare_patch){
+                    if(r + patch_length + 1 < roadmap.rows){
+                        if((int)roadmap.at<uchar>(r, c)==1 && (int)roadmap.at<uchar>(r + patch_length+1, c)==1){
+                            for (int i = 0; i < patch_length; i++){
+                                roadmap.at<uchar>(r + i + 1, c) = 1;
+                                obstaclemap.at<uchar>(r + i + 1,c) = 0;
 //                                undefinedmap.at<uchar>(r+i+1,c) = 0;
                             }
                         }
@@ -1233,7 +1233,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         RoadSlopeInit();
 
         cv::imshow("Slope_map", slope_map);
-        cv::imshow("left_rect_clr", left_rect_clr);
+//        cv::imshow("left_rect_clr", left_rect_clr);
 
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
 //        cv::waitKey(1);

@@ -192,6 +192,7 @@ private:
 //  ros::Publisher boundingBoxesPublisher_;
   ros::Publisher obstaclePublisher_;
   ros::Publisher disparityPublisher_;
+  ros::Publisher obs_disparityPublisher_;
 
   std::string pub_obs_frame_id;
 
@@ -353,6 +354,7 @@ private:
     bool enableClassification = true;
 // Disparity
     stereo_msgs::DisparityImage disparity_info;
+    stereo_msgs::DisparityImage disparity_obs;
     std::ofstream file;
     std::string file_name;
     std::string img_name;

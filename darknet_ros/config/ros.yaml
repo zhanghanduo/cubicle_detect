@@ -16,11 +16,6 @@ publishers:
     queue_size: 4
     frame_id: camera_frame
 
-  object_detector:
-    topic: /cubicle_detection/found_object
-    queue_size: 1
-    latch: false
-
   bounding_boxes:
     topic: /cubicle_detection/bounding_boxes
     queue_size: 1
@@ -32,7 +27,11 @@ publishers:
     latch: true
 
   disparity_map:
-    topic: /wide/disparity_map
+    topic: /disparity_map
+    queue_size: 10
+
+  obs_disparity_map:
+    topic: /obs_disparity_map
     queue_size: 10
 
 image_view:
