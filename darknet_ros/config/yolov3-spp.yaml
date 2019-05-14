@@ -88,3 +88,15 @@ yolo_model:
       - teddy bear
       - hair drier
       - toothbrush
+
+  compact_classes:
+    names:
+      - person
+      - vehicle
+      - bicycle
+      - traffic light
+      - parking meter
+      - bench
+      - stop sign
+      - animals
+      - others

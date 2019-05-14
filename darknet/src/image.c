@@ -325,11 +325,11 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
                    round(selected_detections[i].det.bbox.w * im.w), round(selected_detections[i].det.bbox.h * im.h));
         }
         else if(ext_output == 1){
-            printf("%s: %.0f%%", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
+            printf("Best | %s: %.0f%% \n", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
             int j;
             for (j = 0; j < classes; ++j) {
                 if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
-                    printf("%s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
+                    printf("   ---> Otherwise | %s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
                 }
             }
         }
@@ -413,6 +413,113 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
                     strcat(labelstr, names[j]);
                 }
             }
+            image label = get_label_v3(alphabet, labelstr, (im.h*.03));
+            draw_label(im, top + width, left, label, rgb);
+            free_image(label);
+        }
+        if (selected_detections[i].det.mask) {
+            image mask = float_to_image(14, 14, 1, selected_detections[i].det.mask);
+            image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
+            image tmask = threshold_image(resized_mask, .5);
+            embed_image(tmask, im, left, top);
+            free_image(mask);
+            free_image(resized_mask);
+            free_image(tmask);
+        }
+    }
+    free(selected_detections);
+}
+
+// This is to combine some similar or redundant objexts into one class for practical use.
+void draw_detections_less(image im, detection *dets, int num, float thresh, char **names, char **less_names, image **alphabet, int classes, int ext_output)
+{
+    static int frame_id = 0;
+    frame_id++;
+
+    int selected_detections_num;
+    detection_with_class* selected_detections = get_actual_detections(dets, num, thresh, &selected_detections_num, names);
+
+    // text output
+    qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_lefts);
+    int i;
+//    for (i = 0; i < selected_detections_num; ++i) {
+//        const int best_class = selected_detections[i].best_class;
+//        if (ext_output == 2) {
+//            printf("%s: %.0f%%", names[best_class],    selected_detections[i].det.prob[best_class] * 100);
+//            printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f)\n",
+//                   round((selected_detections[i].det.bbox.x - selected_detections[i].det.bbox.w / 2) * im.w),
+//                   round((selected_detections[i].det.bbox.y - selected_detections[i].det.bbox.h / 2) * im.h),
+//                   round(selected_detections[i].det.bbox.w * im.w), round(selected_detections[i].det.bbox.h * im.h));
+//        }
+//        else if(ext_output == 1){
+//            printf("Best | %s: %.0f%% \n", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
+//            int j;
+//            for (j = 0; j < classes; ++j) {
+//                if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
+//                    printf("   ---> Otherwise | %s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
+//                }
+//            }
+//        }
+//    }
+
+    // image output
+    qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_probs);
+    for (i = 0; i < selected_detections_num; ++i) {
+        int width = im.h * .006;
+        if (width < 1)
+            width = 1;
+
+        //printf("%d %s: %.0f%%\n", i, names[selected_detections[i].best_class], prob*100);
+        int offset = selected_detections[i].best_class * 123457 % classes;
+        float red = get_color(2, offset, classes);
+        float green = get_color(1, offset, classes);
+        float blue = get_color(0, offset, classes);
+        float rgb[3];
+        rgb[0] = red;
+        rgb[1] = green;
+        rgb[2] = blue;
+        box b = selected_detections[i].det.bbox;
+        //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
+
+        int left = (b.x - b.w / 2.)*im.w;
+        int right = (b.x + b.w / 2.)*im.w;
+        int top = (b.y - b.h / 2.)*im.h;
+        int bot = (b.y + b.h / 2.)*im.h;
+
+        if (left < 0) left = 0;
+        if (right > im.w - 1) right = im.w - 1;
+        if (top < 0) top = 0;
+        if (bot > im.h - 1) bot = im.h - 1;
+
+        if (im.c == 1) {
+            draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
+        }
+        else {
+            draw_box_width(im, left, top, right, bot, width, red, green, blue); // 3 channels RGB
+        }
+        if (alphabet) {
+            char labelstr[1024] = { 0 };
+            if((selected_detections[i].best_class == 2) ||
+               (selected_detections[i].best_class == 5) ||
+               (selected_detections[i].best_class == 7) )
+                strcat(labelstr, less_names[1]);
+            else if(selected_detections[i].best_class == 0)
+                strcat(labelstr, less_names[0]);
+            else if((selected_detections[i].best_class == 1) ||
+                    (selected_detections[i].best_class == 3) )
+                strcat(labelstr, less_names[2]);
+            else if(selected_detections[i].best_class == 9)
+                strcat(labelstr, less_names[3]);
+            else if(selected_detections[i].best_class == 12)
+                strcat(labelstr, less_names[4]);
+            else if(selected_detections[i].best_class == 13)
+                strcat(labelstr, less_names[5]);
+            else if(selected_detections[i].best_class == 11)
+                strcat(labelstr, less_names[6]);
+            else if((selected_detections[i].best_class > 13) &&
+                    (selected_detections[i].best_class < 24))
+                strcat(labelstr, less_names[7]);
+
             image label = get_label_v3(alphabet, labelstr, (im.h*.03));
             draw_label(im, top + width, left, label, rgb);
             free_image(label);

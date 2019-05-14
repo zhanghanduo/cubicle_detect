@@ -32,6 +32,7 @@ char *cfg;
 char *weights;
 char *data;
 char **detectionNames;
+char **compact_detectionNames;
 
 YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
     : nodeHandle_(nh),
@@ -42,7 +43,7 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
       rosBoxCounter_(0),
       use_grey(false),
       blnFirstFrame(true),
-      globalframe(0),
+//      globalframe(0),
       isDepthNew(false),
       is_even_crop(false)
 {
@@ -61,9 +62,11 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 //  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
 //  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
-  img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
-  file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
-  frame_num = 0;
+    if(enableEvaluation_) {
+        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/f000.png";
+        file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/f000.txt";
+    }
+    frame_num = 0;
 }
 
 YoloObjectDetector::~YoloObjectDetector()
@@ -80,6 +83,7 @@ YoloObjectDetector::~YoloObjectDetector()
   free(cfg);
   free(weights);
   free(detectionNames);
+  free(compact_detectionNames);
   free(data);
   free(roiBoxes_);
 }
@@ -130,7 +134,10 @@ bool YoloObjectDetector::readParameters()
   // Set vector sizes.
   nodeHandle_.param("yolo_model/detection_classes/names", classLabels_,
                     std::vector<std::string>(0));
+  nodeHandle_.param("yolo_model/compact_classes/names", compact_classLabels_,
+                    std::vector<std::string>(0));
   numClasses_ = classLabels_.size();
+  compact_numClasses_ = compact_classLabels_.size();
   rosBoxes_ = std::vector<std::vector<RosBox_> >(numClasses_);
   rosBoxCounter_ = std::vector<int>(numClasses_);
 
@@ -191,11 +198,15 @@ void YoloObjectDetector::init()
     strcpy(detectionNames[i], classLabels_[i].c_str());
   }
 
+  compact_detectionNames = (char**) realloc((void*) compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
+  for (int i = 0; i < compact_numClasses_; i++) {
+     compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
+     strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
+  }
+
   // Load network.
-  setupNetwork(cfg, weights, data, thresh, detectionNames, numClasses_,
+  setupNetwork(cfg, weights, data, thresh, detectionNames, compact_detectionNames, numClasses_,
                 0, nullptr, 1, 0.5, 0, 0, 0, 0);
-//  yolo();
-//  yoloThread_ = std::thread(&YoloObjectDetector::yolo, this);
 
   // Initialize publisher and subscriber.
 //  std::string cameraTopicName;
@@ -227,10 +238,6 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
                       std::string("/wide/disparity_map"));
   nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
-
-//  objectPublisher_ = nodeHandle_pub.advertise<std_msgs::Int8>(objectDetectorTopicName,
-//                                                           objectDetectorQueueSize,
-//                                                           objectDetectorLatch);
 
   disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
                                                            disparityQueueSize);
@@ -559,24 +566,27 @@ detection *YoloObjectDetector::avgPredictions(network *net, int *nboxes)
 
 void *YoloObjectDetector::detectInThread()
 {
-
-    double classi_time_ = what_time_is_it_now();
-  globalframe++;
-  running_ = 1;
+  double classi_time_ = what_time_is_it_now();
+//  globalframe++;
+//  running_ = 1;
   float nms = .45;
 
   layer l = net_->layers[net_->n - 1];
-  float *X = buffLetter_.data;//[(buffIndex_ + 2) % 3].data;
+  float *X = buffLetter_.data;
   network_predict(*net_, X);
 
-  image display = buff_;//[(buffIndex_ + 2) % 3];
+  image display = buff_;
   int nboxes = 0;
 
   detection *dets = get_network_boxes(net_, display.w, display.h, demoThresh_, demoHier_, nullptr, 1, &nboxes, 1);
 
   if (nms) do_nms_sort(dets, nboxes, l.classes, nms);
 
-  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 0); // 1 means output classes, here ignored
+  // 1 means output classes, 0 means ignored
+  draw_detections_less(display, dets, nboxes, demoThresh_, demoNames_, compactDemoNames_, demoAlphabet_, 8, 0);
+
+  // Or else if you want to detect every specific class, use following function instead:
+//  draw_detections_v3(display, dets, nboxes, demoThresh_, demoNames_, demoAlphabet_, l.classes, 1);
 
 //  if ( (enableConsoleOutput_)&&(globalframe%20==1) ) {
 ////    printf("\033[2J");
@@ -619,8 +629,28 @@ void *YoloObjectDetector::detectInThread()
           roiBoxes_[count].y = y_center;
           roiBoxes_[count].w = BoundingBox_width;
           roiBoxes_[count].h = BoundingBox_height;
-          roiBoxes_[count].Class = j;
+//          roiBoxes_[count].Class = j;
           roiBoxes_[count].prob = dets[i].prob[j];
+
+          // Combine similar classes into one class
+          if(j == 0)
+              roiBoxes_[count].Class = 0;   // Person
+          else if((j == 2) || (j == 5) || (j == 7))
+              roiBoxes_[count].Class = 1;   // Vehicle
+          else if((j == 1) || (j == 3))
+              roiBoxes_[count].Class = 2;   // Bicycle
+          else if(j == 9)
+              roiBoxes_[count].Class = 3;   // traffic light
+          else if(j == 11)
+              roiBoxes_[count].Class = 6;   // stop sign
+          else if(j == 12)
+              roiBoxes_[count].Class = 4;   // parking meter
+          else if(j == 13)
+              roiBoxes_[count].Class = 5;   // bench
+          else if((j < 24) && (j > 13))
+              roiBoxes_[count].Class = 7;   // animals
+          else
+              roiBoxes_[count].Class = 8;   // others
           count++;
         }
       }
@@ -632,10 +662,10 @@ void *YoloObjectDetector::detectInThread()
   roiBoxes_[0].num = count;
 
   free_detections(dets, nboxes);
-  demoIndex_ = (demoIndex_ + 1) % demoFrame_;
-  running_ = 0;
+//  demoIndex_ = (demoIndex_ + 1) % demoFrame_;
+//  running_ = 0;
 
-    classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
+  classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
 
   return nullptr;
 }
@@ -690,17 +720,14 @@ void *YoloObjectDetector::fetchInThread()
 
   buff_ = mat_to_image(camImageCopy_);
 
-  {
-    boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-    buffId_ = actionId_;//[buffIndex_] = actionId_;
-  }
+//  {
+//    boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
+//    buffId_ = actionId_;//[buffIndex_] = actionId_;
+//  }
   if(!use_grey)
     rgbgr_image(buff_);//[buffIndex_]);
 
   letterbox_image_into(buff_, net_->w, net_->h, buffLetter_);//[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
-
-//  buff_cv_l_ = left_rectified.clone();//[(buffIndex_)] = left_rectified.clone();
-//  buff_cv_r_ = right_rectified.clone();//[(buffIndex_)] = right_rectified.clone();
 
   /* Make image gray */
   cv::cvtColor(left_rectified, buff_cv_l_, CV_BGR2GRAY);
@@ -773,7 +800,7 @@ void *YoloObjectDetector::displayInThread()
 }
 
 void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
-                                      char **names, int classes,
+                                      char **names, char **less_names, int classes,
                                       int delay, char *prefix, int avg_frames, float hier, int w, int h,
                                       int frames, int fullscreen)
 {
@@ -782,16 +809,16 @@ void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *dat
   demoFrame_ = avg_frames;
   image **alphabet = load_alphabet_with_file(datafile);
   demoNames_ = names;
+  compactDemoNames_ = less_names;
   demoAlphabet_ = alphabet;
   demoClasses_ = classes;
   demoThresh_ = thresh;
   demoHier_ = hier;
   fullScreen_ = fullscreen;
-  printf("YOLO V3\n");
-//  net_ = load_network(cfgfile, weightfile, 0);
+//  printf("YOLO V3\n");
   net_ = load_network_custom(cfgfile, weightfile, 0, 1);
-//  set_batch_network(net_, 1);
   fuse_conv_batchnorm(*net_);
+//  calculate_binary_weights(*net_);
 }
 
 void YoloObjectDetector:: yolo()
@@ -805,44 +832,30 @@ void YoloObjectDetector:: yolo()
 //    std::this_thread::sleep_for(wait_duration);
 //  }
 
-//  std::thread detect_thread;
-//  std::thread fetch_thread;
-//  std::thread stereo_thread;
-//  std::thread depth_detect_thread;
-
 //  srand(2222222);
 
-  int i;
+//  int i;
   demoTotal_ = sizeNetwork(net_);
-  predictions_ = (float **) calloc(demoFrame_, sizeof(float*));
-  for (i = 0; i < demoFrame_; ++i){
-      predictions_[i] = (float *) calloc(demoTotal_, sizeof(float));
-  }
+//  predictions_ = (float **) calloc(demoFrame_, sizeof(float*));
+//  for (i = 0; i < demoFrame_; ++i){
+//      predictions_[i] = (float *) calloc(demoTotal_, sizeof(float));
+//  }
   avg_ = (float *) calloc(demoTotal_, sizeof(float));
 
   layer l = net_->layers[net_->n - 1];
   roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
 
   buff_ = mat_to_image(camImageCopy_);
-//  buff_[1] = copy_image(buff_[0]);
-//  buff_[2] = copy_image(buff_[0]);
-  buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
-//  buffLetter_[1] = letterbox_image(buff_[0], net_->w, net_->h);
-//  buffLetter_[2] = letterbox_image(buff_[0], net_->w, net_->h);
-  disparityFrame = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
-//  disparityFrame[1] = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
-//  disparityFrame[2] = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
-  buff_cv_l_ = left_rectified.clone();//camImageCopy_.clone();
-//  buff_cv_l_[1] = left_rectified.clone();//camImageCopy_.clone();
-//  buff_cv_l_[2] = left_rectified.clone();//camImageCopy_.clone();
-  buff_cv_r_ = right_rectified.clone();
-//  buff_cv_r_[1] = right_rectified.clone();
-//  buff_cv_r_[2] = right_rectified.clone();
-//  ipl_ = cvCreateImage(cvSize(buff_.w, buff_.h), IPL_DEPTH_8U, buff_.c);
-  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
-//  cv::imshow("left_rectified", left_rectified);
-//  cv::waitKey(1);
+  buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
+
+  disparityFrame = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
+
+  buff_cv_l_ = left_rectified.clone();//camImageCopy_.clone();
+
+  buff_cv_r_ = right_rectified.clone();
+
+  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
 //  int count = 0;
 
@@ -918,25 +931,6 @@ void YoloObjectDetector:: yolo()
 
 }
 
-//IplImage* YoloObjectDetector::getIplImage()
-//{
-//  boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-//  auto * ROS_img = new IplImage(camImageCopy_);
-//  return ROS_img;
-//}
-
-bool YoloObjectDetector::getImageStatus()
-{
-  boost::shared_lock<boost::shared_mutex> lock(mutexImageStatus_);
-  return imageStatus_;
-}
-
-bool YoloObjectDetector::isNodeRunning()
-{
-  boost::shared_lock<boost::shared_mutex> lock(mutexNodeStatus_);
-  return isNodeRunning_;
-}
-
 void *YoloObjectDetector::publishInThread()
 {
   // Publish image.
@@ -949,7 +943,7 @@ void *YoloObjectDetector::publishInThread()
   int num = roiBoxes_[0].num;
   if (num > 0 && num <= 100) {
     for (int i = 0; i < num; i++) {
-      for (int j = 0; j < numClasses_; j++) {
+      for (int j = 0; j < compact_numClasses_ - 1; j++) {
         if (roiBoxes_[i].Class == j) {
           rosBoxes_[j].push_back(roiBoxes_[i]);
           rosBoxCounter_[j]++;
@@ -961,7 +955,7 @@ void *YoloObjectDetector::publishInThread()
 //    msg.data = static_cast<signed char>(num);
 //    objectPublisher_.publish(msg);
 
-    for (int i = 0; i < numClasses_; i++) {
+    for (int i = 0; i < compact_numClasses_ - 1; i++) {
       if (rosBoxCounter_[i] > 0) {
         for (int j = 0; j < rosBoxCounter_[i]; j++) {
           auto center_c_ = static_cast<int>(rosBoxes_[i][j].x * Width_crp);     //2D column
@@ -978,83 +972,51 @@ void *YoloObjectDetector::publishInThread()
           if(xmax >= Width_crp)     xmax = Width_crp - 1;
           int median_kernel = static_cast<int>(std::min(xmax - xmin, ymax - ymin) / 2);
 
-          if((classLabels_[i] == "car") || (classLabels_[i] == "bus")|| (classLabels_[i] == "motorbike") || (classLabels_[i] == "bicycle")
-               || (classLabels_[i] == "truck")  || (classLabels_[i] == "rider") || (classLabels_[i] == "person")
-               || (classLabels_[i] == "aeroplane")  || (classLabels_[i] == "train") || (classLabels_[i] == "dog")
-               || (classLabels_[i] == "cat")  || (classLabels_[i] == "horse") || (classLabels_[i] == "cow")
-               || (classLabels_[i] == "bird")  || (classLabels_[i] == "bear") || (classLabels_[i] == "sheep")) {
+//        if(compact_classLabels_[i] != "traffic light") {
+            int dis = 0;
+            if (enableStereo)
+            dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));  // find 3x3 median
 
-                int dis = 0;
+            auto rect = cv::Rect_<int>(static_cast<int>(xmin),
+                                       static_cast<int>(ymin),
+                                       static_cast<int>(xmax - xmin),
+                                       static_cast<int>(ymax - ymin));
 
-                if (enableStereo)
-                    dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_, median_kernel));//[(buffIndex_ + 1) % 3], center_c_, center_r_, median_kernel));  // find 3x3 median
+            std::vector<cv::Point3f> cent_2d, cent_3d;
+            Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin);
+            outputObs.category = compact_classLabels_[i];
+            outputObs.probability = rosBoxes_[i][j].prob;
+            outputObs.xmin = xmin;
+            outputObs.xmax = xmax;
+            outputObs.ymin = ymin;
+            outputObs.ymax = ymax;
+//          ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
+//          outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
 
-                cv::Rect_<int> rect = cv::Rect_<int>(static_cast<int>(xmin),
-                                                     static_cast<int>(ymin),
-                                                     static_cast<int>(xmax - xmin),
-                                                     static_cast<int>(ymax - ymin));
+//          outputObs.obsHog = hog_feature;
+//          outputObs.disparity = dis;
+//          obstacleBoxesResults_.obsData.push_back(outputObs);
+//          currentFrameBlobs.push_back(outputObs);
+//          if (classLabels_[i] == "car"){
+//              std::cout<<frame_num<<": "<<rect.area()<<std::endl;
+//          }
 
-//                  if(dis>=min_disparity) {
-
-//                    if(dis < 12){
-
-//                        ROS_WARN("dis too small: %d", dis);
-//                    }
-
-                std::vector<cv::Point3f> cent_2d, cent_3d;
-                Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin);
-//                    obstacle_msgs::obs outputObs;
-                outputObs.category = classLabels_[i];
-                if((classLabels_[i] == "bus") || (classLabels_[i] == "truck") || (classLabels_[i] == "car"))
-                    outputObs.category = "car";
-                else if ((classLabels_[i] == "rider") || (classLabels_[i] == "person"))
-                    outputObs.category = "person";
-                else if ((classLabels_[i] == "bicycle")|| (classLabels_[i] == "motorbike") )
-                    outputObs.category = "bike";
-                else if ((classLabels_[i] == "aeroplane") || (classLabels_[i] == "train")
-                        || (classLabels_[i] == "dog") || (classLabels_[i] == "cat")
-                        || (classLabels_[i] == "horse") || (classLabels_[i] == "cow")
-                        || (classLabels_[i] == "bird") || (classLabels_[i] == "bear"))
-                    outputObs.category = "misc";
-                outputObs.probability = rosBoxes_[i][j].prob;
-                outputObs.xmin = xmin;
-                outputObs.xmax = xmax;
-                outputObs.ymin = ymin;
-                outputObs.ymax = ymax;
-//                    ROS_WARN("center 3D\nx: %f| y: %f| z: %f",
-//                             outputObs.position_3d[0], outputObs.position_3d[1], depthTable[dis]);
-
-//                    outputObs.obsHog = hog_feature;
-//                      outputObs.disparity = dis;
-//                    obstacleBoxesResults_.obsData.push_back(outputObs);
-//                      currentFrameBlobs.push_back(outputObs);
-//                if (classLabels_[i] == "car"){
-//                    std::cout<<frame_num<<": "<<rect.area()<<std::endl;
-//                }
-
-                if (enableStereo) {
-                    if(dis>0){//min_disparity ) { //(3600-200)*(dis-12)/(128-12)
-                        if (outputObs.category == "car" ||
-                            outputObs.category == "person" || outputObs.category == "bike" ||
-                            outputObs.category == "misc" || rect.area()>400) {
-//                        if (outputObs.category == "bus" || outputObs.category == "car"){
-//                            if (rect.area()>(400+31*(dis-12))){
-                                outputObs.position_3d[0] = x3DPosition[center_c_][dis];
-                                outputObs.position_3d[1] = y3DPosition[center_r_][dis];
-                                outputObs.position_3d[2] = depth3D[dis];
-                                double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
-                                xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
-                                xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
-                                ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
-                                ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
-//                              ROS_WARN("min 3D\nx: %f| y: %f", xmin_3d, xmax_3d);
-//                              ROS_WARN("max 3D\nx: %f| y: %f", xmax_3d, ymax_3d);
-                                outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
-                                outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                                outputObs.disparity = dis;
-                                currentFrameBlobs.push_back(outputObs);
-//                            }
-                        }
+            if (enableStereo) {
+                if(dis > 4){ // min_disparity ) { //(3600-200)*(dis-12)/(128-12)
+                    if (outputObs.category != "others" && rect.area() > 300) {
+                            outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                            outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                            outputObs.position_3d[2] = depth3D[dis];
+                            double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                            xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                            xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                            ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                            ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+                            outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                            outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+                            outputObs.disparity = dis;
+                            currentFrameBlobs.push_back(outputObs);
+                    }
 //                        outputObs.position_3d[0] = x3DPosition[center_c_][dis];
 //                        outputObs.position_3d[1] = y3DPosition[center_r_][dis];
 //                        outputObs.position_3d[2] = depth3D[dis];
@@ -1072,18 +1034,12 @@ void *YoloObjectDetector::publishInThread()
 //                    } else {
 ////                              std::string classname = classLabels_[i];
 ////                              ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
-                    }
-                } else {
-                    if (rect.area()>400)
-                        currentFrameBlobs.push_back(outputObs);
                 }
-
-//                  } else {
-//                      std::string classname = classLabels_[i];
-//                      ROS_WARN("class, dis: %s, %d", classname.c_str(), dis);
-//                  }
-
-          }
+            } else {
+                if (rect.area()>400)
+                    currentFrameBlobs.push_back(outputObs);
+            }
+//        }
 
         }
       }
@@ -1091,17 +1047,6 @@ void *YoloObjectDetector::publishInThread()
 
 //    std::cout<<"currentFrameBlobs: "<<currentFrameBlobs.size()<<std::endl;
 
-//    cv::Mat beforeTracking = buff_cv_l_[(buffIndex_ + 1) % 3].clone();
-//    for (auto &currentFrameBlob : currentFrameBlobs) {
-//      cv::rectangle(beforeTracking, currentFrameBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-//    }
-//    cv::imshow("beforeTracking", beforeTracking);
-
-//      roiBoxes_[0].num = 0;
-//    boundingBoxesResults_.header.stamp = ros::Time::now();
-//    boundingBoxesResults_.header.frame_id = "detection";
-//    boundingBoxesResults_.image_header = imageHeader_;
-//    boundingBoxesPublisher_.publish(boundingBoxesResults_);
   }
 
 //    std::cout << "************************************************new frame" << std::endl;
@@ -1114,19 +1059,11 @@ void *YoloObjectDetector::publishInThread()
 
   Tracking();
 //  CreateMsg();
-
-//  obstacleBoxesResults_.header.stamp = image_time_;
-//  obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
-//  obstacleBoxesResults_.real_header.stamp = ros::Time::now();
-//  obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
-//  obstaclePublisher_.publish(obstacleBoxesResults_);
-//
 //  obstacleBoxesResults_.obsData.clear();
-  for (int i = 0; i < numClasses_; i++) {
+  for (int i = 0; i < compact_numClasses_; i++) {
     rosBoxes_[i].clear();
     rosBoxCounter_[i] = 0;
   }
-
   return nullptr;
 }
 
@@ -1230,6 +1167,7 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
     existingBlobs[intIndex].disparity = currentFrameBlob.disparity;
     existingBlobs[intIndex].position_3d = currentFrameBlob.position_3d;
     existingBlobs[intIndex].boundingRects.push_back(currentFrameBlob.boundingRects.back());
+//    existingBlobs[intIndex].category = currentFrameBlob.category;
 
     existingBlobs[intIndex].height = currentFrameBlob.height;
     existingBlobs[intIndex].diameter = currentFrameBlob.diameter;
@@ -1458,21 +1396,15 @@ void YoloObjectDetector::CreateMsg(){
 
     if(enableEvaluation_){
         sprintf(s, "f%03d.txt", frame_num);
-//         sprintf(s, "d%03d.png", frame_num);
         sprintf(im, "f%03d.png", frame_num);
 //        file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;
 //        file_name = ros::package::getPath("cubicle_detect") + "/dis_1/" + s;
 //        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
         img_name = std::string("/home/ugv/seq_1/") + im;
-
 //    file.open(file_name.c_str(), std::ios::app);
     }
-//    frame_num ++;
-
     int cate = 0;
-
     for (unsigned long int i = 0; i < blobs.size(); i++) {
-
         obstacle_msgs::obs tmpObs;
         tmpObs.identityID = i;
 
@@ -1486,16 +1418,12 @@ void YoloObjectDetector::CreateMsg(){
         tmpObs.probability = static_cast<float>(blobs[i].probability);
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
 
-            if((blobs[i].category == "car") || (blobs[i].category == "bus")|| (blobs[i].category == "misc")
-                || (blobs[i].category == "truck")  || (blobs[i].category == "rider") || (blobs[i].category == "person")
-                || (blobs[i].category == "train") || (blobs[i].category == "bike") ) {
+            if(!blobs[i].category.empty() ) {
 
                 if(enableEvaluation_){
-                    if((blobs[i].category == "car") || (blobs[i].category == "bus")
-                       || (blobs[i].category == "truck")  || (blobs[i].category == "bike")
-                       || (blobs[i].category == "train") )
+                    if( (blobs[i].category == "vehicle") || (blobs[i].category == "bicycle") )
                         cate = 0;
-                    else if( (blobs[i].category == "person") || (blobs[i].category == "misc") )
+                    else if(blobs[i].category == "person")
                         cate = 1;
                 }
 
@@ -1507,10 +1435,8 @@ void YoloObjectDetector::CreateMsg(){
 
                 obstacleBoxesResults_.obsData.push_back(tmpObs);
 
-
 //            ROS_WARN("center ID: %d | type: %s\nx: %f| y: %f| z: %f \n", i, tmpObs.classes,
 //                    tmpObs.centerPos.x, tmpObs.centerPos.y, tmpObs.centerPos.z);
-
 
                 ////*--------------Generate Evaluation files----------------------*////
                 if(enableEvaluation_){
@@ -1538,7 +1464,6 @@ void YoloObjectDetector::CreateMsg(){
         }
     }
     if(enableEvaluation_){
-//        file.close();
         cv::imwrite(img_name, color_out);
 //        cv::imwrite(file_name, output1*255/disp_size);
     }
@@ -1549,11 +1474,6 @@ void YoloObjectDetector::Process(){
     demoTime_ = what_time_is_it_now();
 
     fetchInThread();
-
-//    if (enableStereo)
-//        stereoInThread();
-//    if (enableClassification)
-//        detectInThread();
 
     if (enableClassification)
         detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);

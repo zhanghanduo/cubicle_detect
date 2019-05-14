@@ -183,11 +183,13 @@ private:
 
   //! Class labels.
   int numClasses_;
+  int compact_numClasses_;
   std::vector<std::string> classLabels_;
+  std::vector<std::string> compact_classLabels_;
 
   //! ROS subscriber and publisher.
-  ros::Publisher objectPublisher_;
-  ros::Publisher boundingBoxesPublisher_;
+//  ros::Publisher objectPublisher_;
+//  ros::Publisher boundingBoxesPublisher_;
   ros::Publisher obstaclePublisher_;
   ros::Publisher disparityPublisher_;
 
@@ -229,13 +231,13 @@ private:
   ObstaclesDetection ObstacleDetector;
 
   // Yolo running on thread.
-  std::thread yoloThread_;
   std::thread detect_thread;
-  std::thread fetch_thread;
+//  std::thread fetch_thread;
   std::thread stereo_thread;
 
   // Darknet.
   char **demoNames_;
+  char **compactDemoNames_;
   image **demoAlphabet_;
   int demoClasses_;
 
@@ -245,10 +247,10 @@ private:
   cv::Mat buff_cv_l_;//[3];
   cv::Mat buff_cv_r_;//[3];
   cv::Mat disparityFrame;//[3];
-  int buffId_;//[3];
+//  int buffId_;//[3];
 //  int buffIndex_ = 0;
 
-  IplImage * ipl_;
+//  IplImage * ipl_;
   cv::Mat ipl_cv;
   double fps_ = 0;
   double stereo_fps_ = 0;
@@ -256,7 +258,7 @@ private:
   double obs_fps_ = 0;
   float demoThresh_ = 0;
   float demoHier_ = .5;
-  int running_ = 0;
+//  int running_ = 0;
 
   int demoDelay_ = 0;
   int demoFrame_ = 3;
@@ -312,7 +314,7 @@ private:
   void *trackingInThread();
 
   void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
-                    char **names, int classes,
+                    char **names, char **less_names, int classes,
                     int delay, char *prefix, int avg_frames, float hier, int w, int h,
                     int frames, int fullscreen);
 
