@@ -821,10 +821,15 @@ data load_data_detection(int n, char **paths, int m, int w, int h, int c, int bo
             flip = use_flip ? random_gen() % 2 : 0;
         }
 
-        int pleft  = rand_precalc_random(-dw, dw, r1);
-        int pright = rand_precalc_random(-dw, dw, r2);
-        int ptop   = rand_precalc_random(-dh, dh, r3);
-        int pbot   = rand_precalc_random(-dh, dh, r4);
+//        int pleft  = rand_precalc_random(-dw, dw, r1);
+//        int pright = rand_precalc_random(-dw, dw, r2);
+//        int ptop   = rand_precalc_random(-dh, dh, r3);
+//        int pbot   = rand_precalc_random(-dh, dh, r4);
+
+        int pleft  = r1 * 2 * dw - dw;
+        int pright = r2 * 2 * dw - dw;
+        int ptop   = r3 * 2 * dh - dh;
+        int pbot   = r4 * 2 * dh - dh;
 
         int swidth =  ow - pleft - pright;
         int sheight = oh - ptop - pbot;
