@@ -86,6 +86,12 @@ extern "C" cv::Mat image_to_mat(image img);
 
 namespace darknet_ros {
 
+    typedef struct {
+        float bb_left = 0.0, bb_top = 0.0, bb_right = 0.0, bb_bottom = 0.0, det_conf = 0.0;
+        std::string objCLass;
+//        bool validDet = true;
+    } inputDetection;
+
 class Detection;
 
 //! Bounding box of the detected object.
@@ -159,15 +165,27 @@ private:
    */
   bool publishDetectionImage(const cv::Mat& detectionImage);
 
+  cv::Mat occlutionMap(cv::Rect_<int> bbox, size_t kk, bool FNcheck);
+
+  void calculateHistogram(Blob &currentDet, cv::Mat hsv, cv::Mat mask, int widthSeperate, int heightSeperate);
+
+  void calculateLPBH(Blob &currentDet, cv::Mat rgb, int grid_x, int grid_y);
+
   void Tracking();
 
   void matchCurrentFrameBlobsToExistingBlobs();
+
+  void trackingFNs();
+
+  void addNewTracks();
+
+  void updateUnmatchedTracks();
 
   void CreateMsg();
 
   void Process();
 
-  void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex);
+  void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex, bool isDet);
 
   void addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs);
 
@@ -223,6 +241,11 @@ private:
 
   std::vector<Blob> currentFrameBlobs;
   std::vector<Blob> blobs;
+  std::vector<inputDetection> detListCurrFrame;
+  std::vector<unsigned long> matchedTrackID;
+  std::vector<Blob> matchedFNs;
+  std::vector<unsigned long> matchedFrmID;
+  std::vector<unsigned long> matchedFrmIDTrackID;
 
   obstacle_msgs::obs obstacles;
 
@@ -347,7 +370,6 @@ private:
     std::mutex mMutexDepth;
     bool isDepthNew;
 
-
     std::vector<double> depth;
     int min_disparity;
     bool enableStereo = true;
@@ -361,6 +383,9 @@ private:
     char s[20];
     char im[20];
     int frame_num, counter;
+    int trackLife = 10;
+    int cellsX = 4, cellsY =3;
+    cv::Size bboxResize;
 
 };
 

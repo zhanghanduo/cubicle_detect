@@ -7,12 +7,8 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="6"/>
+  <arg name="min_disparity"              default="8"/>
   <arg name="disparity_scope"            default="128"/>
-
-  <!-- Load parameters -->
-  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/ros.yaml"/>
-  <rosparam command="load" ns="cubicle_detect" file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
 
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->
@@ -21,6 +17,8 @@
   <!-- Start darknet and ros wrapper -->
   <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
+    <rosparam command="load" file="$(find cubicle_detect)/config/ros.yaml"/>
+    <rosparam command="load" file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />

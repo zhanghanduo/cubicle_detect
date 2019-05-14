@@ -83,7 +83,7 @@ if (CUDA_FOUND)
           -gencode arch=compute_52,code=[sm_52,compute_52]
           -gencode arch=compute_61,code=[sm_61,compute_61]
           -gencode arch=compute_62,code=[sm_62,compute_62]  # GTX 1080 (Ti)
-          -gencode arch=compute_75,code=[sm_75,compute_75]  # RTX 2080 (Ti)
+#          -gencode arch=compute_75,code=[sm_75,compute_75]  # RTX 2080 (Ti)
   )
   endif()
 

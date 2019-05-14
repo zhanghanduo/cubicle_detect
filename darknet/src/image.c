@@ -271,8 +271,8 @@ detection_with_class* get_actual_detections(detection *dets, int dets_num, float
         float best_class_prob = thresh;
         int j;
         for (j = 0; j < dets[i].classes; ++j) {
-            int show = strncmp(names[j], "dont_show", 9);
-            if (dets[i].prob[j] > best_class_prob && show) {
+//            int show = strncmp(names[j], "dont_show", 9);
+            if (dets[i].prob[j] > best_class_prob ) {
                 best_class = j;
                 best_class_prob = dets[i].prob[j];
             }
@@ -440,27 +440,27 @@ void draw_detections_less(image im, detection *dets, int num, float thresh, char
     detection_with_class* selected_detections = get_actual_detections(dets, num, thresh, &selected_detections_num, names);
 
     // text output
-    qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_lefts);
+//    qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_lefts);
     int i;
-//    for (i = 0; i < selected_detections_num; ++i) {
-//        const int best_class = selected_detections[i].best_class;
-//        if (ext_output == 2) {
-//            printf("%s: %.0f%%", names[best_class],    selected_detections[i].det.prob[best_class] * 100);
-//            printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f)\n",
-//                   round((selected_detections[i].det.bbox.x - selected_detections[i].det.bbox.w / 2) * im.w),
-//                   round((selected_detections[i].det.bbox.y - selected_detections[i].det.bbox.h / 2) * im.h),
-//                   round(selected_detections[i].det.bbox.w * im.w), round(selected_detections[i].det.bbox.h * im.h));
-//        }
-//        else if(ext_output == 1){
-//            printf("Best | %s: %.0f%% \n", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
-//            int j;
-//            for (j = 0; j < classes; ++j) {
-//                if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
-//                    printf("   ---> Otherwise | %s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
-//                }
-//            }
-//        }
-//    }
+    for (i = 0; i < selected_detections_num; ++i) {
+        const int best_class = selected_detections[i].best_class;
+        if (ext_output == 2) {
+            printf("%s: %.0f%%", names[best_class],    selected_detections[i].det.prob[best_class] * 100);
+            printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f)\n",
+                   round((selected_detections[i].det.bbox.x - selected_detections[i].det.bbox.w / 2) * im.w),
+                   round((selected_detections[i].det.bbox.y - selected_detections[i].det.bbox.h / 2) * im.h),
+                   round(selected_detections[i].det.bbox.w * im.w), round(selected_detections[i].det.bbox.h * im.h));
+        }
+        else if(ext_output == 1){
+            printf("Best | %s: %.0f%% \n", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
+            int j;
+            for (j = 0; j < classes; ++j) {
+                if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
+                    printf("   ---> Otherwise | %s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
+                }
+            }
+        }
+    }
 
     // image output
     qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_probs);
@@ -498,27 +498,29 @@ void draw_detections_less(image im, detection *dets, int num, float thresh, char
             draw_box_width(im, left, top, right, bot, width, red, green, blue); // 3 channels RGB
         }
         if (alphabet) {
-            char labelstr[1024] = { 0 };
+            char labelstr[256] = { 0 };
             if((selected_detections[i].best_class == 2) ||
                (selected_detections[i].best_class == 5) ||
                (selected_detections[i].best_class == 7) )
-                strcat(labelstr, less_names[1]);
+                strcat(labelstr, "vehicle");
             else if(selected_detections[i].best_class == 0)
-                strcat(labelstr, less_names[0]);
+                strcat(labelstr, "person");
             else if((selected_detections[i].best_class == 1) ||
                     (selected_detections[i].best_class == 3) )
-                strcat(labelstr, less_names[2]);
+                strcat(labelstr, "bicycle");
             else if(selected_detections[i].best_class == 9)
-                strcat(labelstr, less_names[3]);
+                strcat(labelstr, "traffic light");
             else if(selected_detections[i].best_class == 12)
-                strcat(labelstr, less_names[4]);
+                strcat(labelstr, "parking meter");
             else if(selected_detections[i].best_class == 13)
-                strcat(labelstr, less_names[5]);
+                strcat(labelstr, "bench");
             else if(selected_detections[i].best_class == 11)
-                strcat(labelstr, less_names[6]);
+                strcat(labelstr, "stop sign");
             else if((selected_detections[i].best_class > 13) &&
                     (selected_detections[i].best_class < 24))
-                strcat(labelstr, less_names[7]);
+                strcat(labelstr, "animals");
+            else
+                continue;
 
             image label = get_label_v3(alphabet, labelstr, (im.h*.03));
             draw_label(im, top + width, left, label, rgb);

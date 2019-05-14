@@ -6,37 +6,30 @@
 namespace darknet_ros {
 
     Blob::Blob(float xmin, float ymin, float width, float height) {
-        counter = 0;
+        counter = 1;
 
-        currentBoundingRect = cv::Rect_<float>(xmin,ymin,width,height);
-
-        cv::Point currentCenter;
-
-        currentCenter.x = currentBoundingRect.x + currentBoundingRect.width / 2;
-
-        currentCenter.y = currentBoundingRect.y + currentBoundingRect.height / 2;
-
+        cv::Rect currentBoundingRect = cv::Rect_<int>(static_cast<int>(xmin),
+                                                      static_cast<int>(ymin),
+                                                      static_cast<int>(width),
+                                                      static_cast<int>(height));
         boundingRects.push_back(currentBoundingRect);
-
-        centerPositions.push_back(currentCenter);
-
-
-//        double currentSize = currentBoundingRect.width * currentBoundingRect.height;
-//
-//        size.push_back(currentSize);
 
         dblCurrentDiagonalSize = currentBoundingRect.width * currentBoundingRect.width
                                  + currentBoundingRect.height * currentBoundingRect.height;
 
-//        dblCurrentAspectRatio = (float)currentBoundingRect.width / (float)currentBoundingRect.height;
+
+        cv::Point2f currentCenter;
+        currentCenter.x = xmin + width/ 2;
+        currentCenter.y = ymin + height / 2;
+        centerPositions.push_back(currentCenter);
 
         blnStillBeingTracked = true;
-
         blnCurrentMatchFoundOrNewBlob = true;
-
-        blnAlreadyTrackedInThisFrame = false;
+        trackedInCurrentFrame = false;
 
         intNumOfConsecutiveFramesWithoutAMatch = 0;
+
+        numOfConsecutiveFramesWithoutDetAsso = 0;
 
 //        t_initialized = false;
 //
@@ -240,6 +233,8 @@ namespace darknet_ros {
 
     cv::Rect Blob::UpdateAUKF(bool dataCorrect){
 
+        cv::Rect currentBoundingRect = boundingRects.back();
+
         if (!t_initialized) {
             if (t_initialRects.size() < MIN_INIT_VALS) {
                 if (dataCorrect)                {
@@ -333,128 +328,50 @@ namespace darknet_ros {
 
     void Blob::predictNextPosition() {
 
-        auto numPositions = static_cast<int>(centerPositions.size());
+        auto vectorSize = static_cast<int>(centerPositions.size());
+        auto numPositions = std::min(vectorSize,5);
 
-        int deltaX = 0, deltaY=0;
+        float deltaX = 0, deltaY=0;
+        float sumOfXChanges = 0, sumOfYChanges =0, sumOfWeights =0;
 
-//        if (numPositions == 1) {
-//
-//            predictedNextPosition.x = centerPositions.back().x;
-//            predictedNextPosition.y = centerPositions.back().y;
-//
-//        }
-        if (numPositions == 2) {
-            deltaX = centerPositions[1].x - centerPositions[0].x;
-            deltaY = centerPositions[1].y - centerPositions[0].y;
-        } else if (numPositions == 3) {
-
-            int sumOfXChanges = ((centerPositions[2].x - centerPositions[1].x) * 2) +
-                                ((centerPositions[1].x - centerPositions[0].x) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 3.0);
-
-            int sumOfYChanges = ((centerPositions[2].y - centerPositions[1].y) * 2) +
-                                ((centerPositions[1].y - centerPositions[0].y) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 3.0);
-
-        } else if (numPositions == 4) {
-
-            int sumOfXChanges = ((centerPositions[3].x - centerPositions[2].x) * 3) +
-                                ((centerPositions[2].x - centerPositions[1].x) * 2) +
-                                ((centerPositions[1].x - centerPositions[0].x) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 6.0);
-
-            int sumOfYChanges = ((centerPositions[3].y - centerPositions[2].y) * 3) +
-                                ((centerPositions[2].y - centerPositions[1].y) * 2) +
-                                ((centerPositions[1].y - centerPositions[0].y) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 6.0);
-
-        } else if (numPositions >= 5) {
-
-            int sumOfXChanges = ((centerPositions[numPositions - 1].x - centerPositions[numPositions - 2].x) * 4) +
-                                ((centerPositions[numPositions - 2].x - centerPositions[numPositions - 3].x) * 3) +
-                                ((centerPositions[numPositions - 3].x - centerPositions[numPositions - 4].x) * 2) +
-                                ((centerPositions[numPositions - 4].x - centerPositions[numPositions - 5].x) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 10.0);
-
-            int sumOfYChanges = ((centerPositions[numPositions - 1].y - centerPositions[numPositions - 2].y) * 4) +
-                                ((centerPositions[numPositions - 2].y - centerPositions[numPositions - 3].y) * 3) +
-                                ((centerPositions[numPositions - 3].y - centerPositions[numPositions - 4].y) * 2) +
-                                ((centerPositions[numPositions - 4].y - centerPositions[numPositions - 5].y) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 10.0);
+        for (int ii=1; ii<numPositions; ii++) {
+            int vecPosition = vectorSize - (numPositions-ii);
+            sumOfXChanges += ii*(centerPositions[vecPosition].x - centerPositions[vecPosition-1].x);
+            sumOfYChanges += ii*(centerPositions[vecPosition].y - centerPositions[vecPosition-1].y);
+            sumOfWeights += ii;
         }
 
-        predictedNextPosition.x = centerPositions.back().x + deltaX*(intNumOfConsecutiveFramesWithoutAMatch+1);
-        predictedNextPosition.y = centerPositions.back().y + deltaY*(intNumOfConsecutiveFramesWithoutAMatch+1);
+        if (vectorSize>1){
+            deltaX = sumOfXChanges / sumOfWeights;//(int) std::round(sumOfXChanges / sumOfWeights);
+            deltaY = sumOfYChanges / sumOfWeights;//(int) std::round(sumOfYChanges / sumOfWeights);
+        }
+
+        predictedNextPositionf.x = centerPositions.back().x + deltaX * (intNumOfConsecutiveFramesWithoutAMatch + 1);
+        predictedNextPositionf.y = centerPositions.back().y + deltaY * (intNumOfConsecutiveFramesWithoutAMatch + 1);
+
+        predictedNextPosition.x = static_cast<int>(predictedNextPositionf.x);
+        predictedNextPosition.y = static_cast<int>(predictedNextPositionf.y );
 
     }
 
     void Blob::predictWidthHeight() {
 
-        auto numPositions = static_cast<int>(boundingRects.size());
+        auto vectorSize = static_cast<int>(boundingRects.size());
+        auto numPositions = std::min(vectorSize,5);
 
-        int deltaX = 0, deltaY=0;
+        float deltaX = 0.0f, deltaY=0.0f;
+        int sumOfXChanges = 0, sumOfYChanges =0, sumOfWeights =0;
 
-//        if (numPositions == 1) {
-//
-//            predictedWidth = boundingRects.back().width;
-//            predictedHeight = boundingRects.back().height;
-//
-//        }
-        if (numPositions == 2) {
-
-            deltaX = boundingRects[1].width - boundingRects[0].width;
-            deltaY = boundingRects[1].height - boundingRects[0].height;
-
+        for (int ii=1; ii<numPositions; ii++) {
+            int vecPosition = vectorSize - (numPositions-ii);
+            sumOfXChanges += ii*(boundingRects[vecPosition].width - boundingRects[vecPosition-1].width);
+            sumOfYChanges += ii*(boundingRects[vecPosition].height - boundingRects[vecPosition-1].height);
+            sumOfWeights += ii;
         }
-        else if (numPositions == 3) {
 
-            int sumOfXChanges = ((boundingRects[2].width - boundingRects[1].width) * 2) +
-                                ((boundingRects[1].width - boundingRects[0].width) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 3.0);
-
-            int sumOfYChanges = ((boundingRects[2].height - boundingRects[1].height) * 2) +
-                                ((boundingRects[1].height - boundingRects[0].height) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 3.0);
-
-        }
-        else if (numPositions == 4) {
-
-            int sumOfXChanges = ((boundingRects[3].width - boundingRects[2].width) * 3) +
-                                ((boundingRects[2].width - boundingRects[1].width) * 2) +
-                                ((boundingRects[1].width - boundingRects[0].width) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 6.0);
-
-            int sumOfYChanges = ((boundingRects[3].height - boundingRects[2].height) * 3) +
-                                ((boundingRects[2].height - boundingRects[1].height) * 2) +
-                                ((boundingRects[1].height - boundingRects[0].height) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 6.0);
-
-        }
-        else if (numPositions >= 5) {
-
-            int sumOfXChanges = ((boundingRects[numPositions - 1].width - boundingRects[numPositions - 2].width) * 4) +
-                                ((boundingRects[numPositions - 2].width - boundingRects[numPositions - 3].width) * 3) +
-                                ((boundingRects[numPositions - 3].width - boundingRects[numPositions - 4].width) * 2) +
-                                ((boundingRects[numPositions - 4].width - boundingRects[numPositions - 5].width) * 1);
-
-            deltaX = (int)round((float)sumOfXChanges / 10.0);
-
-            int sumOfYChanges = ((boundingRects[numPositions - 1].height - boundingRects[numPositions - 2].height) * 4) +
-                                ((boundingRects[numPositions - 2].height - boundingRects[numPositions - 3].height) * 3) +
-                                ((boundingRects[numPositions - 3].height - boundingRects[numPositions - 4].height) * 2) +
-                                ((boundingRects[numPositions - 4].height - boundingRects[numPositions - 5].height) * 1);
-
-            deltaY = (int)round((float)sumOfYChanges / 10.0);
+        if (vectorSize>1){
+            deltaX = (float)sumOfXChanges / sumOfWeights;
+            deltaY = (float)sumOfYChanges / sumOfWeights;
         }
 
         predictedWidth = boundingRects.back().width + deltaX*(intNumOfConsecutiveFramesWithoutAMatch+1);

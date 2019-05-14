@@ -25,12 +25,12 @@ namespace darknet_ros {
 
 //        int max_disparity;
 
-        std::vector<cv::Point2i> obsPoints;     //2D coordinated with respect to the region of interest defined from rectified left image
+//        std::vector<cv::Point2i> obsPoints;     //2D coordinated with respect to the region of interest defined from rectified left image
 
-        std::vector<float> obsHog;              //Record the hog features of a single blob
+//        std::vector<float> obsHog;              //Record the hog features of a single blob
 
-        double depth, diameter, height, probability;
-        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
+        double diameter, height, probability;
+//        double ymin, ymax, xmin, xmax;          //2D coordinated with respect to left camera
 
 //        cv::KalmanFilter kf;//(stateSize, measSize, contrSize, CV_32F);
 //        cv::Mat state;//(stateSize, 1, CV_32F);  // [x,y,v_x,v_y,w,h]
@@ -42,9 +42,9 @@ namespace darknet_ros {
         static const size_t MIN_INIT_VALS = 4;
         cv::Rect preditcRect;
 
-        cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
+//        cv::Rect currentBoundingRect;           //2D coordinated with respect to the region of interest defined from rectified left image
 
-        std::vector<cv::Point> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
+        std::vector<cv::Point2f> centerPositions; //2D coordinated with respect to the region of interest defined from rectified left image
 
         std::vector<cv::Rect> boundingRects;
 
@@ -54,9 +54,19 @@ namespace darknet_ros {
 
         int disparity;
 
+        std::vector<std::vector<cv::MatND> > hist;
+
+        std::vector<std::vector<bool> >occluded;
+
+        std::vector<float> overallOcclusion;
+
+        cv::Mat lpbHist;
+
         cv::Point predictedNextPosition;
 
-        int predictedWidth, predictedHeight;
+        cv::Point2f predictedNextPositionf;
+
+        float predictedWidth, predictedHeight;
 
         int dblCurrentDiagonalSize;
 
@@ -68,7 +78,11 @@ namespace darknet_ros {
 
         bool blnAlreadyTrackedInThisFrame;
 
+        bool trackedInCurrentFrame;
+
         int intNumOfConsecutiveFramesWithoutAMatch;
+
+        int numOfConsecutiveFramesWithoutDetAsso;
 
         Blob(float x, float y, float width, float height);
 
