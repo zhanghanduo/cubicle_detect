@@ -1816,7 +1816,7 @@ void YoloObjectDetector::CreateMsg(){
             cv::rectangle(color_out, blobs[i].boundingRects.back(), colors.at(i), 2);
             int rectMinX = blobs[i].boundingRects.back().x;
             int rectMinY = blobs[i].boundingRects.back().y;
-            cv::rectangle(color_out, cv::Rect(rectMinX, rectMinY, 40, 20), colors.at(i), CV_FILLED);
+            cv::rectangle(color_out, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
             int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
             str_ << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
 //            str_ << i;
@@ -1889,6 +1889,7 @@ void YoloObjectDetector::CreateMsg(){
 //        cv::imshow("censusR", imgTempR);
 //        cv::imshow("left", left_rectified);
 //        cv::imshow("right", right_rectified);
+        cv::imshow("staticObsDisparity", staticObsDisparity);
         if (enableStereo)
             cv::imshow("disparity", output1*255/disp_size);
        cv::waitKey(waitKeyDelay_);
@@ -1954,6 +1955,14 @@ void YoloObjectDetector::CreateMsg(){
     }
 }
 
+void YoloObjectDetector::generateStaticObsDisparityMap() {
+    for (long int i = 0; i < blobs.size(); i++) {
+        if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
+            staticObsDisparity(blobs[i].boundingRects.back()).setTo(cv::Scalar::all(0));
+        }
+    }
+}
+
 void YoloObjectDetector::Process(){
 
     demoTime_ = what_time_is_it_now();
@@ -1979,6 +1988,12 @@ void YoloObjectDetector::Process(){
     }
 
     publishInThread();
+
+    staticObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
+    if (enableClassification && enableStereo){
+        staticObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
+        generateStaticObsDisparityMap();
+    }
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
 //    demoTime_ = what_time_is_it_now();

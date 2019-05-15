@@ -183,6 +183,8 @@ private:
 
   void CreateMsg();
 
+  void generateStaticObsDisparityMap();
+
   void Process();
 
   void addBlobToExistingBlobs(Blob &currentFrameBlob, std::vector<Blob> &existingBlobs, int &intIndex, bool isDet);
@@ -303,10 +305,10 @@ private:
   int fullScreen_;
   char *demoPrefix_;
 
-  ros::Time image_time_, prvImageTime;;
+  ros::Time image_time_, prvImageTime;
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
-  cv::Mat left_rectified, right_rectified, output;
+  cv::Mat left_rectified, right_rectified, output, staticObsDisparity;
 //  bool updateOutput = true;
   boost::shared_mutex mutexImageCallback_;
 
