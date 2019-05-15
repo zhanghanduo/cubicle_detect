@@ -1044,7 +1044,7 @@ void ObstaclesDetection::DisplayPosObs() {
 //    cv::waitKey(1);
 }
 
-void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, double baseline,
+void ObstaclesDetection::Initiate(int disparity_size, double baseline,
         double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity){
 
 //    std::cout<<camera_type<<", "<<disparity_size<<", "<<baseline<<std::endl;
@@ -1125,37 +1125,37 @@ void ObstaclesDetection::Initiate(std::string camera_type, int disparity_size, d
     minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
     minNoOfPixelsForObject = 80/scale;
 
-    if (camera_type == "long_camera") {
-        rdRowToDisRegard = 10;
-        rdStartCheckLines = 30;
-        intensityThVDisPoint = 10;
-        thHorizon = 10;
-        rdProfileRowDistanceTh = 10;
-        rdProfileColDistanceTh = 4;
-        intensityThVDisPointForSlope = 100;
-        pubName = "/long/map_msg";
-        depthForSlpoe = 30; //m -- slope
-        depthForSlopeStart = 10; //m -- slope
-        slopeAdjHeight = 90;//35; // cm -- slope
-        slopeAdjLength = 2000;//2000; // cm -- slope
-        minDepthDiffToCalculateSlope = 1000; // cm -- slope
-        minNoOfPixelsForObject = 45;
-    } else if (camera_type == "wide_camera") {
-        rdRowToDisRegard = 30;
-        rdStartCheckLines = 30;
-        intensityThVDisPoint = 10;
-        thHorizon = 20;
-        rdProfileRowDistanceTh = 6;
-        rdProfileColDistanceTh = 16;
-        intensityThVDisPointForSlope = 100;
-        pubName = "/wide/map_msg";
-        depthForSlpoe = 18; //m -- slope
-        depthForSlopeStart = 5; //m -- slope
-        slopeAdjHeight = 30; // cm -- slope
-        slopeAdjLength = 1500; // cm -- slope
-        minDepthDiffToCalculateSlope = 400; // cm -- slope
-        minNoOfPixelsForObject = 80;
-    }
+//    if (camera_type == "long_camera") {
+//        rdRowToDisRegard = 10;
+//        rdStartCheckLines = 30;
+//        intensityThVDisPoint = 10;
+//        thHorizon = 10;
+//        rdProfileRowDistanceTh = 10;
+//        rdProfileColDistanceTh = 4;
+//        intensityThVDisPointForSlope = 100;
+//        pubName = "/long/map_msg";
+//        depthForSlpoe = 30; //m -- slope
+//        depthForSlopeStart = 10; //m -- slope
+//        slopeAdjHeight = 90;//35; // cm -- slope
+//        slopeAdjLength = 2000;//2000; // cm -- slope
+//        minDepthDiffToCalculateSlope = 1000; // cm -- slope
+//        minNoOfPixelsForObject = 45;
+//    } else if (camera_type == "wide_camera") {
+//        rdRowToDisRegard = 30;
+//        rdStartCheckLines = 30;
+//        intensityThVDisPoint = 10;
+//        thHorizon = 20;
+//        rdProfileRowDistanceTh = 6;
+//        rdProfileColDistanceTh = 16;
+//        intensityThVDisPointForSlope = 100;
+//        pubName = "/wide/map_msg";
+//        depthForSlpoe = 18; //m -- slope
+//        depthForSlopeStart = 5; //m -- slope
+//        slopeAdjHeight = 30; // cm -- slope
+//        slopeAdjLength = 1500; // cm -- slope
+//        minDepthDiffToCalculateSlope = 400; // cm -- slope
+//        minNoOfPixelsForObject = 80;
+//    }
 
     disForSlope = cvRound(focal * baseline / depthForSlpoe);
     disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
@@ -1233,7 +1233,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         RoadSlopeInit();
 
         cv::imshow("Slope_map", slope_map);
-//        cv::imshow("left_rect_clr", left_rect_clr);
+        cv::imshow("left_rect_clr", left_rect_clr);
 
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
 //        cv::waitKey(1);

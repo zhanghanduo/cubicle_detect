@@ -39,7 +39,7 @@ class ObstaclesDetection
 public:
     ObstaclesDetection();
     ~ObstaclesDetection();
-    void Initiate(std::string camera_type, int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity);
+    void Initiate(int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity);
     void ExecuteDetection(cv::Mat &disparity_map, cv::Mat &img);
     cv::Mat obstacleDisparityMap;
 

@@ -327,7 +327,8 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
+//  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
+  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
 
 
 //  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
