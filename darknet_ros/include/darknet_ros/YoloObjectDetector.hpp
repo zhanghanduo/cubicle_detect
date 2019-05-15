@@ -235,8 +235,7 @@ private:
 //  double depthTable[129] = {};
   bool blnFirstFrame;
   bool notInitiated = true;
-  bool publish_pcl_;
-  bool publish_pcl_filtered_;
+  bool filter_dynamic_;
 
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;
@@ -308,7 +307,7 @@ private:
   ros::Time image_time_, prvImageTime;
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
-  cv::Mat left_rectified, right_rectified, output, staticObsDisparity;
+  cv::Mat left_rectified, right_rectified, output, ObsDisparity;
 //  bool updateOutput = true;
   boost::shared_mutex mutexImageCallback_;
 

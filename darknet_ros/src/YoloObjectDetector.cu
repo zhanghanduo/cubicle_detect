@@ -164,8 +164,7 @@ void YoloObjectDetector::init()
   nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
   nodeHandle_.param<bool>("enable_classification", enableClassification, true);
   nodeHandle_.param<int>("scale", Scale, 1);
-  nodeHandle_.param<bool>("publish_pcl", publish_pcl_, false);
-  nodeHandle_.param<bool>("publish_pcl_filtered", publish_pcl_filtered_, true);
+  nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
   // Threshold of object detection.
   float thresh;
   nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
@@ -1890,7 +1889,7 @@ void YoloObjectDetector::CreateMsg(){
 //        cv::imshow("censusR", imgTempR);
 //        cv::imshow("left", left_rectified);
 //        cv::imshow("right", right_rectified);
-        cv::imshow("staticObsDisparity", staticObsDisparity);
+        cv::imshow("ObsDisparity", ObsDisparity);
         if (enableStereo)
             cv::imshow("disparity", output1*255/disp_size);
        cv::waitKey(waitKeyDelay_);
@@ -1957,11 +1956,12 @@ void YoloObjectDetector::CreateMsg(){
 }
 
 void YoloObjectDetector::generateStaticObsDisparityMap() {
-    for (long int i = 0; i < blobs.size(); i++) {
-        if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
-            staticObsDisparity(blobs[i].boundingRects.back()).setTo(cv::Scalar::all(0));
+    for (auto & blob : blobs) {
+        if (blob.blnCurrentMatchFoundOrNewBlob) {
+            ObsDisparity(blob.boundingRects.back()).setTo(cv::Scalar::all(0));
         }
     }
+
 }
 
 void YoloObjectDetector::Process(){
@@ -1990,10 +1990,26 @@ void YoloObjectDetector::Process(){
 
     publishInThread();
 
-    staticObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
+    ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
     if (enableClassification && enableStereo){
-        staticObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
-        generateStaticObsDisparityMap();
+        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
+        if(filter_dynamic_)
+            generateStaticObsDisparityMap();
+
+        disparity_obs.header.stamp = image_time_;
+        cv_bridge::CvImage out_msg;
+        out_msg.header.frame_id = "body";
+        out_msg.header.stamp = image_time_;
+        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+        out_msg.image = ObsDisparity;
+        disparity_obs.image = *out_msg.toImageMsg();
+
+        disparity_obs.f = focal;
+        disparity_obs.T = stereo_baseline_;
+        disparity_obs.min_disparity = min_disparity;
+        disparity_obs.max_disparity = disp_size; //128
+
+        obs_disparityPublisher_.publish(disparity_obs);
     }
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
