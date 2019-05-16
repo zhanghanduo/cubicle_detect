@@ -214,7 +214,7 @@ private:
   ros::Publisher disparityPublisher_;
   ros::Publisher obs_disparityPublisher_;
 
-  std::string pub_obs_frame_id;
+  std::string pub_obs_frame_id, obs_disparityFrameId;
 
   //! Detected objects.
   std::vector<std::vector<RosBox_> > rosBoxes_;
@@ -369,7 +369,6 @@ private:
 // Disparity
 
     std::mutex mMutexDepth;
-    bool isDepthNew;
 
     std::vector<double> depth;
     int min_disparity;

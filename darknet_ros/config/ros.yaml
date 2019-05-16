@@ -32,6 +32,7 @@ publishers:
 
   obs_disparity_map:
     topic: /obs_disparity_map
+    frame_id: base_link
     queue_size: 10
 
 image_view:

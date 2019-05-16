@@ -1028,14 +1028,14 @@ void ObstaclesDetection::DisplayPosObs() {
 //    cv::cvtColor(left_rect, posObsOutput, CV_GRAY2RGB);
 
 //    std::cout << "Completed GenerateObstaclesMap function in posObstacles.cpp" << std::endl;
-    for (long int i = 0; i < currentFrameObsBlobs.size(); i++) {
-        cv::rectangle(left_rect_clr, currentFrameObsBlobs[i].currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-        for(int j=0; j<currentFrameObsBlobs[i].obsPoints.size();j++){
-            left_rect_clr.at<cv::Vec3b>(currentFrameObsBlobs[i].obsPoints[j].x, currentFrameObsBlobs[i].obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
+    for (auto & currentFrameObsBlob : currentFrameObsBlobs) {
+        cv::rectangle(left_rect_clr, currentFrameObsBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
+        for(int j=0; j<currentFrameObsBlob.obsPoints.size();j++){
+            left_rect_clr.at<cv::Vec3b>(currentFrameObsBlob.obsPoints[j].x, currentFrameObsBlob.obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
         }
         std::ostringstream str;
-        str << depthTable[currentFrameObsBlobs[i].max_disparity]<<"m";
-        cv::putText(left_rect_clr, str.str(), cv::Point(currentFrameObsBlobs[i].currentBoundingRect.x,currentFrameObsBlobs[i].currentBoundingRect.y+12),
+        str << depthTable[currentFrameObsBlob.max_disparity]<<"m";
+        cv::putText(left_rect_clr, str.str(), cv::Point(currentFrameObsBlob.currentBoundingRect.x,currentFrameObsBlob.currentBoundingRect.y+12),
                 CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
     }
 //    cv::imshow("posObsOutput", posObsOutput);

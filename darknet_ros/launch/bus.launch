@@ -7,7 +7,7 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="8"/>
+  <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
 
   <!--<param name="use_sim_time" value="true" />-->
@@ -15,7 +15,7 @@
   <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--  Localization-->
-  <include file="$(find sslam_estimator)/launch/bus_core.launch" />
+<!--  <include file="$(find sslam_estimator)/launch/bus_core.launch" />-->
 
   <!-- Start darknet and ros wrapper -->
   <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" launch-prefix="$(arg launch_prefix)">
