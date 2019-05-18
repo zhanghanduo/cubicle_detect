@@ -14,7 +14,7 @@ publishers:
   obstacle_boxes:
     topic: /obs_map
     queue_size: 4
-    frame_id: camera_frame
+    frame_id: camera
 
   bounding_boxes:
     topic: /cubicle_detection/bounding_boxes
@@ -28,11 +28,12 @@ publishers:
 
   disparity_map:
     topic: /disparity_map
+    frame_id: camera
     queue_size: 10
 
   obs_disparity_map:
     topic: /obs_disparity_map
-    frame_id: base_link
+    frame_id: camera
     queue_size: 10
 
 image_view:

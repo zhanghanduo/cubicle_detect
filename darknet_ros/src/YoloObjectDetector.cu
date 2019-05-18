@@ -667,7 +667,7 @@ void *YoloObjectDetector::stereoInThread()
 
         disparity_info.header.stamp = image_time_;
         cv_bridge::CvImage out_msg;
-        out_msg.header.frame_id = "/camera";
+        out_msg.header.frame_id = obs_disparityFrameId;
         out_msg.header.stamp = image_time_;
         out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
         out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
@@ -1136,7 +1136,7 @@ void *YoloObjectDetector::publishInThread() {
             }
         }
 
-        std::cout<<"detListCurrFrame: "<<detListCurrFrame.size()<<std::endl;
+//        std::cout<<"detListCurrFrame: "<<detListCurrFrame.size()<<std::endl;
 
         for (size_t ii = 0; ii < detListCurrFrame.size(); ii++) {
 
@@ -1974,13 +1974,12 @@ void YoloObjectDetector::Process(){
     if (enableStereo) {
         stereo_thread.join();
         double obs_time_ = what_time_is_it_now();
-        ObstacleDetector.ExecuteDetection(disparityFrame, buff_cv_l_);
+        ObstacleDetector.ExecuteDetection(disparityFrame, left_rectified);
         obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
 
-    if (enableClassification){
+    if (enableClassification)
         detect_thread.join();
-    }
 
 //    std::cout<<"before publishInThread"<<std::endl;
     publishInThread();
@@ -2028,7 +2027,7 @@ void YoloObjectDetector::Process(){
 //    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
 //    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
-    if ( frame_num%20==1 ) {
+    if ( frame_num%30==1 ) {
         printf("FPS:%.1f, Stereo:%.1f, Obs:%.1f, Classification:%.1f\n", fps_, stereo_fps_, obs_fps_, classi_fps_);
     }
 

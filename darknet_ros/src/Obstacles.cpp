@@ -1159,7 +1159,6 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
     disForSlope = cvRound(focal * baseline / depthForSlpoe);
     disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
-
 }
 
 void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
