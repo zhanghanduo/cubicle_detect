@@ -351,7 +351,7 @@ private:
 
   bool isNodeRunning(void);
 
-  void *publishInThread();
+  void *trackInThread();
 
   bool use_grey;
 

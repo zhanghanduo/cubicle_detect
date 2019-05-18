@@ -1232,7 +1232,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         RoadSlopeInit();
 
         cv::imshow("Slope_map", slope_map);
-        cv::imshow("left_rect_clr", left_rect_clr);
+        cv::imshow("Obstacle mask", left_rect_clr);
 
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
 //        cv::waitKey(1);
