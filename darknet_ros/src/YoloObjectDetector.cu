@@ -507,39 +507,6 @@ int YoloObjectDetector::sizeNetwork(network *net)
   return count;
 }
 
-void YoloObjectDetector::rememberNetwork(network *net)
-{
-  int i;
-  int count = 0;
-  for(i = 0; i < net->n; ++i){
-    layer l = net->layers[i];
-    if(l.type == YOLO || l.type == REGION || l.type == DETECTION){
-      memcpy(predictions_[demoIndex_] + count, net->layers[i].output, sizeof(float) * l.outputs);
-      count += l.outputs;
-    }
-  }
-}
-
-detection *YoloObjectDetector::avgPredictions(network *net, int *nboxes)
-{
-  int i, j;
-  int count = 0;
-  fill_cpu(demoTotal_, 0, avg_, 1);
-  for(j = 0; j < demoFrame_; ++j){
-    axpy_cpu(demoTotal_, 1./demoFrame_, predictions_[j], 1, avg_, 1);
-  }
-  for(i = 0; i < net->n; ++i){
-    layer l = net->layers[i];
-    if(l.type == YOLO || l.type == REGION || l.type == DETECTION){
-      memcpy(l.output, avg_ + count, sizeof(float) * l.outputs);
-      count += l.outputs;
-    }
-  }
-//  detection *dets = get_network_boxes(net, buff_[0].w, buff_[0].h, demoThresh_, demoHier_, 0, 1, nboxes, 0);
-  detection *dets = get_network_boxes(net, buff_.w, buff_.h, demoThresh_, demoHier_, 0, 1, nboxes, 0);
-  return dets;
-}
-
 void *YoloObjectDetector::detectInThread()
 {
   double classi_time_ = what_time_is_it_now();
@@ -753,24 +720,15 @@ void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *dat
 
 void YoloObjectDetector:: yolo()
 {
-//  const auto wait_duration = std::chrono::milliseconds(2000);
-//  while (!getImageStatus()) {
-//    printf("Waiting for image.\n");
-//    if (!isNodeRunning()) {
-//      return;
-//    }
-//    std::this_thread::sleep_for(wait_duration);
-//  }
-
 //  srand(2222222);
 
 //  int i;
-  demoTotal_ = sizeNetwork(net_);
+//  demoTotal_ = sizeNetwork(net_);
 //  predictions_ = (float **) calloc(demoFrame_, sizeof(float*));
 //  for (i = 0; i < demoFrame_; ++i){
 //      predictions_[i] = (float *) calloc(demoTotal_, sizeof(float));
 //  }
-  avg_ = (float *) calloc(demoTotal_, sizeof(float));
+//  avg_ = (float *) calloc(demoTotal_, sizeof(float));
 
   layer l = net_->layers[net_->n - 1];
   roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
@@ -788,18 +746,19 @@ void YoloObjectDetector:: yolo()
   ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
     if(viewImage_) {
+
+        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Initial roadmap", 650, 350);
+
+        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Refined roadmap", 900, 350);
+
+        cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Slope Map", 1460, 0);
+
         cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
         cvMoveWindow("Detection and Tracking", 0, 0);
         cvResizeWindow("Detection and Tracking", 720, 453);
-
-        cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
-        cvMoveWindow("Slope Map", 1400, 0);
-//        cvResizeWindow("Slope Map", 720, 453);
-        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
-        cvMoveWindow("Initial roadmap", 600, 350);
-
-        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
-        cvMoveWindow("Refined roadmap", 850, 350);
 
         cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
         cvMoveWindow("Obstacle Mask", 700, 0);
@@ -807,7 +766,7 @@ void YoloObjectDetector:: yolo()
 
         if(enableStereo) {
             cvNamedWindow("Disparity", CV_WINDOW_NORMAL);
-            cvMoveWindow("Disparity", 0, 460);
+            cvMoveWindow("Disparity", 0, 500);
             cvResizeWindow("Disparity", 720, 453);
         }
     }
@@ -825,7 +784,6 @@ void YoloObjectDetector:: yolo()
 //  }
 
 //  demoTime_ = what_time_is_it_now();
-
   notInitiated = false;
 
 }

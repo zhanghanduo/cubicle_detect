@@ -52,8 +52,6 @@ set(DARKNET_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../darknet/")
 message("Darknet path dir = ${BoldGreen} ${DARKNET_PATH} ${ColourReset}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
-option(LIBSGM_SHARED   "Build a shared library" OFF)
-
 # Find CUDA
 FIND_PACKAGE(CUDA)
 if (CUDA_FOUND)
@@ -284,7 +282,7 @@ if (CUDA_FOUND)
           ${OpenCV_LIBS}
           ${EIGEN3_LIBS}
           ${CUDA_LIBRARIES}
-          ${CMAKE_CURRENT_SOURCE_DIR}/lib/libsgm.a
+          ${CMAKE_CURRENT_SOURCE_DIR}/../libSGM/lib/libsgm.a
           )
 
   cuda_add_executable(${PROJECT_NAME}

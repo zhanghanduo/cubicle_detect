@@ -4,14 +4,24 @@ find_package(CUDA REQUIRED)
 
 include_directories(../include)
 
+#set(CUDA_ARCH "-arch=sm_50" CACHE STRING "Value of the NVCC -arch option.")
+
 if (CMAKE_COMPILER_IS_GNUCXX)
 	set(CMAKE_CXX_FLAGS "-O3 -Wall")
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 endif()
 
-SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_ARCH}")
+SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}
+	-gencode arch=compute_50,code=[sm_50,compute_50]
+	-gencode arch=compute_52,code=[sm_52,compute_52]
+	-gencode arch=compute_61,code=[sm_61,compute_61]
+	-gencode arch=compute_62,code=[sm_62,compute_62]")
 
 file(GLOB STEREOSRCS "*.cu" "*.cpp")
+
+SET(sgm_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib CACHE PATH "Target for the libraries")
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${sgm_LIBRARY_OUTPUT_DIRECTORY})
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${sgm_LIBRARY_OUTPUT_DIRECTORY})
 
 if(LIBSGM_SHARED)
 	CUDA_ADD_LIBRARY(sgm stereo_sgm.cpp ${STEREOSRCS} SHARED)
@@ -25,9 +35,9 @@ endif()
 
 install(
 	TARGETS sgm
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+	ARCHIVE DESTINATION ${CMAKE_SOURCE_DIR}/lib
+	LIBRARY DESTINATION ${CMAKE_SOURCE_DIR}/lib
+	RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/bin
 )
 
 install(

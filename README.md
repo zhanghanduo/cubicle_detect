@@ -1,4 +1,4 @@
-# YOLO V3 for ROS: Real-Time Object Detection for stereo images
+# Obstacle 3D Detection for ROS: Real-Time Object Detection for stereo images
 
 ## Overview
 

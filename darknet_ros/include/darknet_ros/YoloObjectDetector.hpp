@@ -20,7 +20,8 @@
 #include <map>
 
 #include <fstream>
-#include "libsgm.h"
+#include "../../../libSGM/include/libsgm.h"
+//#include "libsgm.h"
 
 // ROS
 #include <ros/ros.h>
@@ -324,9 +325,9 @@ private:
 
   int sizeNetwork(network *net);
 
-  void rememberNetwork(network *net);
+//  void rememberNetwork(network *net);
 
-  detection *avgPredictions(network *net, int *nboxes);
+//  detection *avgPredictions(network *net, int *nboxes);
 
   void *stereoInThread();
 
