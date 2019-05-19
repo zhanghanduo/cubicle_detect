@@ -59,7 +59,7 @@
 // Darknet.
 #ifdef GPU
 // Cuda
-#include "sgm/disparity_method.h"
+//#include "sgm/disparity_method.h"
 #include "curand.h"
 #include "cublas_v2.h"
 #endif

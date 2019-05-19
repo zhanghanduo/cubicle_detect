@@ -1016,8 +1016,8 @@ void ObstaclesDetection::DisplayRoad() {
         refined_road_map.at<cv::Vec3b>(refinedRoadProfile[i].x, refinedRoadProfile[i].y) = cv::Vec3b(0,0,255);
     }
 
-    cv::imshow("intial_road_map", intial_road_map);
-    cv::imshow("refined_road_map", refined_road_map);
+    cv::imshow("Initial roadmap", intial_road_map);
+    cv::imshow("Refined roadmap", refined_road_map);
 //    cv::imshow("disparity_map",disparity_map);
 //    cv::waitKey(1);
 }
@@ -1159,6 +1159,8 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
     disForSlope = cvRound(focal * baseline / depthForSlpoe);
     disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
+
+    //OpenCV windows
 }
 
 void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
@@ -1231,8 +1233,8 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 
         RoadSlopeInit();
 
-        cv::imshow("Slope_map", slope_map);
-        cv::imshow("Obstacle mask", left_rect_clr);
+        cv::imshow("Slope Map", slope_map);
+        cv::imshow("Obstacle Mask", left_rect_clr);
 
 //        cv::imshow("disparity_map", disparity_map*255/disp_size);
 //        cv::waitKey(1);

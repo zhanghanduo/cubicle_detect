@@ -230,11 +230,11 @@ if (CUDA_FOUND)
           #src/hog.cpp
           src/Hungarian.cpp
           src/Obstacles.cpp
-          src/sgm/costs.cu
-          src/sgm/debug.cu
-          src/sgm/disparity_method.cu
-          src/sgm/hamming_cost.cu
-          src/sgm/median_filter.cu
+#          src/sgm/costs.cu
+#          src/sgm/debug.cu
+#          src/sgm/disparity_method.cu
+#          src/sgm/hamming_cost.cu
+#          src/sgm/median_filter.cu
 #          src/image_opencv.cpp
 #          src/track_kalman.hpp
 #          src/track.hpp

@@ -54,13 +54,9 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   if (!CudaInfo() || !readParameters()) {
     ros::requestShutdown();
   }
-//  mpDetection = new Detection(this, nodeHandle_);
+
 //  nullHog.assign(36, 0.0);
   init();
-
-  init_disparity_method(7, 110);
-
-//  mpDepth_gen_run = new std::thread(&Detection::Run, mpDetection);
 
 //  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
     if(enableEvaluation_) {
@@ -72,8 +68,8 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
 
 YoloObjectDetector::~YoloObjectDetector()
 {
-  finish_disparity_method();
-    {
+//  finish_disparity_method();
+  {
     boost::unique_lock<boost::shared_mutex> lockNodeStatus(mutexNodeStatus_);
     isNodeRunning_ = false;
   }
@@ -343,7 +339,7 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 
-    float elapsed_time_ms;
+//    float elapsed_time_ms;
     cv::Mat disparity_SGBM(leftFrame.size(), CV_8UC1);
 //    cv::Mat disparity_SGM(leftFrame.size(), CV_8UC1);
 
@@ -662,7 +658,7 @@ void *YoloObjectDetector::stereoInThread()
 //    cv::imshow("right_rectified",  buff_cv_r_);
 //    cv::waitKey(1);
 
-//        output = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
+//    output = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
 
         disparity_info.header.stamp = image_time_;
         cv_bridge::CvImage out_msg;
@@ -791,6 +787,31 @@ void YoloObjectDetector:: yolo()
 
   ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
+    if(viewImage_) {
+        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
+        cvMoveWindow("Detection and Tracking", 0, 0);
+        cvResizeWindow("Detection and Tracking", 720, 453);
+
+        cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Slope Map", 1400, 0);
+//        cvResizeWindow("Slope Map", 720, 453);
+        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Initial roadmap", 600, 350);
+
+        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
+        cvMoveWindow("Refined roadmap", 850, 350);
+
+        cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
+        cvMoveWindow("Obstacle Mask", 700, 0);
+        cvResizeWindow("Obstacle Mask", 720, 453);
+
+        if(enableStereo) {
+            cvNamedWindow("Disparity", CV_WINDOW_NORMAL);
+            cvMoveWindow("Disparity", 0, 460);
+            cvResizeWindow("Disparity", 720, 453);
+        }
+    }
+
 //  int count = 0;
 
 //  if (!demoPrefix_ && viewImage_) {
@@ -806,62 +827,6 @@ void YoloObjectDetector:: yolo()
 //  demoTime_ = what_time_is_it_now();
 
   notInitiated = false;
-
-//  while (!demoDone_) {
-////    buffIndex_ = (buffIndex_ + 1) % 3;
-////    fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
-////    fetch_thread.join();
-//    fetchInThread();
-//
-////    if (enableClassification)
-////        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
-////    if (enableStereo)
-////        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
-//
-//      detectInThread();
-//      stereoInThread();
-//
-////    if (enableStereo)
-////        stereo_thread.join();
-//
-//
-//    if (enableStereo)
-//        ObstacleDetector.ExecuteDetection(disparityFrame, buff_cv_l_);//[(buffIndex_ + 1) % 3], output);//buff_cv_l_[(buffIndex_ + 1) % 3]);
-//
-////    if (enableClassification)
-////        detect_thread.join();
-//
-//    publishInThread();
-//
-//    if (!demoPrefix_) {
-//      fps_ = 1./(what_time_is_it_now() - demoTime_);
-//      demoTime_ = what_time_is_it_now();
-//      if (viewImage_) {
-//        displayInThread();
-//        char name[256];
-//        sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
-//        save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
-//      }
-////      publishInThread();
-//    } else {
-//      char name[256];
-//      sprintf(name, "%s_%08d", demoPrefix_, count);
-//      save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
-//    }
-//
-////    frame_num ++;
-//
-////      publishInThread();
-//
-////    if(!disparityFrame.empty()) {
-////        cv::imshow("disparity_map", disparityFrame);
-////        cv::waitKey(0);
-////    }
-//      ++count;
-//    if (!isNodeRunning()) {
-//      demoDone_ = true;
-//    }
-//  }
 
 }
 
@@ -1803,9 +1768,7 @@ void YoloObjectDetector::CreateMsg(){
             cv::Mat cm_disp, scaledDisparityMap;
             convertScaleAbs( disparityFrame, scaledDisparityMap, 3.1 );
             applyColorMap( scaledDisparityMap, cm_disp, cv::COLORMAP_JET );
-
-            cv::imshow("disparity", cm_disp);
-
+            cv::imshow("Disparity", cm_disp);
 //            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
         }
        cv::waitKey(waitKeyDelay_);
