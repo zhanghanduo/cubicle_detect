@@ -277,7 +277,7 @@ private:
 //  int buffIndex_ = 0;
 
 //  IplImage * ipl_;
-  cv::Mat ipl_cv;
+//  cv::Mat ipl_cv;
   double fps_ = 0;
   double stereo_fps_ = 0;
   double classi_fps_ = 0;

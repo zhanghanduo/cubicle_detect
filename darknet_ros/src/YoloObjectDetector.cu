@@ -73,6 +73,8 @@ YoloObjectDetector::~YoloObjectDetector()
     boost::unique_lock<boost::shared_mutex> lockNodeStatus(mutexNodeStatus_);
     isNodeRunning_ = false;
   }
+
+  cv::destroyAllWindows();
 //  yoloThread_.join();
   free(depth3D);
   free(x3DPosition);
@@ -743,7 +745,7 @@ void YoloObjectDetector:: yolo()
 
   buff_cv_r_ = right_rectified.clone();
 
-  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
+//  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
     if(viewImage_) {
 
@@ -991,8 +993,13 @@ void YoloObjectDetector::calculateLPBH(Blob &currentDet, cv::Mat rgb, int grid_x
 
 void *YoloObjectDetector::trackInThread() {
     // Publish image.
-//  cv::Mat cvImage = cv::cvarrToMat(ipl_);
-    if (!publishDetectionImage(cv::Mat(ipl_cv))) {
+//    image copy = copy_image(buff_);
+//    constrain_image(copy);
+    cv::Mat output_label = image_to_mat(buff_);
+    if (output_label.channels() == 3) cv::cvtColor(output_label, output_label, cv::COLOR_RGB2BGR);
+    else if (output_label.channels() == 4) cv::cvtColor(output_label, output_label, cv::COLOR_RGBA2BGR);
+
+    if (!publishDetectionImage(output_label)) {
         ROS_DEBUG("Detection image has not been broadcasted.");
     }
 
