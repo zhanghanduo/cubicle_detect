@@ -224,7 +224,7 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
                     std::string("/obs_map"));
   nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera_frame"));
+  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("refined_camera"));
 
   nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
                       std::string("/disparity_map"));
@@ -233,7 +233,7 @@ void YoloObjectDetector::init()
   nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
                       std::string("/obs_disparity_map"));
   nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
-                     std::string("body"));
+                     std::string("refined_camera"));
   nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
 
   disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
@@ -631,11 +631,12 @@ void *YoloObjectDetector::stereoInThread()
 //    output = buff_cv_l_[(buffIndex_ + 2) % 3].clone();
 
         disparity_info.header.stamp = image_time_;
+        disparity_info.header.frame_id = obs_disparityFrameId;
         cv_bridge::CvImage out_msg;
         out_msg.header.frame_id = obs_disparityFrameId;
         out_msg.header.stamp = image_time_;
         out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-        out_msg.image = disparityFrame;//[(buffIndex_ + 2) % 3];
+        out_msg.image = disparityFrame;
         disparity_info.image = *out_msg.toImageMsg();
 
         disparity_info.f = focal;
@@ -1852,6 +1853,7 @@ void YoloObjectDetector::Process(){
             generateStaticObsDisparityMap();
 
         disparity_obs.header.stamp = image_time_;
+        disparity_obs.header.frame_id = obs_disparityFrameId;
         cv_bridge::CvImage out_msg;
         out_msg.header.frame_id = obs_disparityFrameId;
         out_msg.header.stamp = image_time_;
