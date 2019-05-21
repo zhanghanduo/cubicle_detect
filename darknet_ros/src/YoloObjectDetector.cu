@@ -423,7 +423,8 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
         else {
             cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
         }
-        image_time_ = image1->header.stamp;
+//        image_time_ = image1->header.stamp;
+        image_time_ = ros::Time::now();
         imageHeader_ = image1->header;
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());

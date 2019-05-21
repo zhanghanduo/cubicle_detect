@@ -1,20 +1,9 @@
-subscribers:
-
-  camera_reading:
-    topic: /long/left/image_rect
-    queue_size: 1
-
-actions:
-
-  camera_reading:
-    name: /cubicle_detection/check_for_objects
-
 publishers:
 
   obstacle_boxes:
     topic: /obs_map
     queue_size: 4
-    frame_id: camera
+    frame_id: refined_camera
 
   bounding_boxes:
     topic: /cubicle_detection/bounding_boxes
@@ -28,12 +17,12 @@ publishers:
 
   disparity_map:
     topic: /disparity_map
-    frame_id: camera
+    frame_id: refined_camera
     queue_size: 10
 
   obs_disparity_map:
     topic: /obs_disparity_map
-    frame_id: camera
+    frame_id: refined_camera
     queue_size: 10
 
 image_view:
