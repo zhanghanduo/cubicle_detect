@@ -64,8 +64,8 @@ if (CUDA_FOUND)
       CUDA_NVCC_FLAGS
       ${CUDA_NVCC_FLAGS};
       -O3
-      -gencode arch=compute_30,code=sm_30
-      -gencode arch=compute_35,code=sm_35
+#      -gencode arch=compute_30,code=sm_30
+#      -gencode arch=compute_35,code=sm_35
       -gencode arch=compute_50,code=[sm_50,compute_50]
       -gencode arch=compute_52,code=[sm_52,compute_52]
       -gencode arch=compute_61,code=[sm_61,compute_61]
@@ -257,7 +257,7 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/dropout_layer.c           ${DARKNET_PATH}/src/softmax_layer.c
     ${DARKNET_PATH}/src/gemm.c                    ${DARKNET_PATH}/src/tree.c
     ${DARKNET_PATH}/src/gru_layer.c               ${DARKNET_PATH}/src/utils.c
-    ${DARKNET_PATH}/src/upsample_layer.c          # ${DARKNET_PATH}/src/logistic_layer.c
+    ${DARKNET_PATH}/src/upsample_layer.c          ${DARKNET_PATH}/src/conv_lstm_layer.c
     ${DARKNET_PATH}/src/reorg_old_layer.c         ${DARKNET_PATH}/src/image_opencv.cpp
     ${DARKNET_PATH}/src/yolo_layer.c              ${DARKNET_PATH}/src/http_stream.cpp
 

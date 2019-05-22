@@ -111,7 +111,7 @@ mat_cv *load_image_mat_cv(const char *filename, int flag)
             std::ofstream bad_list("bad.list", std::ios::out | std::ios::app);
             bad_list << shrinked_filename << std::endl;
             //if (check_mistakes) getchar();
-            return nullptr;
+            return NULL;
         }
         if (mat.channels() == 3) cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
         else if (mat.channels() == 4) cv::cvtColor(mat, mat, cv::COLOR_RGBA2BGRA);
@@ -121,7 +121,7 @@ mat_cv *load_image_mat_cv(const char *filename, int flag)
     catch (...) {
         cerr << "OpenCV exception: load_image_mat_cv \n";
     }
-    return nullptr;
+    return NULL;
 }
 // ----------------------------------------
 
@@ -138,7 +138,7 @@ cv::Mat load_image_mat(char *filename, int channels)
 
     cv::Mat *mat_ptr = (cv::Mat *)load_image_mat_cv(filename, flag);
 
-    if (mat_ptr == nullptr) {
+    if (mat_ptr == NULL) {
         return cv::Mat();
     }
     cv::Mat mat = *mat_ptr;
@@ -182,8 +182,8 @@ image load_image_resize(char *filename, int w, int h, int c, image *im)
 
 int get_width_mat(mat_cv *mat)
 {
-    if (mat == nullptr) {
-        cerr << " Pointer is nullptr in get_width_mat() \n";
+    if (mat == NULL) {
+        cerr << " Pointer is NULL in get_width_mat() \n";
         return 0;
     }
     return ((cv::Mat *)mat)->cols;
@@ -192,8 +192,8 @@ int get_width_mat(mat_cv *mat)
 
 int get_height_mat(mat_cv *mat)
 {
-    if (mat == nullptr) {
-        cerr << " Pointer is nullptr in get_height_mat() \n";
+    if (mat == NULL) {
+        cerr << " Pointer is NULL in get_height_mat() \n";
         return 0;
     }
     return ((cv::Mat *)mat)->rows;
@@ -205,7 +205,7 @@ void release_mat(mat_cv **mat)
     try {
         cv::Mat **mat_ptr = (cv::Mat **)mat;
         if (*mat_ptr) delete *mat_ptr;
-        *mat_ptr = nullptr;
+        *mat_ptr = NULL;
     }
     catch (...) {
         cerr << "OpenCV exception: release_mat \n";
@@ -234,7 +234,7 @@ void release_ipl(mat_cv **ipl)
 {
     IplImage **ipl_img = (IplImage **)ipl;
     if (*ipl_img) cvReleaseImage(ipl_img);
-    *ipl_img = nullptr;
+    *ipl_img = NULL;
 }
 // ----------------------------------------
 
@@ -446,7 +446,7 @@ void show_image_cv(image p, const char *name)
 /*
 void show_image_cv_ipl(mat_cv *disp, const char *name)
 {
-    if (disp == nullptr) return;
+    if (disp == NULL) return;
     char buff[256];
     sprintf(buff, "%s", name);
     cv::namedWindow(buff, WINDOW_NORMAL);
@@ -458,7 +458,7 @@ void show_image_cv_ipl(mat_cv *disp, const char *name)
 void show_image_mat(mat_cv *mat_ptr, const char *name)
 {
     try {
-        if (mat_ptr == nullptr) return;
+        if (mat_ptr == NULL) return;
         cv::Mat &mat = *(cv::Mat *)mat_ptr;
         cv::namedWindow(name, cv::WINDOW_NORMAL);
         cv::imshow(name, mat);
@@ -486,7 +486,7 @@ write_cv *create_video_writer(char *out_filename, char c1, char c2, char c3, cha
     catch (...) {
         cerr << "OpenCV exception: create_video_writer \n";
     }
-    return nullptr;
+    return NULL;
 }
 
 void write_frame_cv(write_cv *output_video_writer, mat_cv *mat)
@@ -508,7 +508,7 @@ void release_video_writer(write_cv **output_video_writer)
             cv::VideoWriter *out = *(cv::VideoWriter **)output_video_writer;
             out->release();
             delete out;
-            output_video_writer = nullptr;
+            output_video_writer = NULL;
             std::cout << " closed!";
         }
         else {
@@ -559,7 +559,7 @@ int show_image_cv(image im, const char* name, int ms)
 // ====================================================================
 
 cap_cv* get_capture_video_stream(const char *path) {
-    cv::VideoCapture* cap = nullptr;
+    cv::VideoCapture* cap = NULL;
     try {
         cap = new cv::VideoCapture(path);
     }
@@ -572,7 +572,7 @@ cap_cv* get_capture_video_stream(const char *path) {
 
 cap_cv* get_capture_webcam(int index)
 {
-    cv::VideoCapture* cap = nullptr;
+    cv::VideoCapture* cap = NULL;
     try {
         cap = new cv::VideoCapture(index);
         //cap->set(CV_CAP_PROP_FRAME_WIDTH, 1280);
@@ -748,7 +748,7 @@ int wait_for_stream(cap_cv *cap, cv::Mat* src, int dont_close)
 image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close)
 {
     c = c ? c : 3;
-    cv::Mat *src = nullptr;
+    cv::Mat *src = NULL;
 
     static int once = 1;
     if (once) {
@@ -780,7 +780,7 @@ image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, mat_cv** in
 image get_image_from_stream_letterbox(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close)
 {
     c = c ? c : 3;
-    cv::Mat *src = nullptr;
+    cv::Mat *src = NULL;
     static int once = 1;
     if (once) {
         once = 0;
@@ -948,10 +948,10 @@ void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, 
 
                 // you should create directory: result_img
                 //static int copied_frame_id = -1;
-                //static IplImage* copy_img = nullptr;
+                //static IplImage* copy_img = NULL;
                 //if (copied_frame_id != frame_id) {
                 //    copied_frame_id = frame_id;
-                //    if(copy_img == nullptr) copy_img = cvCreateImage(cvSize(show_img->width, show_img->height), show_img->depth, show_img->nChannels);
+                //    if(copy_img == NULL) copy_img = cvCreateImage(cvSize(show_img->width, show_img->height), show_img->depth, show_img->nChannels);
                 //    cvCopy(show_img, copy_img, 0);
                 //}
                 //static int img_id = 0;
@@ -1081,7 +1081,7 @@ void draw_train_loss(mat_cv* img_src, int img_size, float avg_loss, float max_im
             cv::putText(img, char_buff, cv::Point(10, 28), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.7, CV_RGB(255, 255, 255), 5, CV_AA);
             cv::putText(img, char_buff, cv::Point(10, 28), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.7, CV_RGB(200, 0, 0), 1, CV_AA);
 
-            if (((int)(old_precision * 10) != (int)(precision * 10)) || (max_precision < precision) || (current_batch - text_iteration_old) >= max_batches / 10) {
+            if ((std::fabs(old_precision - precision) > 0.1)  || (max_precision < precision) || (current_batch - text_iteration_old) >= max_batches / 10) {
                 text_iteration_old = current_batch;
                 max_precision = std::max(max_precision, precision);
                 sprintf(char_buff, "%2.0f%% ", precision * 100);
@@ -1125,9 +1125,20 @@ void draw_train_loss(mat_cv* img_src, int img_size, float avg_loss, float max_im
 // ====================================================================
 // Data augmentation
 // ====================================================================
+static box float_to_box_stride(float *f, int stride)
+{
+    box b = { 0 };
+    b.x = f[0];
+    b.y = f[1 * stride];
+    b.w = f[2 * stride];
+    b.h = f[3 * stride];
+    return b;
+}
+
 image image_data_augmentation(mat_cv* mat, int w, int h,
     int pleft, int ptop, int swidth, int sheight, int flip,
-    float jitter, float dhue, float dsat, float dexp)
+    float jitter, float dhue, float dsat, float dexp,
+    int blur, int num_boxes, float *truth)
 {
     image out;
     try {
@@ -1191,6 +1202,31 @@ image image_data_augmentation(mat_cv* mat, int w, int h,
         //window_name << "augmentation - " << ipl;
         //cv::imshow(window_name.str(), sized);
         //cv::waitKey(0);
+
+        if (blur) {
+            cv::Mat dst(sized.size(), sized.type());
+            if(blur == 1) cv::GaussianBlur(sized, dst, cv::Size(31, 31), 0);
+            else cv::GaussianBlur(sized, dst, cv::Size((blur / 2) * 2 + 1, (blur / 2) * 2 + 1), 0);
+            cv::Rect img_rect(0, 0, sized.cols, sized.rows);
+            //std::cout << " blur num_boxes = " << num_boxes << std::endl;
+
+            if (blur == 1) {
+                int t;
+                for (t = 0; t < num_boxes; ++t) {
+                    box b = float_to_box_stride(truth + t*(4 + 1), 1);
+                    if (!b.x) break;
+                    int left = (b.x - b.w / 2.)*sized.cols;
+                    int width = b.w*sized.cols;
+                    int top = (b.y - b.h / 2.)*sized.rows;
+                    int height = b.h*sized.rows;
+                    cv::Rect roi(left, top, width, height);
+                    roi = roi & img_rect;
+
+                    sized(roi).copyTo(dst(roi));
+                }
+            }
+            dst.copyTo(sized);
+        }
 
         // Mat -> image
         out = mat_to_image(sized);

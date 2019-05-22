@@ -10,6 +10,9 @@
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
 
+  <rosparam command="load" file="$(find cubicle_detect)/config/ros.yaml"/>
+  <rosparam command="load" file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
+
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->
   <include file="$(find undistort_images)/launch/bus.launch" />
@@ -17,7 +20,7 @@
 <!--  Localization-->
 <!--  <include file="$(find sslam_estimator)/launch/bus_core.launch" />-->
 
-  <!-- Start darknet and ros wrapper -->
+<!--   Start darknet and ros wrapper-->
   <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
     <rosparam command="load" file="$(find cubicle_detect)/config/ros.yaml"/>

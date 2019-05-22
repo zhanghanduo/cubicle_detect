@@ -1819,24 +1819,26 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before detect_thread"<<std::endl;
     // 2. YOLOv3 to detect 2D bounding boxes
     if (enableClassification)
-        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+//        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+        detectInThread();
 
 //    std::cout<<"before stereo_thread"<<std::endl;
     // 3. Stereo matching to get disparity map
     if (enableStereo)
-        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
+//        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
+        stereoInThread();
+
+//    if (enableClassification)
+//        detect_thread.join();
 
 //    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {
-        stereo_thread.join();
+//        stereo_thread.join();
         double obs_time_ = what_time_is_it_now();
         // 4. Ostacle detection according to the u-v disparity
         ObstacleDetector.ExecuteDetection(disparityFrame, left_rectified);
         obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
-
-    if (enableClassification)
-        detect_thread.join();
 
 //    std::cout<<"before trackInThread"<<std::endl;
 
@@ -1846,28 +1848,28 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before ObsDisparity"<<std::endl;
 
     // 6. Get obstacle disparity map by filtering ground and moving objects
-    ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
-    if (enableClassification && enableStereo){
-        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
-        if(filter_dynamic_)
-            generateStaticObsDisparityMap();
-
-        disparity_obs.header.stamp = image_time_;
-        disparity_obs.header.frame_id = obs_disparityFrameId;
-        cv_bridge::CvImage out_msg;
-        out_msg.header.frame_id = obs_disparityFrameId;
-        out_msg.header.stamp = image_time_;
-        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-        out_msg.image = ObsDisparity;
-        disparity_obs.image = *out_msg.toImageMsg();
-
-        disparity_obs.f = focal;
-        disparity_obs.T = stereo_baseline_;
-        disparity_obs.min_disparity = min_disparity;
-        disparity_obs.max_disparity = disp_size; //128
-
-        obs_disparityPublisher_.publish(disparity_obs);
-    }
+//    ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
+//    if (enableClassification && enableStereo){
+//        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
+//        if(filter_dynamic_)
+//            generateStaticObsDisparityMap();
+//
+//        disparity_obs.header.stamp = image_time_;
+//        disparity_obs.header.frame_id = obs_disparityFrameId;
+//        cv_bridge::CvImage out_msg;
+//        out_msg.header.frame_id = obs_disparityFrameId;
+//        out_msg.header.stamp = image_time_;
+//        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+//        out_msg.image = ObsDisparity;
+//        disparity_obs.image = *out_msg.toImageMsg();
+//
+//        disparity_obs.f = focal;
+//        disparity_obs.T = stereo_baseline_;
+//        disparity_obs.min_disparity = min_disparity;
+//        disparity_obs.max_disparity = disp_size; //128
+//
+//        obs_disparityPublisher_.publish(disparity_obs);
+//    }
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
 //    demoTime_ = what_time_is_it_now();
