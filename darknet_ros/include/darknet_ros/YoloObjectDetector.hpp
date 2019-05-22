@@ -358,6 +358,7 @@ private:
 
 //  cv::Rect left_roi_, right_roi_;
   Detection* mpDetection;
+  sgm::StereoSGM* ssgm;
 //  Tracker_optflow tracker_flow;
   std::thread* mpDepth_gen_run;
   int output_verbose;

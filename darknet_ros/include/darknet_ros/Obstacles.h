@@ -69,7 +69,7 @@ private:
     std::vector<cv::Point2i> randomRoadPoints2D; //slope
     std::vector<int> selectedIndexes; // slope
 
-    std::string pubName;
+//    std::string pubName;
     cv::Vec3d surfaceN; // slope
     bool imuDetected = false; // slope
 //    cv::Rect region_of_interest;

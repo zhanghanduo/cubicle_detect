@@ -1115,15 +1115,15 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
     rdRowToDisRegard = 10/scale;
     rdStartCheckLines = 10/scale;
-    intensityThVDisPoint = 100/scale;
+    intensityThVDisPoint = 80/scale;
     thHorizon = 20/scale;
     rdProfileRowDistanceTh = 6/scale;
     rdProfileColDistanceTh = 16/scale;
     intensityThVDisPointForSlope = 200/scale;
-    pubName = "/wide/map_msg";
+//    pubName = "/wide/map_msg";
     depthForSlpoe = 18/scale; //m -- slope
     depthForSlopeStart = 5/scale; //m -- slope
-    slopeAdjHeight = 30/scale; // cm -- slope
+    slopeAdjHeight = 10/scale; // cm -- slope
     slopeAdjLength = 1500/scale; // cm -- slope
     minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
     minNoOfPixelsForObject = 80/scale;

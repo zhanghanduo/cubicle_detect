@@ -349,8 +349,8 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 //    ssgm.execute(leftFrame.data, rightFrame.data, (void**)&disparity_SGBM.data);
 //    demoTime_ = what_time_is_it_now();
 
-    sgm::StereoSGM ssgm(leftFrame.cols, leftFrame.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
-	ssgm.execute(leftFrame.data, rightFrame.data, disparity_SGBM.data);
+//    sgm::StereoSGM ssgm(leftFrame.cols, leftFrame.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
+	ssgm->execute(leftFrame.data, rightFrame.data, disparity_SGBM.data);
 
 //    disparity_SGBM = compute_disparity_method(leftFrame, rightFrame, &elapsed_time_ms);
 
@@ -734,6 +734,8 @@ void YoloObjectDetector:: yolo()
 //  }
 //  avg_ = (float *) calloc(demoTotal_, sizeof(float));
 
+  ssgm = new sgm::StereoSGM(left_rectified.cols, left_rectified.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
+
   layer l = net_->layers[net_->n - 1];
   roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
 
@@ -1005,6 +1007,7 @@ void *YoloObjectDetector::trackInThread() {
         ROS_DEBUG("Detection image has not been broadcasted.");
     }
 
+    free(buff_.data);
 //    cv::Mat clrImage = camImageCopy_;
     detListCurrFrame.clear();
     bboxResize = cv::Size(180,60);
@@ -1848,28 +1851,28 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before ObsDisparity"<<std::endl;
 
     // 6. Get obstacle disparity map by filtering ground and moving objects
-//    ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
-//    if (enableClassification && enableStereo){
-//        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
-//        if(filter_dynamic_)
-//            generateStaticObsDisparityMap();
-//
-//        disparity_obs.header.stamp = image_time_;
-//        disparity_obs.header.frame_id = obs_disparityFrameId;
-//        cv_bridge::CvImage out_msg;
-//        out_msg.header.frame_id = obs_disparityFrameId;
-//        out_msg.header.stamp = image_time_;
-//        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
-//        out_msg.image = ObsDisparity;
-//        disparity_obs.image = *out_msg.toImageMsg();
-//
-//        disparity_obs.f = focal;
-//        disparity_obs.T = stereo_baseline_;
-//        disparity_obs.min_disparity = min_disparity;
-//        disparity_obs.max_disparity = disp_size; //128
-//
-//        obs_disparityPublisher_.publish(disparity_obs);
-//    }
+    ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
+    if (enableClassification && enableStereo){
+        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
+        if(filter_dynamic_)
+            generateStaticObsDisparityMap();
+
+        disparity_obs.header.stamp = image_time_;
+        disparity_obs.header.frame_id = obs_disparityFrameId;
+        cv_bridge::CvImage out_msg;
+        out_msg.header.frame_id = obs_disparityFrameId;
+        out_msg.header.stamp = image_time_;
+        out_msg.encoding = sensor_msgs::image_encodings::TYPE_8UC1;
+        out_msg.image = ObsDisparity;
+        disparity_obs.image = *out_msg.toImageMsg();
+
+        disparity_obs.f = focal;
+        disparity_obs.T = stereo_baseline_;
+        disparity_obs.min_disparity = min_disparity;
+        disparity_obs.max_disparity = disp_size; //128
+
+        obs_disparityPublisher_.publish(disparity_obs);
+    }
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
 //    demoTime_ = what_time_is_it_now();
@@ -1886,6 +1889,7 @@ void YoloObjectDetector::Process(){
     obstaclePublisher_.publish(obstacleBoxesResults_);
 
     obstacleBoxesResults_.obsData.clear();
+    obstacleBoxesResults_.laneData.clear();
 
 //    char name[256];
 //    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
