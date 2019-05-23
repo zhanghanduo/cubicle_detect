@@ -74,6 +74,7 @@ YoloObjectDetector::~YoloObjectDetector()
     isNodeRunning_ = false;
   }
 
+  delete ssgm;
   cv::destroyAllWindows();
 //  yoloThread_.join();
   free(depth3D);
@@ -1822,23 +1823,23 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before detect_thread"<<std::endl;
     // 2. YOLOv3 to detect 2D bounding boxes
     if (enableClassification)
-//        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
-        detectInThread();
+        detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
+//        detectInThread();
 
 //    std::cout<<"before stereo_thread"<<std::endl;
     // 3. Stereo matching to get disparity map
     if (enableStereo)
-//        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
-        stereoInThread();
+        stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
+//        stereoInThread();
 
-//    if (enableClassification)
-//        detect_thread.join();
+    if (enableClassification)
+        detect_thread.join();
 
 //    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {
-//        stereo_thread.join();
+        stereo_thread.join();
         double obs_time_ = what_time_is_it_now();
-        // 4. Ostacle detection according to the u-v disparity
+        // 4. Obstacle detection according to the u-v disparity
         ObstacleDetector.ExecuteDetection(disparityFrame, left_rectified);
         obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
