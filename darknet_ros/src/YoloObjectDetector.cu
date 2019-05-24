@@ -34,10 +34,8 @@ char *data;
 char **detectionNames;
 char **compact_detectionNames;
 
-YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
-    : nodeHandle_(nh),
-      nodeHandle_pub(nh_p),
-      numClasses_(0),
+YoloObjectDetector::YoloObjectDetector()
+    : numClasses_(0),
       classLabels_(0),
       rosBoxes_(0),
       rosBoxCounter_(0),
@@ -51,12 +49,12 @@ YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p)
   ROS_INFO("[ObstacleDetector] Node started.");
 
   // Read Cuda Info and ROS parameters from config file.
-  if (!CudaInfo() || !readParameters()) {
+  if (!CudaInfo()) {
     ros::requestShutdown();
   }
 
 //  nullHog.assign(36, 0.0);
-  init();
+//  init();
 
 //  hog_descriptor = new Util::HOGFeatureDescriptor(8, 2, 9, 180.0);
     if(enableEvaluation_) {
@@ -114,8 +112,10 @@ bool YoloObjectDetector::CudaInfo() {
   }
 }
 
-bool YoloObjectDetector::readParameters()
+bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p)
 {
+  nodeHandle_ = nh;
+  nodeHandle_pub = nh_p;
   // Load common parameters.
   nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
   nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
@@ -141,115 +141,114 @@ bool YoloObjectDetector::readParameters()
   rosBoxes_ = std::vector<std::vector<RosBox_> >(numClasses_);
   rosBoxCounter_ = std::vector<int>(numClasses_);
 
-  return true;
-}
+    // Initialize deep network of darknet.
+    std::string weightsPath;
+    std::string configPath;
+    std::string dataPath;
+    std::string configModel;
+    std::string weightsModel;
 
-void YoloObjectDetector::init()
-{
-  ROS_INFO("[ObstacleDetector] init().");
+    // Look up table initialization
+    counter = 0;
 
-  // Initialize deep network of darknet.
-  std::string weightsPath;
-  std::string configPath;
-  std::string dataPath;
-  std::string configModel;
-  std::string weightsModel;
+    nodeHandle_.param<int>("min_disparity", min_disparity, 7);
+    nodeHandle_.param<int>("disparity_scope", disp_size, 128);
+    nodeHandle_.param<bool>("use_grey", use_grey, false);
+    nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
+    nodeHandle_.param<bool>("enable_classification", enableClassification, true);
+    nodeHandle_.param<int>("scale", Scale, 1);
+    nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
+    // Threshold of object detection.
+    float thresh;
+    nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
 
-  // Look up table initialization
-  counter = 0;
+    // Path to weights file.
+    nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
+                      std::string("yolov3-spp.weights"));
+    nodeHandle_.param("weights_path", weightsPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/weights");
+    weightsPath += "/" + weightsModel;
+    weights = new char[weightsPath.length() + 1];
+    strcpy(weights, weightsPath.c_str());
 
-  nodeHandle_.param<int>("min_disparity", min_disparity, 7);
-  nodeHandle_.param<int>("disparity_scope", disp_size, 128);
-  nodeHandle_.param<bool>("use_grey", use_grey, false);
-  nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
-  nodeHandle_.param<bool>("enable_classification", enableClassification, true);
-  nodeHandle_.param<int>("scale", Scale, 1);
-  nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
-  // Threshold of object detection.
-  float thresh;
-  nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
+    // Path to config file.
+    nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov3-spp.cfg"));
+    nodeHandle_.param("config_path", configPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/cfg");
+    configPath += "/" + configModel;
+    cfg = new char[configPath.length() + 1];
+    strcpy(cfg, configPath.c_str());
 
-  // Path to weights file.
-  nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
-                    std::string("yolov3-spp.weights"));
-  nodeHandle_.param("weights_path", weightsPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/weights");
-  weightsPath += "/" + weightsModel;
-  weights = new char[weightsPath.length() + 1];
-  strcpy(weights, weightsPath.c_str());
+    // Path to data folder.
+    dataPath = darknetFilePath_;
+    dataPath += "/data";
+    data = new char[dataPath.length() + 1];
+    strcpy(data, dataPath.c_str());
 
-  // Path to config file.
-  nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov3-spp.cfg"));
-  nodeHandle_.param("config_path", configPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/cfg");
-  configPath += "/" + configModel;
-  cfg = new char[configPath.length() + 1];
-  strcpy(cfg, configPath.c_str());
+    // Get classes.
+    detectionNames = (char**) realloc((void*) detectionNames, (numClasses_ + 1) * sizeof(char*));
+    for (int i = 0; i < numClasses_; i++) {
+        detectionNames[i] = new char[classLabels_[i].length() + 1];
+        strcpy(detectionNames[i], classLabels_[i].c_str());
+    }
 
-  // Path to data folder.
-  dataPath = darknetFilePath_;
-  dataPath += "/data";
-  data = new char[dataPath.length() + 1];
-  strcpy(data, dataPath.c_str());
+    compact_detectionNames = (char**) realloc((void*) compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
+    for (int i = 0; i < compact_numClasses_; i++) {
+        compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
+        strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
+    }
 
-  // Get classes.
-  detectionNames = (char**) realloc((void*) detectionNames, (numClasses_ + 1) * sizeof(char*));
-  for (int i = 0; i < numClasses_; i++) {
-    detectionNames[i] = new char[classLabels_[i].length() + 1];
-    strcpy(detectionNames[i], classLabels_[i].c_str());
-  }
+    // Load network.
+    setupNetwork(cfg, weights, data, thresh, detectionNames, compact_detectionNames, numClasses_,
+                 0, nullptr, 1, 0.5, 0, 0, 0, 0);
 
-  compact_detectionNames = (char**) realloc((void*) compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
-  for (int i = 0; i < compact_numClasses_; i++) {
-     compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
-     strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
-  }
+    std::string detectionImageTopicName;
+    int detectionImageQueueSize;
+    bool detectionImageLatch;
+    std::string obstacleBoxesTopicName;
+    int obstacleBoxesQueueSize;
+    std::string disparityTopicName;
+    int disparityQueueSize;
+    std::string obs_disparityTopicName;
+    int obs_disparityQueueSize;
 
-  // Load network.
-  setupNetwork(cfg, weights, data, thresh, detectionNames, compact_detectionNames, numClasses_,
-                0, nullptr, 1, 0.5, 0, 0, 0, 0);
+    nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
+                      std::string("detection_image"));
+    nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
+    nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
-  std::string detectionImageTopicName;
-  int detectionImageQueueSize;
-  bool detectionImageLatch;
-  std::string obstacleBoxesTopicName;
-  int obstacleBoxesQueueSize;
-  std::string disparityTopicName;
-  int disparityQueueSize;
-  std::string obs_disparityTopicName;
-  int obs_disparityQueueSize;
+    nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
+                      std::string("/obs_map"));
+    nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
+    nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("refined_camera"));
 
-  nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
-                    std::string("detection_image"));
-  nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
-  nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
-
-  nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
-                    std::string("/obs_map"));
-  nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-  nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("refined_camera"));
-
-  nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
+    nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
                       std::string("/disparity_map"));
-  nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
+    nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
 
-  nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
+    nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
                       std::string("/obs_disparity_map"));
-  nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
-                     std::string("refined_camera"));
-  nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
+    nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
+                      std::string("refined_camera"));
+    nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
 
-  disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
-                                                           disparityQueueSize);
+    disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
+                                                                                disparityQueueSize);
 
-  obs_disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(obs_disparityTopicName,
-                                                                                  obs_disparityQueueSize);
+    obs_disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(obs_disparityTopicName,
+                                                                                    obs_disparityQueueSize);
 
-  obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
-          obstacleBoxesTopicName, obstacleBoxesQueueSize);
+    obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
+            obstacleBoxesTopicName, obstacleBoxesQueueSize);
 
-  detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
-                                                                       detectionImageQueueSize,
-                                                                       detectionImageLatch);
+    detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
+                                                                            detectionImageQueueSize,
+                                                                            detectionImageLatch);
 
+    disparityColorPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("disparity_color", 10);
+    trackingPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("track_image", 10);
+    obstacleMaskPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("obstacle_image", 10);
+    slopePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("slope_image", 10);
+
+  return true;
 }
 
 void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
@@ -407,9 +406,35 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
+void YoloObjectDetector::timerCallback(const ros::TimerEvent& event ) {
+//    while(ros::ok()) {
+        ROS_WARN("haha");
+
+/*        if (viewImage_) {
+            if (!color_out.empty())
+                cv::imshow("Detection and Tracking", color_out);
+
+            if ((enableStereo) && (!disparityFrame.empty())) {
+                // To better visualize the result, apply a colormap to the computed disparity
+                double min, max;
+                minMaxIdx(disparityFrame, &min, &max);
+//            std::cout << "disp min " << min << std::endl << "disp max " << max << std::endl;
+                cv::Mat cm_disp, scaledDisparityMap;
+                convertScaleAbs(disparityFrame, scaledDisparityMap, 3.1);
+                applyColorMap(scaledDisparityMap, cm_disp, cv::COLORMAP_JET);
+                cv::imshow("Disparity", cm_disp);
+//            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
+            }
+            cv::waitKey(waitKeyDelay_);
+        }*/
+//        std::chrono::milliseconds dura(2);
+//        std::this_thread::sleep_for(dura);
+//    }
+}
+
 void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
                                         const sensor_msgs::ImageConstPtr &image2){
-    ROS_DEBUG("[ObstacleDetector] Stereo images received.");
+//    ROS_WARN("[ObstacleDetector] Stereo images received.");
 
     // std::cout<<"Debug starting cameraCallBack"<<std::endl;
     cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;
@@ -483,9 +508,9 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
     }
 }
 
-bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
+bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage, const ros::Publisher& publisher_)
 {
-  if (detectionImagePublisher_.getNumSubscribers() < 1)
+  if (publisher_.getNumSubscribers() < 1)
     return false;
   cv_bridge::CvImage cvImage;
 //  cvImage.header.stamp = ros::Time::now();
@@ -493,7 +518,7 @@ bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
   cvImage.header.frame_id = "camera";
   cvImage.encoding = sensor_msgs::image_encodings::BGR8;
   cvImage.image = detectionImage;
-  detectionImagePublisher_.publish(*cvImage.toImageMsg());
+  publisher_.publish(*cvImage.toImageMsg());
   ROS_DEBUG("Detection image has been published.");
   return true;
 }
@@ -754,11 +779,11 @@ void YoloObjectDetector:: yolo()
 
     if(viewImage_) {
 
-        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
-        cvMoveWindow("Initial roadmap", 650, 350);
-
-        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
-        cvMoveWindow("Refined roadmap", 900, 350);
+//        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
+//        cvMoveWindow("Initial roadmap", 650, 350);
+//
+//        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
+//        cvMoveWindow("Refined roadmap", 900, 350);
 
         cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
         cvMoveWindow("Slope Map", 1460, 0);
@@ -776,6 +801,7 @@ void YoloObjectDetector:: yolo()
             cvMoveWindow("Disparity", 0, 500);
             cvResizeWindow("Disparity", 720, 453);
         }
+//        cv::startWindowThread();
     }
 
 //  int count = 0;
@@ -1004,7 +1030,7 @@ void *YoloObjectDetector::trackInThread() {
     if (output_label.channels() == 3) cv::cvtColor(output_label, output_label, cv::COLOR_RGB2BGR);
     else if (output_label.channels() == 4) cv::cvtColor(output_label, output_label, cv::COLOR_RGBA2BGR);
 
-    if (!publishDetectionImage(output_label)) {
+    if (!publishDetectionImage(output_label, detectionImagePublisher_)) {
         ROS_DEBUG("Detection image has not been broadcasted.");
     }
 
@@ -1688,7 +1714,7 @@ void YoloObjectDetector::Tracking (){
 
 void YoloObjectDetector::CreateMsg(){
 //    updateOutput = true;
-    cv::Mat color_out, output1;
+    cv::Mat output1;
 //    if (enableStereo)
 //        output1 = disparityFrame.clone();
 
@@ -1728,21 +1754,41 @@ void YoloObjectDetector::CreateMsg(){
 
     }
 
+    cv::Mat cm_disp;
+
+    if (enableStereo) {
+        // To better visualize the result, apply a colormap to the computed disparity
+        double min, max;
+        minMaxIdx(disparityFrame, &min, &max);
+//            std::cout << "disp min " << min << std::endl << "disp max " << max << std::endl;
+        cv::Mat scaledDisparityMap;
+        convertScaleAbs(disparityFrame, scaledDisparityMap, 3.1);
+        applyColorMap(scaledDisparityMap, cm_disp, cv::COLORMAP_JET);
+    }
+
     if(viewImage_) {
         cv::imshow("Detection and Tracking", color_out);
-
         if (enableStereo) {
-            // To better visualize the result, apply a colormap to the computed disparity
-            double min, max;
-            minMaxIdx(disparityFrame, &min, &max);
-//            std::cout << "disp min " << min << std::endl << "disp max " << max << std::endl;
-            cv::Mat cm_disp, scaledDisparityMap;
-            convertScaleAbs( disparityFrame, scaledDisparityMap, 3.1 );
-            applyColorMap( scaledDisparityMap, cm_disp, cv::COLORMAP_JET );
             cv::imshow("Disparity", cm_disp);
 //            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
         }
        cv::waitKey(waitKeyDelay_);
+    } else {
+        if (!publishDetectionImage(color_out, trackingPublisher_)) {
+            ROS_DEBUG("Tracking image has not been broadcasted.");
+        }
+
+        if (!publishDetectionImage(cm_disp, disparityColorPublisher_)) {
+            ROS_DEBUG("Disparity image has not been broadcasted.");
+        }
+
+        if (!publishDetectionImage(ObstacleDetector.left_rect_clr, obstacleMaskPublisher_)) {
+            ROS_DEBUG("Obstacle image has not been broadcasted.");
+        }
+
+        if (!publishDetectionImage(ObstacleDetector.slope_map, slopePublisher_)) {
+            ROS_DEBUG("Slope map image has not been broadcasted.");
+        }
     }
 
     if(enableEvaluation_){

@@ -31,7 +31,9 @@ int main(int argc, char** argv) {
     image_left_info = "/left/camera_info";
     image_right_info = "/right/camera_info";
 
-  darknet_ros::YoloObjectDetector detector(nodeHandle, nh_pub);
+  darknet_ros::YoloObjectDetector detector;
+
+  detector.readParameters(nodeHandle, nh_pub);
 
   if(nodeHandle.getParam("image_left_topic", image_left_topic))
     ROS_INFO("Get left image topic: %s", image_left_topic.c_str());

@@ -108,7 +108,7 @@ class YoloObjectDetector
   /*!
    * Constructor.
    */
-  explicit YoloObjectDetector(ros::NodeHandle nh, ros::NodeHandle nh_p);
+  explicit YoloObjectDetector();
 
   /*!
    * Destructor.
@@ -137,15 +137,20 @@ class YoloObjectDetector
     void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
                                 const sensor_msgs::CameraInfoConstPtr&right_info);
 
+    void timerCallback( const ros::TimerEvent& event );
+
      /*!
       * Generate look up table to speed up depth generation.
       */
     void DefineLUTs();
 
-    /*!
-     * Initialize the ROS connections.
+     /*!
+     * Reads and verifies the ROS parameters.
+     * @return true if successful.
      */
-    void init();
+    bool readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p);
+
+    cv::Mat disparityFrame;
 
 private:
    /*!
@@ -154,17 +159,12 @@ private:
    */
     bool CudaInfo();
 
-  /*!
-   * Reads and verifies the ROS parameters.
-   * @return true if successful.
-   */
-  bool readParameters();
 
   /*!
    * Publishes the detection image.
    * @return true if successful.
    */
-  bool publishDetectionImage(const cv::Mat& detectionImage);
+  bool publishDetectionImage(const cv::Mat& detectionImage, const ros::Publisher& publisher_);
 
   cv::Mat occlutionMap(cv::Rect_<int> bbox, size_t kk, bool FNcheck);
 
@@ -240,6 +240,8 @@ private:
 
   //! Publisher of the bounding box image.
   ros::Publisher detectionImagePublisher_;
+  ros::Publisher disparityColorPublisher_, trackingPublisher_;
+  ros::Publisher obstacleMaskPublisher_, slopePublisher_;
 
   std::vector<Blob> currentFrameBlobs;
   std::vector<Blob> blobs;
@@ -272,7 +274,6 @@ private:
   image buffLetter_;//[3];
   cv::Mat buff_cv_l_;//[3];
   cv::Mat buff_cv_r_;//[3];
-  cv::Mat disparityFrame;//[3];
 //  int buffId_;//[3];
 //  int buffIndex_ = 0;
 
@@ -309,6 +310,7 @@ private:
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
   cv::Mat left_rectified, right_rectified, output, ObsDisparity;
+  cv::Mat color_out;
 //  bool updateOutput = true;
   boost::shared_mutex mutexImageCallback_;
 

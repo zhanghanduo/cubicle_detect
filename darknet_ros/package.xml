@@ -46,4 +46,8 @@
 
   <!-- Test dependencies -->
   <test_depend>rostest</test_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/detection_plugin.xml" />
+  </export>
 </package>

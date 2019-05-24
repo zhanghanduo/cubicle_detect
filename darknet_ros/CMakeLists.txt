@@ -154,6 +154,7 @@ find_package(catkin REQUIRED
         rospy
         sensor_msgs
         geometry_msgs
+        nodelet
         image_geometry
         std_msgs
         actionlib
@@ -203,7 +204,7 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
 )
 
-if (CUDA_FOUND)
+#if (CUDA_FOUND)
 
   link_directories(
     /usr/local/cuda/lib64
@@ -220,7 +221,7 @@ if (CUDA_FOUND)
       message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
   endif()
 
-  cuda_add_library(${PROJECT_NAME}_lib STATIC
+  cuda_add_library(${PROJECT_NAME}_lib
           src/YoloObjectDetector.cu
           src/image_interface.c
           src/Blob.cu
@@ -228,11 +229,6 @@ if (CUDA_FOUND)
           #src/hog.cpp
           src/Hungarian.cpp
           src/Obstacles.cpp
-#          src/sgm/costs.cu
-#          src/sgm/debug.cu
-#          src/sgm/disparity_method.cu
-#          src/sgm/hamming_cost.cu
-#          src/sgm/median_filter.cu
 #          src/image_opencv.cpp
 #          src/track_kalman.hpp
 #          src/track.hpp
@@ -269,28 +265,27 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/network_kernels.cu
     )
 
-  target_link_libraries(${PROJECT_NAME}_lib
-          pthread
-          stdc++
-          cuda
-          cudart
-          cublas
-          curand
-          cudnn
-          ${Boost_LIBRARIES}
-          ${catkin_LIBRARIES}
-          ${OpenCV_LIBS}
-          ${EIGEN3_LIBS}
-          ${CUDA_LIBRARIES}
-          ${CMAKE_CURRENT_SOURCE_DIR}/../libSGM/lib/libsgm.a
-          )
+target_link_libraries(${PROJECT_NAME}_lib
+        pthread
+        stdc++
+        cuda
+        cudart
+        cublas
+        curand
+        cudnn
+        ${Boost_LIBRARIES}
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        ${EIGEN3_LIBS}
+        ${CUDA_LIBRARIES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../libSGM/lib/libsgm.so
+        )
 
-  cuda_add_executable(${PROJECT_NAME}
-    src/yolo_object_detector_node.cpp
-  )
+cuda_add_executable(${PROJECT_NAME}
+  src/yolo_object_detector_node.cpp
+)
 
-endif()
-
+#endif()
 target_link_libraries(${PROJECT_NAME}
   ${PROJECT_NAME}_lib
 )
@@ -298,6 +293,10 @@ target_link_libraries(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}_lib
         obstacle_msgs_generate_messages_cpp
 )
+
+cuda_add_library(cubicle_nodelet src/object_detector_nodelet.cpp )
+target_link_libraries(cubicle_nodelet ${PROJECT_NAME}_lib)
+
 
 install(TARGETS ${PROJECT_NAME}_lib
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -314,47 +313,3 @@ install(
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h"
 )
-
-# Download yolov2-tiny.weights
-#set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
-#set(FILE "${PATH}/yolov2-tiny.weights")
-#message(STATUS "Checking and downloading yolov2-tiny.weights if needed ...")
-#if (NOT EXISTS "${FILE}")
-#  message(STATUS "... file does not exist. Downloading now ...")
-#  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2-tiny.weights -P ${PATH})
-#endif()
-
-# Download yolov3.weights
-#set(FILE "${PATH}/yolov3.weights")
-#message(STATUS "Checking and downloading yolov3.weights if needed ...")
-#if (NOT EXISTS "${FILE}")
-#  message(STATUS "... file does not exist. Downloading now ...")
-#  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3.weights -P ${PATH})
-#endif()
-
-#############
-## Testing ##
-#############
-
-#if(CATKIN_ENABLE_TESTING)
-#  # Download yolov2.weights
-#  set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
-#  set(FILE "${PATH}/yolov2.weights")
-#  message(STATUS "Checking and downloading yolov2.weights if needed ...")
-##  if (NOT EXISTS "${FILE}")
-##    message(STATUS "... file does not exist. Downloading now ...")
-##    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
-##  endif()
-#
-#  find_package(rostest REQUIRED)
-#
-#  # Object detection in images.
-#  add_rostest_gtest(${PROJECT_NAME}_object_detection-test
-#    test/object_detection.test
-#    test/test_main.cpp
-#    test/ObjectDetection.cpp
-#  )
-#  target_link_libraries(${PROJECT_NAME}_object_detection-test
-#    ${catkin_LIBRARIES}
-#  )
-#endif()

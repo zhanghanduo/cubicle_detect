@@ -5,13 +5,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 #set(CUDA_ARCH "-arch=sm_50" CACHE STRING "Value of the NVCC -arch option.")
 
-option(LIBSGM_SHARED        "Build a shared library" OFF)
-option(BUILD_OPENCV_WRAPPER "Make library compatible with cv::Mat and cv::cuda::GpuMat of OpenCV" OFF)
+option(LIBSGM_SHARED        "Build a shared library" ON)
+option(BUILD_OPENCV_WRAPPER "Make library compatible with cv::Mat and cv::cuda::GpuMat of OpenCV" ON)
 
 project(libSGM VERSION 2.4.0)
 
 if(BUILD_OPENCV_WRAPPER)
-	find_package(OpenCV REQUIRED core)
+	find_package(OpenCV 3.4.0 REQUIRED core)
 	include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
