@@ -14,9 +14,6 @@
   <!-- Nodelet manager -->
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
-  <rosparam command="load" file="$(find cubicle_detect)/config/ros.yaml"/>
-  <rosparam command="load" file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
-
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->
   <include file="$(find undistort_images)/launch/bus.launch" />
@@ -27,7 +24,7 @@
 <!--   Start darknet and ros wrapper-->
   <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
-    <rosparam command="load"            file="$(find cubicle_detect)/config/ros.yaml"/>
+    <rosparam command="load"            file="$(find cubicle_detect)/config/cv.yaml"/>
     <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />

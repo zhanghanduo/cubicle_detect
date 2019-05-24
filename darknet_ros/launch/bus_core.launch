@@ -6,10 +6,10 @@
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
-  <arg name="nodelet_manager_name"  default="ugv_nodelet_manager" />
+<!--  <arg name="nodelet_manager_name"  default="ugv_nodelet_manager" />-->
 
   <!-- Nodelet manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
+<!--  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>-->
 
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->
@@ -39,7 +39,7 @@
     <param name="enable_classification" value="true" />
   </node>
 
-  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />
+<!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />-->
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

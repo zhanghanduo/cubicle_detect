@@ -406,32 +406,6 @@ void YoloObjectDetector::DefineLUTs() {
 
 }
 
-void YoloObjectDetector::timerCallback(const ros::TimerEvent& event ) {
-//    while(ros::ok()) {
-        ROS_WARN("haha");
-
-/*        if (viewImage_) {
-            if (!color_out.empty())
-                cv::imshow("Detection and Tracking", color_out);
-
-            if ((enableStereo) && (!disparityFrame.empty())) {
-                // To better visualize the result, apply a colormap to the computed disparity
-                double min, max;
-                minMaxIdx(disparityFrame, &min, &max);
-//            std::cout << "disp min " << min << std::endl << "disp max " << max << std::endl;
-                cv::Mat cm_disp, scaledDisparityMap;
-                convertScaleAbs(disparityFrame, scaledDisparityMap, 3.1);
-                applyColorMap(scaledDisparityMap, cm_disp, cv::COLORMAP_JET);
-                cv::imshow("Disparity", cm_disp);
-//            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
-            }
-            cv::waitKey(waitKeyDelay_);
-        }*/
-//        std::chrono::milliseconds dura(2);
-//        std::this_thread::sleep_for(dura);
-//    }
-}
-
 void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1,
                                         const sensor_msgs::ImageConstPtr &image2){
 //    ROS_WARN("[ObstacleDetector] Stereo images received.");
@@ -1768,6 +1742,8 @@ void YoloObjectDetector::CreateMsg(){
 
     if(viewImage_) {
         cv::imshow("Detection and Tracking", color_out);
+        cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
+        cv::imshow("Slope Map", ObstacleDetector.slope_map);
         if (enableStereo) {
             cv::imshow("Disparity", cm_disp);
 //            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
@@ -1942,7 +1918,7 @@ void YoloObjectDetector::Process(){
 //    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
 //    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
-    if ( frame_num%30==1 ) {
+    if ( frame_num%30==1 && enableConsoleOutput_ ) {
         printf("FPS:%.1f, Stereo:%.1f, Obs:%.1f, Classification:%.1f\n", fps_, stereo_fps_, obs_fps_, classi_fps_);
     }
 

@@ -137,8 +137,6 @@ class YoloObjectDetector
     void loadCameraCalibration( const sensor_msgs::CameraInfoConstPtr&left_info,
                                 const sensor_msgs::CameraInfoConstPtr&right_info);
 
-    void timerCallback( const ros::TimerEvent& event );
-
      /*!
       * Generate look up table to speed up depth generation.
       */

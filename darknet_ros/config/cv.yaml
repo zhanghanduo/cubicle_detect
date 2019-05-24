@@ -27,7 +27,7 @@ publishers:
 
 image_view:
 
-  enable_opencv: false
-  wait_key_delay: 1
+  enable_opencv: true
+  wait_key_delay: 2
   enable_console_output: true
   eval: false
