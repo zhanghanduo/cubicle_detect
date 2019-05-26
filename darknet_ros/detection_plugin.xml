@@ -2,6 +2,6 @@
     <class name="darknet_ros/detection_nodelet"
            type="darknet_ros::detection_nodelet"
            base_class_type="nodelet::Nodelet">
-        <description>This is the nodelet of ROS interface for STK bus Camera for uncompress and camera info generation.</description>
+        <description>This is the nodelet of ROS interface for object 3D detection and disparity map generation based on CUDA.</description>
     </class>
 </library>

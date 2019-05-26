@@ -6,17 +6,16 @@
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
-<!--  <arg name="nodelet_manager_name"  default="ugv_nodelet_manager" />-->
+  <arg name="nodelet_manager_name"       default="ugv_nodelet_manager" />
 
   <!-- Nodelet manager -->
 <!--  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>-->
 
-  <!--<param name="use_sim_time" value="true" />-->
-  <!--Rectify input stereo images  -->
-  <include file="$(find undistort_images)/launch/bus.launch" />
+  <param name="use_sim_time" value="true" />
 
 <!--  Localization-->
-<!--  <include file="$(find sslam_estimator)/launch/bus_core.launch" />-->
+  <include file="$(find sslam_estimator)/launch/bus_core.launch" />
+  <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--   Start darknet and ros wrapper-->
   <node pkg="nodelet" type="nodelet" name="cubicle_detection" args="load darknet_ros/detection_nodelet

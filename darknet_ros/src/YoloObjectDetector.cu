@@ -8,8 +8,8 @@
 
 
 // yolo object detector
-#include "darknet_ros/YoloObjectDetector.hpp"
-#include "utils/data.h"
+#include "../include/darknet_ros/YoloObjectDetector.hpp"
+#include "../include/utils/data.h"
 #include <math.h>
 #include <ros/package.h>
 // Check for xServer
@@ -218,7 +218,7 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
                       std::string("/obs_map"));
     nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-    nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("refined_camera"));
+    nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera"));
 
     nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
                       std::string("/disparity_map"));
@@ -227,7 +227,7 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
                       std::string("/obs_disparity_map"));
     nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
-                      std::string("refined_camera"));
+                      std::string("camera"));
     nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
 
     disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
@@ -251,7 +251,7 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
   return true;
 }
 
-void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
+void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
                                                const sensor_msgs::CameraInfoConstPtr &right_info) {
 
   ROS_INFO_STREAM("init calibration");
@@ -264,8 +264,6 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   sensor_msgs::CameraInfoPtr left_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*left_info);
   sensor_msgs::CameraInfoPtr right_info_copy = boost::make_shared<sensor_msgs::CameraInfo>(*right_info);
-//  left_info_copy->header.frame_id = "stereo";
-//  right_info_copy->header.frame_id = "stereo";
 
   // Get Stereo Camera Model from Camera Info message
   image_geometry::StereoCameraModel stereoCameraModel;
@@ -303,13 +301,13 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
   rem_w = Width % 4;
   rem_h = Height % 4;
-  ROS_WARN("remainder width: %d | remainder height: %d", rem_w, rem_h);
-
   Width_crp = Width - rem_w;
   Height_crp = Height - rem_h;
 
-  if(rem_w || rem_h)
+  if(rem_w || rem_h) {
       is_even_crop = true;
+      ROS_WARN("remainder width: %d | remainder height: %d", rem_w, rem_h);
+  }
 
   assert(intrinsicLeft == intrinsicRight);
   const cv::Matx33d &intrinsic = intrinsicLeft;
@@ -332,11 +330,6 @@ void YoloObjectDetector:: loadCameraCalibration(const sensor_msgs::CameraInfoCon
 
 //  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
   ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, min_disparity);
-
-
-//  // get the Region Of Interests (If the images are already rectified but invalid pixels appear)
-//  left_roi_ = cameraLeft.rawRoi();
-//  right_roi_ = cameraRight.rawRoi();
 }
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
@@ -476,8 +469,10 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
         }
 
         if (notInitiated)
+            // Initialize YOLO network, pre-allocate some space.
             yolo();
 
+        // The main function for processing all the algos.
         Process();
     }
 }

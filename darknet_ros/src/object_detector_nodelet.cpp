@@ -31,7 +31,6 @@ namespace darknet_ros {
         }
 
     private:
-        boost::mutex image_mutex_;
         std::string image_left_topic, image_right_topic, image_left_info, image_right_info;
         darknet_ros::YoloObjectDetector detector;
         Subscriber<sensor_msgs::Image> image1_sub, image2_sub;
