@@ -10,7 +10,7 @@
 #include <darknet_ros/YoloObjectDetector.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
+//#include <message_filters/sync_policies/approximate_time.h>
 #include <pluginlib/class_list_macros.h>
 #include <message_filters/sync_policies/exact_time.h>
 
@@ -34,8 +34,8 @@ namespace darknet_ros {
         std::string image_left_topic, image_right_topic, image_left_info, image_right_info;
         darknet_ros::YoloObjectDetector detector;
         Subscriber<sensor_msgs::Image> image1_sub, image2_sub;
-        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> ExactPolicy;
-//        typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image> ExactPolicy;
+//        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> ExactPolicy;
+        typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image> ExactPolicy;
         typedef message_filters::Synchronizer<ExactPolicy> ExactSync;
         boost::shared_ptr<ExactSync> exact_sync_;
     };

@@ -157,7 +157,7 @@ find_package(catkin REQUIRED
         nodelet
         image_geometry
         std_msgs
-        actionlib
+#        actionlib
         obstacle_msgs
         image_transport
         eigen_conversions
@@ -182,7 +182,7 @@ catkin_package(
   CATKIN_DEPENDS
         cv_bridge
         roscpp
-        actionlib
+#        actionlib
         rospy
         std_msgs
         geometry_msgs

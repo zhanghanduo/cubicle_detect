@@ -164,6 +164,8 @@ private:
    */
   bool publishDetectionImage(const cv::Mat& detectionImage, const ros::Publisher& publisher_);
 
+  bool publishDetectionImage_single(const cv::Mat& detectionImage, const ros::Publisher& publisher_);
+
   cv::Mat occlutionMap(cv::Rect_<int> bbox, size_t kk, bool FNcheck);
 
   void calculateHistogram(Blob &currentDet, cv::Mat hsv, cv::Mat mask, int widthSeperate, int heightSeperate);
@@ -308,7 +310,7 @@ private:
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;
   cv::Mat left_rectified, right_rectified, output, ObsDisparity;
-  cv::Mat color_out;
+  cv::Mat tracking_output;
 //  bool updateOutput = true;
   boost::shared_mutex mutexImageCallback_;
 

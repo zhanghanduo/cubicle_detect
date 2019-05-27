@@ -2,6 +2,10 @@
 
 <launch>
   <!-- Config and weights folder. -->
+  <arg name="source_frame"                            value="world"/>
+  <arg name="robot_frame"                             value="camera"/>
+  <arg name="publish_obstacle"                        value="/mapObs"/>
+  <arg name="road_info"                               value="false"/>
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
   <arg name="min_disparity"              default="6"/>
@@ -12,11 +16,10 @@
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
 <!--  <param name="use_sim_time" value="true" />-->
-  <!--Rectify input stereo images  -->
-  <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--  Localization-->
-<!--  <include file="$(find sslam_estimator)/launch/bus_core.launch" />-->
+  <include file="$(find sslam_estimator)/launch/bus_core.launch" />
+  <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--   Start darknet and ros wrapper-->
   <node pkg="nodelet" type="nodelet" name="cubicle_detection" args="load darknet_ros/detection_nodelet
@@ -39,7 +42,30 @@
     <param name="enable_classification" value="true" />
   </node>
 
-  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />
+  <node pkg="nodelet" type="nodelet" name="volumetric_map" args="load volumetric_mapping/map_manager
+    $(arg nodelet_manager_name)" output="screen">
+    <param name="tf_frame"                type="string"     value="$(arg source_frame)" />
+    <param name="resolution"              value="0.5" />
+    <param name="sensor_max_range"        value="40.0" />
+    <param name="local_max"               value="100" />
+    <param name="map_publish_frequency"   type="double"     value="1.0"/>
+    <remap from="disparity"               to="/obs_disparity_map" />
+    <!--        <remap from="pointcloud"              to="/obs_points" />-->
+    <!--<remap from="pointcloud"              to="/velodyne_points" />-->
+    <remap from="cam0/camera_info"        to="/left/camera_info" />
+    <remap from="cam1/camera_info"        to="/right/camera_info" />
+  </node>
+
+  <node pkg="cmerge" type="cmerge_single_node" name="cubicle_merge_bus" output="screen">
+      <param name="source_frame"                      value="$(arg source_frame)" />
+      <param name="base_frame"                        value="$(arg robot_frame)" />
+      <param name="input_type"                        value="2" />
+      <param name="smooth_value"                      value="0.7" />
+      <param name="obstacle/map"                      value="/obs_map" />
+      <param name="road_info"                         value="$(arg road_info)" />
+      <param name="publish/map"                       value="$(arg publish_obstacle)" />
+  </node>
+<!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />-->
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

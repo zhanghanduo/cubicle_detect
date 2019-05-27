@@ -600,6 +600,12 @@ void ObstaclesDetection::RefineObstaclesMap () {
         }
     }
 
+    for (auto & currentFrameObsBlob : currentFrameObsBlobs) {
+        for (auto & obsPoint : currentFrameObsBlob.obsPoints){
+            obsMask.at<uchar>(obsPoint.x, obsPoint.y) = 1;
+        }
+    }
+    obsDisFiltered = obstacleDisparityMap.mul(obsMask);
 //    if(debugPosObs){
 //        cv::imshow("u_thresh_map_clr",u_thresh_map_clr);
 //        cv::imshow("test_output",test_output);
@@ -1031,10 +1037,16 @@ void ObstaclesDetection::DisplayPosObs() {
 //    cv::cvtColor(left_rect, posObsOutput, CV_GRAY2RGB);
 
 //    std::cout << "Completed GenerateObstaclesMap function in posObstacles.cpp" << std::endl;
+
+//    std::vector<cv::Mat> channels(3);
+//    cv::split(left_rect_clr, channels);
+//    channels[2] = channels[2].mul(obsMask);
+//    cv::merge(channels, left_rect_clr);
+
     for (auto & currentFrameObsBlob : currentFrameObsBlobs) {
         cv::rectangle(left_rect_clr, currentFrameObsBlob.currentBoundingRect, cv::Scalar( 0, 0, 255 ), 2);
-        for(int j=0; j<currentFrameObsBlob.obsPoints.size();j++){
-            left_rect_clr.at<cv::Vec3b>(currentFrameObsBlob.obsPoints[j].x, currentFrameObsBlob.obsPoints[j].y)[2]=255;//cv::Vec3b(0,0,255);
+        for(auto & obsPoint : currentFrameObsBlob.obsPoints){
+            left_rect_clr.at<cv::Vec3b>(obsPoint.x, obsPoint.y)[2]=255;//cv::Vec3b(0,0,255);
         }
         std::ostringstream str;
         str << depthTable[currentFrameObsBlob.max_disparity]<<"m";
@@ -1052,7 +1064,7 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
 //    std::cout<<camera_type<<", "<<disparity_size<<", "<<baseline<<std::endl;
 
-    double minHeight =0.3;//0.4m
+    double minHeight =0.4;//0.4m
     double uHysteresisThreshRatio = 0.7;
     double minWidthToSeperate = 0.5; //0.5m
     double minDepthToSeperate = 6; //6m
@@ -1126,7 +1138,7 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     slopeAdjHeight = 10/scale; // cm -- slope
     slopeAdjLength = 1500/scale; // cm -- slope
     minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
-    minNoOfPixelsForObject = 80/scale;
+    minNoOfPixelsForObject = 100/scale;
 
 //    if (camera_type == "long_camera") {
 //        rdRowToDisRegard = 10;
@@ -1185,11 +1197,11 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         }
     }
 
-    cv::Mat left_rect_gray;
-    img.copyTo(left_rect_gray);
-//    std::cout<<img.channels()<<", "<<img.type()<<std::endl;
-//    std::cout<<left_rect_clr.channels()<<", "<<left_rect_clr.type()<<std::endl;
-    cv::cvtColor(left_rect_gray, left_rect_clr, cv::COLOR_GRAY2BGR);
+//    cv::Mat left_rect_gray;
+//    img.copyTo(left_rect_gray);
+//    cv::cvtColor(left_rect_gray, left_rect_clr, cv::COLOR_GRAY2BGR);
+
+    img.copyTo(left_rect_clr);
 
 //    std::string img_name1;
 //    char im1[20];
@@ -1202,6 +1214,8 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
     road = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
     v_disparity_map = cv::Mat(disparity_map.rows, disp_size, CV_8UC1, cv::Scalar::all(0));
     u_disparity_map = cv::Mat(disp_size, disparity_map.cols, CV_8UC1, cv::Scalar::all(0));
+    obsMask = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+    obsDisFiltered = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);;
 
     initialRoadProfile.clear();
     refinedRoadProfile.clear();

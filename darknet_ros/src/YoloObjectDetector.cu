@@ -10,6 +10,7 @@
 // yolo object detector
 #include "../include/darknet_ros/YoloObjectDetector.hpp"
 #include "../include/utils/data.h"
+#include "../include/darknet_ros/Obstacles.h"
 #include <math.h>
 #include <ros/package.h>
 // Check for xServer
@@ -329,7 +330,7 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
   depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
 //  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
-  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, min_disparity);
+  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 12);
 }
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
@@ -416,8 +417,8 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
         else {
             cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);
         }
-//        image_time_ = image1->header.stamp;
-        image_time_ = ros::Time::now();
+        image_time_ = image1->header.stamp;
+//        image_time_ = ros::Time::now();
         imageHeader_ = image1->header;
     } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
@@ -491,6 +492,21 @@ bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage, co
   ROS_DEBUG("Detection image has been published.");
   return true;
 }
+
+    bool YoloObjectDetector::publishDetectionImage_single(const cv::Mat& detectionImage, const ros::Publisher& publisher_)
+    {
+        if (publisher_.getNumSubscribers() < 1)
+            return false;
+        cv_bridge::CvImage cvImage;
+//  cvImage.header.stamp = ros::Time::now();
+        cvImage.header.stamp = image_time_;
+        cvImage.header.frame_id = "camera";
+        cvImage.encoding = sensor_msgs::image_encodings::MONO8;
+        cvImage.image = detectionImage;
+        publisher_.publish(*cvImage.toImageMsg());
+        ROS_DEBUG("Detection image has been published.");
+        return true;
+    }
 
 int YoloObjectDetector::sizeNetwork(network *net)
 {
@@ -1689,9 +1705,9 @@ void YoloObjectDetector::CreateMsg(){
 
     output = camImageCopy_.clone();// buff_cv_l_.clone();
     if(output.type() == CV_8UC1)
-        cv::cvtColor(output, color_out, CV_GRAY2RGB);
+        cv::cvtColor(output, tracking_output, CV_GRAY2RGB);
     else
-        color_out = output;
+        tracking_output = output;
 
     std::vector<cv::Scalar> colors;
     cv::RNG rng(0);
@@ -1702,14 +1718,14 @@ void YoloObjectDetector::CreateMsg(){
 //            if (blobs[i].blnStillBeingTracked == true) {
         std::ostringstream str_;
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
-            cv::rectangle(color_out, blobs[i].boundingRects.back(), colors.at(i), 2);
+            cv::rectangle(tracking_output, blobs[i].boundingRects.back(), colors.at(i), 2);
             int rectMinX = blobs[i].boundingRects.back().x;
             int rectMinY = blobs[i].boundingRects.back().y;
-            cv::rectangle(color_out, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
+            cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
             int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
             str_ << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
 //            str_ << i;
-            cv::putText(color_out, str_.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 0.8, CV_RGB(255,255,255));
+            cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 0.8, CV_RGB(255,255,255));
 
 //            cv::Rect predRect;
 //            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
@@ -1736,7 +1752,7 @@ void YoloObjectDetector::CreateMsg(){
     }
 
     if(viewImage_) {
-        cv::imshow("Detection and Tracking", color_out);
+        cv::imshow("Detection and Tracking", tracking_output);
         cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
         cv::imshow("Slope Map", ObstacleDetector.slope_map);
         if (enableStereo) {
@@ -1745,20 +1761,22 @@ void YoloObjectDetector::CreateMsg(){
         }
        cv::waitKey(waitKeyDelay_);
     } else {
-        if (!publishDetectionImage(color_out, trackingPublisher_)) {
-            ROS_DEBUG("Tracking image has not been broadcasted.");
+        if (!publishDetectionImage(tracking_output, trackingPublisher_)) {
+            ROS_DEBUG("Tracking image has not been broadcast.");
         }
-
+//        if (!publishDetectionImage_single(ObsDisparity * 255 /disp_size, trackingPublisher_)) {
+//            ROS_DEBUG("Tracking image has not been broadcasted.");
+//        }
         if (!publishDetectionImage(cm_disp, disparityColorPublisher_)) {
-            ROS_DEBUG("Disparity image has not been broadcasted.");
+            ROS_DEBUG("Disparity image has not been broadcast.");
         }
 
         if (!publishDetectionImage(ObstacleDetector.left_rect_clr, obstacleMaskPublisher_)) {
-            ROS_DEBUG("Obstacle image has not been broadcasted.");
+            ROS_DEBUG("Obstacle image has not been broadcast.");
         }
 
         if (!publishDetectionImage(ObstacleDetector.slope_map, slopePublisher_)) {
-            ROS_DEBUG("Slope map image has not been broadcasted.");
+            ROS_DEBUG("Slope map image has not been broadcast.");
         }
     }
 
@@ -1817,7 +1835,7 @@ void YoloObjectDetector::CreateMsg(){
         }
     }
     if(enableEvaluation_){
-        cv::imwrite(img_name, color_out);
+        cv::imwrite(img_name, tracking_output);
 //        cv::imwrite(file_name, output1*255/disp_size);
     }
 }
@@ -1857,7 +1875,7 @@ void YoloObjectDetector::Process(){
         stereo_thread.join();
         double obs_time_ = what_time_is_it_now();
         // 4. Obstacle detection according to the u-v disparity
-        ObstacleDetector.ExecuteDetection(disparityFrame, left_rectified);
+        ObstacleDetector.ExecuteDetection(disparityFrame, camImageCopy_);
         obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
 
@@ -1871,7 +1889,7 @@ void YoloObjectDetector::Process(){
     // 6. Get obstacle disparity map by filtering ground and moving objects
     ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
     if (enableClassification && enableStereo){
-        ObsDisparity = ObstacleDetector.obstacleDisparityMap.clone();
+        ObsDisparity = ObstacleDetector.obsDisFiltered.clone();
         if(filter_dynamic_)
             generateStaticObsDisparityMap();
 

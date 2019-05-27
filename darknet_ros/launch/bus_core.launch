@@ -9,9 +9,9 @@
   <arg name="nodelet_manager_name"       default="ugv_nodelet_manager" />
 
   <!-- Nodelet manager -->
-<!--  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>-->
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
-  <param name="use_sim_time" value="true" />
+<!--  <param name="use_sim_time" value="true" />-->
 
 <!--  Localization-->
   <include file="$(find sslam_estimator)/launch/bus_core.launch" />
