@@ -7,7 +7,7 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
-  <arg name="min_disparity"              default="6"/>
+  <arg name="min_disparity"              default="7"/>
   <arg name="disparity_scope"            default="128"/>
   <arg name="nodelet_manager_name"  default="ugv_nodelet_manager" />
 
@@ -17,6 +17,9 @@
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->
   <include file="$(find undistort_images)/launch/bus.launch" />
+
+  <rosparam command="load"            file="$(find cubicle_detect)/config/cv.yaml"/>
+  <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
 
 <!--  Localization-->
 <!--  <include file="$(find sslam_estimator)/launch/bus_core.launch" />-->

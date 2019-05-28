@@ -279,10 +279,10 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
 //    Q = cv::Mat(4, 4, CV_64F, data);
 
   // Get rectify intrinsic Matrix (is the same for both cameras because they are rectified)
-  cv::Mat projectionLeft = cv::Mat(cameraLeft.projectionMatrix());
-  cv::Matx33d intrinsicLeft = projectionLeft(cv::Rect(0, 0, 3, 3));
-  cv::Mat projectionRight = cv::Mat(cameraRight.projectionMatrix());
-  cv::Matx33d intrinsicRight = projectionRight(cv::Rect(0, 0, 3, 3));
+//  cv::Mat projectionLeft = cv::Mat(cameraLeft.projectionMatrix());
+//  cv::Matx33d intrinsicLeft = projectionLeft(cv::Rect(0, 0, 3, 3));
+//  cv::Mat projectionRight = cv::Mat(cameraRight.projectionMatrix());
+//  cv::Matx33d intrinsicRight = projectionRight(cv::Rect(0, 0, 3, 3));
 
   u0 = left_info->P[2];
   v0 = left_info->P[6];
@@ -310,8 +310,6 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
       ROS_WARN("remainder width: %d | remainder height: %d", rem_w, rem_h);
   }
 
-  assert(intrinsicLeft == intrinsicRight);
-  const cv::Matx33d &intrinsic = intrinsicLeft;
 
   // Save the baseline
   stereo_baseline_ = stereoCameraModel.baseline();
@@ -1019,7 +1017,6 @@ void *YoloObjectDetector::trackInThread() {
         ROS_DEBUG("Detection image has not been broadcasted.");
     }
 
-    free(buff_.data);
 //    cv::Mat clrImage = camImageCopy_;
     detListCurrFrame.clear();
     bboxResize = cv::Size(180,60);
@@ -1059,78 +1056,126 @@ void *YoloObjectDetector::trackInThread() {
         }
 
 //        std::cout<<"detListCurrFrame: "<<detListCurrFrame.size()<<std::endl;
+        for (size_t ii = 0; ii < detListCurrFrame.size(); ii++) {
+            if (detListCurrFrame.at(ii).validDet) {
+                auto xminii = static_cast<int>(detListCurrFrame.at(ii).bb_left);
+                auto yminii = static_cast<int>(detListCurrFrame.at(ii).bb_top);
+                auto xmaxii = static_cast<int>(detListCurrFrame.at(ii).bb_right);
+                auto ymaxii = static_cast<int>(detListCurrFrame.at(ii).bb_bottom);
+
+                auto rectii = cv::Rect_<int>(xminii,yminii,(xmaxii - xminii),(ymaxii - yminii));
+
+                for (size_t jj = 0; jj < detListCurrFrame.size(); jj++) {
+                    if (ii == jj)
+                        continue;
+                    if (detListCurrFrame.at(jj).validDet) {
+                        if (detListCurrFrame.at(ii).objCLass == detListCurrFrame.at(jj).objCLass) {
+                            auto xminjj = static_cast<int>(detListCurrFrame.at(jj).bb_left);
+                            auto yminjj = static_cast<int>(detListCurrFrame.at(jj).bb_top);
+                            auto xmaxjj = static_cast<int>(detListCurrFrame.at(jj).bb_right);
+                            auto ymaxjj = static_cast<int>(detListCurrFrame.at(jj).bb_bottom);
+
+                            auto rectjj = cv::Rect_<int>(xminjj, yminjj, (xmaxjj - xminjj), (ymaxjj - yminjj));
+
+                            double iou = (double) (rectii & rectjj).area() / (rectii | rectjj).area();
+
+                            if (iou > 0.7) {
+                                if (detListCurrFrame.at(ii).det_conf > detListCurrFrame.at(jj).det_conf)
+                                    detListCurrFrame.at(jj).validDet = false;
+                                else {
+                                    detListCurrFrame.at(ii).validDet = false;
+                                    break;
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
 
         for (size_t ii = 0; ii < detListCurrFrame.size(); ii++) {
 
-            auto center_c_ = static_cast<int>((detListCurrFrame.at(ii).bb_left + detListCurrFrame.at(ii).bb_right) /
-                                              2.f);     //2D column
-            auto center_r_ = static_cast<int>((detListCurrFrame.at(ii).bb_top + detListCurrFrame.at(ii).bb_bottom) /
-                                              2.f);    //2D row
+            if (detListCurrFrame.at(ii).validDet) {
 
-            auto xmin = detListCurrFrame.at(ii).bb_left;
-            auto ymin = detListCurrFrame.at(ii).bb_top;
-            auto xmax = detListCurrFrame.at(ii).bb_right;
-            auto ymax = detListCurrFrame.at(ii).bb_bottom;
+                auto center_c_ = static_cast<int>((detListCurrFrame.at(ii).bb_left + detListCurrFrame.at(ii).bb_right) /
+                                                  2.f);     //2D column
+                auto center_r_ = static_cast<int>((detListCurrFrame.at(ii).bb_top + detListCurrFrame.at(ii).bb_bottom) /
+                                                  2.f);    //2D row
+
+                auto xmin = detListCurrFrame.at(ii).bb_left;
+                auto ymin = detListCurrFrame.at(ii).bb_top;
+                auto xmax = detListCurrFrame.at(ii).bb_right;
+                auto ymax = detListCurrFrame.at(ii).bb_bottom;
 
 //            std::cout << "xmin: " << xmin << ", ymin: " <<ymin<<", xmax: " <<xmax<<", ymax: "<< ymax << std::endl;
 
-            if (ymax >= (float) Height_crp) ymax = Height_crp - 1.0f;
-            if (xmax >= (float) Width_crp) xmax = Width_crp - 1.0f;
-            if (ymin < 0.f) ymin = 0.f;
-            if (xmin < 0.f) xmin = 0.f;
-            int median_kernel = static_cast<int>(std::min(xmax - xmin, ymax - ymin) / 2);
+                if (ymax >= (float) Height_crp) ymax = Height_crp - 1.0f;
+                if (xmax >= (float) Width_crp) xmax = Width_crp - 1.0f;
+                if (ymin < 0.f) ymin = 0.f;
+                if (xmin < 0.f) xmin = 0.f;
+                int median_kernel = static_cast<int>(std::min(xmax - xmin, ymax - ymin) / 2);
 
 //        if(compact_classLabels_[i] != "traffic light") {
-            int dis = 0;
-            if (enableStereo)
-                dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_,
-                                                        median_kernel));  // find 3x3 median
+                int dis = 0;
+                if (enableStereo)
+                    dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_,
+                                                            median_kernel));  // find 3x3 median
 
-            auto rect = cv::Rect_<int>(static_cast<int>(xmin),
-                                       static_cast<int>(ymin),
-                                       static_cast<int>(xmax - xmin),
-                                       static_cast<int>(ymax - ymin));
+                auto rect = cv::Rect_<int>(static_cast<int>(xmin),
+                                           static_cast<int>(ymin),
+                                           static_cast<int>(xmax - xmin),
+                                           static_cast<int>(ymax - ymin));
 
-            cv::Mat hsvBBox, mask, clrBBox, resizeClrBBox, resizeMask;
-            camImageCopy_(rect).copyTo(clrBBox);
-            mask = occlutionMap(rect, ii, false);
+                cv::Mat hsvBBox, mask, clrBBox, resizeClrBBox, resizeMask;
+                camImageCopy_(rect).copyTo(clrBBox);
+                mask = occlutionMap(rect, ii, false);
 
-            std::vector<cv::Point3f> cent_2d, cent_3d;
-            Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin);
-            outputObs.category = detListCurrFrame.at(ii).objCLass;
-            outputObs.probability = detListCurrFrame.at(ii).det_conf;
+                std::vector<cv::Point3f> cent_2d, cent_3d;
+                Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin);
+                outputObs.category = detListCurrFrame.at(ii).objCLass;
+                outputObs.probability = detListCurrFrame.at(ii).det_conf;
 
-            if (outputObs.category != "others" && rect.area() > 300) {
-                if (outputObs.category == "person"){
-                    cellsX = 3;
-                    cellsY = 4;//6;
-                    bboxResize = cv::Size(60,180);
-                }
-                cv::resize(clrBBox,resizeClrBBox,bboxResize);//bboxResize
-                cv::resize(mask,resizeMask,bboxResize);//bboxResize
-                cv::cvtColor(resizeClrBBox, hsvBBox, CV_BGR2HSV);
-                calculateHistogram(outputObs, hsvBBox, resizeMask, cellsX, cellsY);
-                calculateLPBH(outputObs, resizeClrBBox, cellsX, cellsY);
+                if (outputObs.category == "person" || outputObs.category == "vehicle" ||
+                    outputObs.category == "bicycle") {
 
-                if (enableStereo) {
-                    if (dis > min_disparity) { //(3600-200)*(dis-12)/(128-12)
-                        outputObs.position_3d[0] = x3DPosition[center_c_][dis];
-                        outputObs.position_3d[1] = y3DPosition[center_r_][dis];
-                        outputObs.position_3d[2] = depth3D[dis];
-                        double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
-                        xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
-                        xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
-                        ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
-                        ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
-                        outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
-                        outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
-                        outputObs.disparity = dis;
-                        currentFrameBlobs.push_back(outputObs);
+                    if (rect.area() > 300) {
+                        if (outputObs.category == "person") {
+                            cellsX = 3;
+                            cellsY = 4;//6;
+                            bboxResize = cv::Size(60, 180);
+                        } else {
+                            cellsX = 4;
+                            cellsY = 3;
+                            bboxResize = cv::Size(180, 60);
+                        }
+                        cv::resize(clrBBox, resizeClrBBox, bboxResize);//bboxResize
+                        cv::resize(mask, resizeMask, bboxResize);//bboxResize
+                        cv::cvtColor(resizeClrBBox, hsvBBox, CV_BGR2HSV);
+                        calculateHistogram(outputObs, hsvBBox, resizeMask, cellsX, cellsY);
+                        calculateLPBH(outputObs, resizeClrBBox, cellsX, cellsY);
 
+                        if (enableStereo) {
+                            if (dis > min_disparity) { //(3600-200)*(dis-12)/(128-12)
+                                outputObs.position_3d[0] = x3DPosition[center_c_][dis];
+                                outputObs.position_3d[1] = y3DPosition[center_r_][dis];
+                                outputObs.position_3d[2] = depth3D[dis];
+                                double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+                                xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+                                xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];
+                                ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+                                ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];
+                                outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
+                                outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));
+                                outputObs.disparity = dis;
+                                currentFrameBlobs.push_back(outputObs);
+
+                            }
+                        } else {
+                            if (rect.area() > 400)
+                                currentFrameBlobs.push_back(outputObs);
+                        }
                     }
-                } else {
-                    if (rect.area() > 400)
-                        currentFrameBlobs.push_back(outputObs);
                 }
             }
         }
@@ -1383,10 +1428,13 @@ void YoloObjectDetector::trackingFNs() {
                 }
             }
 
+//            std::cout << "debug 1.1" << std::endl;
+
             if (isNotOverlap && existingTrack.intNumOfConsecutiveFramesWithoutAMatch == 0 && existingTrack.counter > 4 &&
                 existingTrack.numOfConsecutiveFramesWithoutDetAsso < 4) {
                 cv::Rect trackLastBBox = existingTrack.boundingRects.back();
-                cv::Rect imgLeftExit = cv::Rect_<int>(0, 0, 2 * trackLastBBox.width, Height_crp);
+//                cv::Rect imgLeftExit = cv::Rect_<int>(0, 0, 2 * trackLastBBox.width, Height_crp);
+                cv::Rect imgLeftExit = cv::Rect_<int>(0, 0, trackLastBBox.width, Height_crp);
                 cv::Rect imgRightExit = cv::Rect_<int>((Width_crp - trackLastBBox.width), 0,
                                                        trackLastBBox.width, Height_crp);
                 double intersectionLeft = ((double) (imgLeftExit & trackLastBBox).area()) / trackLastBBox.area();
@@ -1399,10 +1447,6 @@ void YoloObjectDetector::trackingFNs() {
                     float xmin = existingTrack.preditcRect.x;//- width/ 2;
                     float ymin = existingTrack.preditcRect.y;// - height/2;
 
-                    Blob tmpTrack(xmin, ymin, width, height);
-                    tmpTrack.category = existingTrack.category;
-                    tmpTrack.probability = existingTrack.probability;
-
                     if (xmin < 0.0) {
                         width += xmin;
                         xmin = 0.0;
@@ -1412,8 +1456,8 @@ void YoloObjectDetector::trackingFNs() {
                         ymin = 0.0;
                     }
 
-                    float width_del = xmin + width - float(Width_crp);
-                    float height_del = ymin + height - float(Height_crp);
+                    float width_del = xmin + width - float(Width_crp) + 1.0f;
+                    float height_del = ymin + height - float(Height_crp) + 1.0f;
                     if (width_del > 0.0)
                         width -= width_del;
                     if (height_del > 0.0)
@@ -1423,6 +1467,12 @@ void YoloObjectDetector::trackingFNs() {
                         width > Width_crp || height > Height_crp) {
                         existingTrack.blnStillBeingTracked = false;
                     } else {
+
+                        Blob tmpTrack(xmin, ymin, width, height);
+                        tmpTrack.category = existingTrack.category;
+                        tmpTrack.probability = existingTrack.probability;
+
+//                        std::cout << "debug 1.2" << std::endl;
 
                         cv::Rect hsvBBox = cv::Rect_<int>(static_cast<int>(xmin), static_cast<int>(ymin),
                                                           static_cast<int>(width), static_cast<int>(height));
@@ -1435,6 +1485,10 @@ void YoloObjectDetector::trackingFNs() {
                             cellsX = 3;
                             cellsY = 4;//6;
                             bboxResize = cv::Size(60,180);
+                        } else {
+                            cellsX = 4;
+                            cellsY = 3;
+                            bboxResize = cv::Size(180,60);
                         }
 
                         cv::resize(clrBBoxROI, resizeClrBBox, bboxResize);
@@ -1442,6 +1496,8 @@ void YoloObjectDetector::trackingFNs() {
                         cv::cvtColor(resizeClrBBox, hsvBBoxROI, CV_BGR2HSV);
 
                         calculateHistogram(tmpTrack, hsvBBoxROI, resizeMask, cellsX, cellsY);
+
+//                        std::cout << "debug 1.3" << std::endl;
 
                         if (tmpTrack.overallOcclusion.back() < 0.8) {
                             double appSimilarity = 0.0;
@@ -1462,28 +1518,40 @@ void YoloObjectDetector::trackingFNs() {
                                 appSimilarity /= countHist;
 
 //                            std::cout<<r<<": "<<appSimilarity<<std::endl;
+//                            std::cout<<xmin<<", "<<ymin<<", "<<width<<", "<<height<<std::endl;
 
                             if (appSimilarity > 0.6) {
 
                                 if (enableStereo) {
+//                                    std::cout << "debug 1.4" << std::endl;
                                     auto center_c_ = static_cast<int>((xmin+width)/2);     //2D column
                                     auto center_r_ = static_cast<int>((ymin+height)/2);    //2D row
 
                                     int median_kernel = static_cast<int>(std::min(width, height) / 2);
-                                    int dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_,
+                                    int dis = 0;
+                                    dis = static_cast<int>(Util::median_mat(disparityFrame, center_c_, center_r_,
                                                                                 median_kernel));
+
+//                                    std::cout << "debug 1.5" << std::endl;
+//                                    std::cout << "disparity: " << dis << std::endl;
                                     if (dis > min_disparity && hsvBBox.area() > 300) { //(3600-200)*(dis-12)/(128-12)
                                         tmpTrack.position_3d[0] = x3DPosition[center_c_][dis];
                                         tmpTrack.position_3d[1] = y3DPosition[center_r_][dis];
                                         tmpTrack.position_3d[2] = depth3D[dis];
                                         double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
+//                                        std::cout << "debug 1.6" << std::endl;
                                         xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];
+//                                        std::cout << "debug 1.6.1" << std::endl;
                                         xmax_3d = x3DPosition[static_cast<int>(xmin+width)][dis];
+//                                        std::cout << "debug 1.6.2" << std::endl;
                                         ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];
+//                                        std::cout << "debug 1.6.3" << std::endl;
                                         ymax_3d = y3DPosition[static_cast<int>(ymin+height)][dis];
+//                                        std::cout << "debug 1.7" << std::endl;
                                         tmpTrack.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));
                                         tmpTrack.height = abs(static_cast<int>(ymax_3d - ymin_3d));
                                         tmpTrack.disparity = dis;
+//                                        std::cout << "debug 1.8" << std::endl;
                                         matchedFNs.push_back(tmpTrack);
                                         matchedTrackID.push_back(r);
                                     }
@@ -1604,6 +1672,8 @@ void YoloObjectDetector::addNewTracks() {
 }
 
 void YoloObjectDetector::updateUnmatchedTracks() {
+
+//    std::cout << "debug 7" << std::endl;
 
     cv::Rect imgFrame = cv::Rect_<int>(0, 0, Width_crp, Height_crp);
     int objectIDinTrack = 0;
@@ -1759,6 +1829,9 @@ void YoloObjectDetector::CreateMsg(){
             cv::imshow("Disparity", cm_disp);
 //            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
         }
+        if (enableClassification)
+            displayInThread();
+
        cv::waitKey(waitKeyDelay_);
     } else {
         if (!publishDetectionImage(tracking_output, trackingPublisher_)) {
@@ -1780,13 +1853,18 @@ void YoloObjectDetector::CreateMsg(){
         }
     }
 
+    free(buff_.data);
+
+//    std::cout<<enableEvaluation_<<std::endl;
+
     if(enableEvaluation_){
         sprintf(s, "f%03d.txt", frame_num);
         sprintf(im, "f%03d.png", frame_num);
 //        file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;
 //        file_name = ros::package::getPath("cubicle_detect") + "/dis_1/" + s;
-//        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
-        img_name = std::string("/home/ugv/seq_1/") + im;
+        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;
+//        std::cout<<img_name<<std::endl;
+//        img_name = std::string("/home/ugv/seq_1/") + im;
 //    file.open(file_name.c_str(), std::ios::app);
     }
     int cate = 0;
@@ -1912,9 +1990,6 @@ void YoloObjectDetector::Process(){
 
     fps_ = 1./(what_time_is_it_now() - demoTime_);
 //    demoTime_ = what_time_is_it_now();
-
-//    if (enableClassification)
-//        displayInThread();
 
     CreateMsg();
 

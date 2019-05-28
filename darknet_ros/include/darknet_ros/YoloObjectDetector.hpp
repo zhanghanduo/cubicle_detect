@@ -90,7 +90,7 @@ namespace darknet_ros {
     typedef struct {
         float bb_left = 0.0, bb_top = 0.0, bb_right = 0.0, bb_bottom = 0.0, det_conf = 0.0;
         std::string objCLass;
-//        bool validDet = true;
+        bool validDet = true;
     } inputDetection;
 
 class Detection;
