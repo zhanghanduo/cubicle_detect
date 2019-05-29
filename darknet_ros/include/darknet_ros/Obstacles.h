@@ -6,6 +6,11 @@
 #include <opencv2/opencv.hpp>
 //#include "darknet_ros/Blob.h"
 
+//negative obstacles
+#include "darknet_ros/segengine.h"
+#include "darknet_ros/structures.h"
+//#include "darknet_ros/RectangleDetector.h"
+
 struct u_span {
     int u_left; int u_right; int u_d;
     int u_pixels;
@@ -39,10 +44,9 @@ class ObstaclesDetection
 public:
     ObstaclesDetection();
     ~ObstaclesDetection();
-    void Initiate(int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity);
+    void Initiate(int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity, bool enNeg, const std::string& Parameter_filename);
     void ExecuteDetection(cv::Mat &disparity_map, cv::Mat &img);
     cv::Mat obsDisFiltered;
-
     cv::Mat slope_map, left_rect_clr;
 
 private:
@@ -59,21 +63,28 @@ private:
     void RoadSlopeInit();
     void DisplayRoad();
     void DisplayPosObs();
+    void GenerateSuperpixels ();
+    void SaliencyBasedDetection();
+    void IntensityBasedDetection ();
+    void GenerateNegativeObstacles();
 
     cv::Mat disparity_map, roadmap, obstaclemap, road, v_disparity_map, u_disparity_map; //road
     cv::Mat u_disparity_map_new, u_thresh_map, negObsMap, obsMask, obstacleDisparityMap; //positive obstacle detection
     cv::Mat prvSlopeMap; //slope
+    cv::Mat neg_obstacle, left_rect_clr_sp, superpixelIndexImage, superpixelImage; //negative obstacle detection
 
     std::vector<cv::Point2i> initialRoadProfile, refinedRoadProfile; // road
     std::vector<obsBlobs> currentFrameObsBlobs; // positive obstacle
     std::vector<cv::Vec3d> randomRoadPoints; //slope
     std::vector<cv::Point2i> randomRoadPoints2D; //slope
     std::vector<int> selectedIndexes; // slope
+    std::vector<std::vector<cv::Point> > contourList, contourListSaliency; //negative obstacle detection
 
 //    std::string pubName;
     cv::Vec3d surfaceN; // slope
     bool imuDetected = false; // slope
-//    cv::Rect region_of_interest;
+    bool intensityBased = false, saliencyBased = false; //negative obstacle detection
+    bool enNegObsDet = false; // to enable negative obstacle detection
 
     int roadNotVisibleDisparity = 0;
     int rdRowToDisRegard, rdStartCheckLines, intensityThVDisPoint, thHorizon;
@@ -86,6 +97,8 @@ private:
     int disForSlope, disForSlopeStart; // slope
     int slopeAdjHeight, slopeAdjLength;//cm -- slope
     int frameCount = 0;
+    int left_offset, right_offset, bottom_offset, top_offset;//negative obstacle detection
+    int minContourLengthForNegObs, minBlobDistanceForNegObs;//negative obstacle detection
 
     int *uDispThresh;
     int *uHysteresisLowThresh;
@@ -93,6 +106,7 @@ private:
     int *uDNeighbourhoodThresh;
     int *dynamicLookUpTableRoad;
     int *dynamicLookUpTableRoadProfile;
+    int *dispThreshForNeg; //negative obstacle detection
 
     double widthOfInterest = 15.0;//in meters in one direction
     double heightOfInterest = 2.5;//in meters in one direction
@@ -104,6 +118,9 @@ private:
     double **xDirectionPosition;
     double **yDirectionPosition;
     double *depthTable;
+
+    cv::Rect region_of_interest; //negative obstacle detection
+    SPSegmentationParameters seg_params; //negative obstacle detection
 
 };
 

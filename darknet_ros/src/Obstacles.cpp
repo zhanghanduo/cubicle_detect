@@ -218,7 +218,7 @@ void ObstaclesDetection::InitiateObstaclesMap () {
 //    std::cout<<std::endl;
 
     road_starting_row = refinedRoadProfile.back().x;        //2D coordinated with respect to the region of interest defined from rectified left image
-//    region_of_interest = cv::Rect(left_offset, road_starting_row, disparity_map.cols-left_offset-right_offset, disparity_map.rows-road_starting_row-bottom_offset);
+    region_of_interest = cv::Rect(left_offset, road_starting_row, disparity_map.cols-left_offset-right_offset, disparity_map.rows-road_starting_row-bottom_offset);
 
     int compare_patch = 3;
     for (int c = 1; c < roadmap.cols - 1; c++) {
@@ -313,9 +313,9 @@ std::vector<std::vector<u_span> > searchList (std::vector<u_span> uList, std::ve
             tmp.push_back(uList[i]);
             if(!iList[i].empty()){
                 for (int j=0; j<iList[i].size();j++){
-                    std::vector<int> list = searchElement(iList,iList[i][j],uList, visited);
-                    for(int k=0;k<list.size();k++){
-                        tmp.push_back(uList[list[k]]);
+                    std::vector<int> list1 = searchElement(iList,iList[i][j],uList, visited);
+                    for(int k=0;k<list1.size();k++){
+                        tmp.push_back(uList[list1[k]]);
                     }
                 }
             }
@@ -451,13 +451,13 @@ void ObstaclesDetection::RefineObstaclesMap () {
     }
 
     for (int j=0; j<USpanRowList.size();j++){
-        std::vector<int> list;
+        std::vector<int> list2;
         for (int i=0; i<USpanRowList.size();i++){
             if(adjacencyMatrix[j][i]){
-                list.push_back(i);
+                list2.push_back(i);
             }
         }
-        listOfCoreespondences.push_back(list);
+        listOfCoreespondences.push_back(list2);
     }
 
     auto *visited = new bool[USpanRowList.size()];
@@ -1059,8 +1059,376 @@ void ObstaclesDetection::DisplayPosObs() {
 //    cv::waitKey(1);
 }
 
+void ObstaclesDetection::GenerateSuperpixels() {
+    cv::Mat colorLeftRectified, temp;
+//    left_rect_clr_sp(cv::Rect(leftShift, topShift, roiWidth, roiHeight)).copyTo(temp);
+    left_rect_clr_sp(region_of_interest).copyTo(colorLeftRectified);
+    SPSegmentationEngine engine1(seg_params, colorLeftRectified);
+    engine1.ProcessImage();
+    superpixelIndexImage = engine1.GetSegmentation();
+//    superpixelImage = engine1.GetSegmentedImage();
+//    cv::imshow("superpixelImage", superpixelImage);
+//    cv::imshow("superpixelIndexImage", superpixelIndexImage);
+//    cv::imshow("temp", temp);
+//    cv::waitKey(0);
+}
+
+bool compareContours( std::vector<cv::Point> contour1, std::vector<cv::Point> contour2 ){
+    double i = cv::contourArea(cv::Mat(contour1))*contour1[0].y ;
+    double j = cv::contourArea(cv::Mat(contour2))*contour2[0].y ;
+    return ( i > j );
+}
+
+void ObstaclesDetection::SaliencyBasedDetection(){
+    saliencyBased = true;
+    int maxDepthForNegObs = 30; //in meters
+    cv::Mat roadmap_roi,neg_roi, image_roi, colour_roi;
+
+//    left_rectified(cv::Rect(leftShift, topShift, roiWidth, roiHeight)).copyTo(temp);
+    left_rect_clr_sp(region_of_interest).copyTo(colour_roi);
+    cv::cvtColor(colour_roi, image_roi, CV_BGR2GRAY);
+//    temp(region_of_interest).copyTo(image_roi);
+    roadmap(region_of_interest).copyTo(roadmap_roi);
+    negObsMap(region_of_interest).copyTo(neg_roi);
+    GenerateSuperpixels();
+    double min, max;
+    cv::minMaxLoc(superpixelIndexImage, &min, &max);
+    int spnum = max+1;
+
+    std::vector<std::vector<cv::Point3f>> spAttrib (spnum);
+    std::vector<cv::Point2f> isroad (spnum, cv::Point2f(0.0, 0.0));
+    std::vector<cv::Point2f> isneg (spnum, cv::Point2f(0.0, 0.0));
+
+    for (int r=0; r<superpixelIndexImage.rows; r++) {
+        for (int c=0; c<superpixelIndexImage.cols; c++) {
+            cv::Point3f curPoint ((float)image_roi.at<uchar>(r,c), (float)r, (float)c);
+            spAttrib.at(superpixelIndexImage.at<ushort>(r,c)).push_back(curPoint);
+            isroad.at(superpixelIndexImage.at<ushort>(r,c)).x += (int)roadmap_roi.at<uchar>(r,c);
+            isroad.at(superpixelIndexImage.at<ushort>(r,c)).y += 1;
+            isneg.at(superpixelIndexImage.at<ushort>(r,c)).x += (int)neg_roi.at<uchar>(r,c);
+            isneg.at(superpixelIndexImage.at<ushort>(r,c)).y += 1;
+        }
+    }
+
+    std::vector<double> clr_mean;// (spnum);
+    std::vector<double> x_mean;// (spnum);
+    std::vector<double> y_mean;// (spnum);
+
+    for (std::vector<std::vector<cv::Point3f>>::iterator it = spAttrib.begin(); it != spAttrib.end(); ++it) {
+        double clr_sum = 0;
+        double r_sum = 0;
+        double c_sum = 0;
+        for (std::vector<cv::Point3f>::iterator it2 = (*it).begin(); it2 != (*it).end(); ++it2) {
+            clr_sum += (*it2).x;
+            r_sum += (*it2).y;
+            c_sum += (*it2).z;
+        }
+
+        clr_mean.push_back(clr_sum / (*it).size());
+        y_mean.push_back(r_sum / (*it).size());
+        x_mean.push_back(c_sum / (*it).size());
+    }
+
+    cv::Mat clr_diff(spnum, spnum, CV_64FC1);
+    cv::Mat pos_diff(spnum, spnum, CV_64FC1);
+
+    for (int i = 0; i<spnum; i++) {
+        for (int j = i + 1; j < spnum; j++) {
+            clr_diff.at<double>(j, i) = clr_diff.at<double>(i, j) = abs(clr_mean[i] - clr_mean[j]);
+            pos_diff.at<double>(j, i) = pos_diff.at<double>(i, j) = sqrt(pow((x_mean.at(i) - x_mean.at(j)), 2.0)+pow((y_mean.at(i) - y_mean.at(j)), 2.0));
+        }
+    }
+
+    std::vector<double> saliencyValue (spnum, 0.0);
+    double max_pos_diff = sqrt(pow((double)image_roi.cols, 2.0)+pow((double)image_roi.rows, 2.0));
+
+    for (int i = 0; i<spnum; i++) {
+        if ((clr_mean.at(i)>=30) || (isroad.at(i).x/isroad.at(i).y) <=0.8 || isroad.at(i).y==0) {
+            saliencyValue.at(i) = 0;
+        } else {
+            for (int j = 0; j < spnum; j++) {
+                if (i == j)
+                    continue;
+            }
+        }
+    }
+
+    neg_obstacle = cv::Mat::zeros(superpixelIndexImage.rows, superpixelIndexImage.cols, CV_64FC1);
+
+    for (int r=0; r<superpixelIndexImage.rows; r++) {
+        for (int c=0; c<superpixelIndexImage.cols; c++) {
+            neg_obstacle.at<double>(r,c) = saliencyValue.at(superpixelIndexImage.at<ushort>(r,c));//Original Code
+        }
+    }
+
+    cv::minMaxLoc(neg_obstacle, &min, &max);
+    cv::Mat negObs_roi = cv::Mat::zeros(neg_obstacle.rows,neg_obstacle.cols, CV_8UC1);
+    for (int r=0; r<superpixelIndexImage.rows; r++) {
+        for (int c=0; c<superpixelIndexImage.cols; c++) {
+            neg_obstacle.at<double>(r,c) = (neg_obstacle.at<double>(r,c)-min)/(max-min);
+            if (neg_obstacle.at<double>(r,c)>0.1){//} && left_rectified.at<uchar>(r+road_starting_row,c+left_offset)<40){
+                negObs_roi.at<uchar>(r,c) = 1;
+            }
+        }
+    }
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(negObs_roi, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+    for( int i = 0; i< contours.size(); i++ ) {
+//        if (contours[i].size()>75){//contourArea(contours[i]) > 200) {
+//        int min_width = 0;
+//        if (contours[i][0].y+road_starting_row<left_rectified.rows){
+        int road_dispariy = dynamicLookUpTableRoadProfile[contours[i][0].y+road_starting_row];
+        int min_width = dispThreshForNeg[road_dispariy];
+//        }
+
+        if (contourArea(contours[i])>min_width*min_width && depthTable[road_dispariy]<maxDepthForNegObs) {
+            cv::Vec4f lines;
+            cv::fitLine(cv::Mat(contours[i]),lines,CV_DIST_L2,0,0.01,0.01);
+            if (abs(lines[1]/lines[0])<0.6){ //30 degree slope check
+                cv::Rect rect;
+                rect = cv::boundingRect(cv::Mat(contours[i]));
+                if(contourArea(contours[i])/rect.area()>0.4){
+                    contourListSaliency.push_back(contours[i]);
+                }
+            }
+        }
+    }
+
+    if (contourListSaliency.size()>2){
+        std::sort(contourListSaliency.begin(), contourListSaliency.end(), compareContours);
+    }
+}
+
+void FindBlobs(const cv::Mat &binary, std::vector < std::vector<cv::Point2i> > &blobs) {
+    blobs.clear();
+
+    // Fill the label_image with the blobs
+    // 0  - background
+    // 1  - unlabelled foreground
+    // 2+ - labelled foreground
+
+    cv::Mat label_image;
+    binary.convertTo(label_image, CV_32SC1);
+
+    int label_count = 2; // starts at 2 because 0,1 are used already
+
+    for(int y=0; y < label_image.rows; y++) {
+        int *row = (int*)label_image.ptr(y);
+        for(int x=0; x < label_image.cols; x++) {
+            if(row[x] != 1) {
+                continue;
+            }
+
+            cv::Rect rect;
+            cv::floodFill(label_image, cv::Point(x,y), label_count, &rect, 0, 0, 4);
+
+            std::vector <cv::Point2i> blob;
+
+            for(int i=rect.y; i < (rect.y+rect.height); i++) {
+                int *row2 = (int*)label_image.ptr(i);
+                for(int j=rect.x; j < (rect.x+rect.width); j++) {
+                    if(row2[j] != label_count) {
+                        continue;
+                    }
+
+                    blob.push_back(cv::Point2i(j,i));
+                }
+            }
+
+            blobs.push_back(blob);
+
+            label_count++;
+        }
+    }
+}
+
+void ObstaclesDetection::IntensityBasedDetection (){
+    intensityBased = true;
+    cv::Mat image, bw,bws, result, frame, disparity_input, bwd, clrNegObsMap, bwd_roi;
+
+//    left_rectified(cv::Rect(leftShift, topShift, roiWidth, roiHeight)).copyTo(frame);
+    cv::cvtColor(left_rect_clr_sp, frame, CV_BGR2GRAY);
+    cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7,7));
+    cv::Mat morph;
+
+//    std::cout<<"Inside IntensityBasedDetection in negObstacles.cpp - Debug 1"<<std::endl;
+
+//    image = frame.rowRange(road_starting_row,roiHeight);//left_rectified.rows);
+    image = frame.rowRange(road_starting_row,frame.rows);//left_rectified.rows);
+    cv::threshold(image, bw, 26, 255, 1);
+    bws = bw/255;
+
+    std::vector < std::vector<cv::Point2i > > blobs, final_blobs;
+    int count = 0;
+    FindBlobs(bws, blobs);
+    cv::cvtColor(negObsMap, clrNegObsMap, CV_GRAY2RGB);
+//    disparity_input = negObsMap.rowRange(road_starting_row,roiHeight);//left_rectified.rows);
+    disparity_input = negObsMap.rowRange(road_starting_row,frame.rows);//left_rectified.rows);
+
+    cv::morphologyEx( disparity_input, morph, cv::MORPH_OPEN, element );
+//    element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7,7));
+    cv::morphologyEx( morph, disparity_input, cv::MORPH_CLOSE, element );
+    bwd = bw.mul(disparity_input);
+
+//    std::cout<<"Inside IntensityBasedDetection in negObstacles.cpp - Debug 2"<<std::endl;
+
+    cv::Mat outputl = cv::Mat::zeros(bw.size(), CV_8UC1);
+    double blobList[blobs.size()];
+    for(size_t i=0; i < blobs.size(); i++) {
+        int matches =0;
+        for(size_t j=0; j < blobs[i].size(); j++) {
+            int x = blobs[i][j].x;
+            int y = blobs[i][j].y;
+
+            if(bwd.at<uchar>(y,x) != 0 ){
+                matches ++;
+            }
+        }
+        blobList[i] = (double) matches/blobs[i].size();
+        if(blobList[i] >= 0.05){
+            for(size_t j=0; j < blobs[i].size(); j++) {
+                int x = blobs[i][j].x;
+                int y = blobs[i][j].y;
+                outputl.at<uchar>(y,x) = 255;
+            }
+        }
+    }
+
+//    std::cout<<"Inside IntensityBasedDetection in negObstacles.cpp - Debug 3"<<std::endl;
+
+
+    bwd_roi = outputl(cv::Rect(left_offset,top_offset,bwd.cols-left_offset-right_offset,bwd.rows-bottom_offset-top_offset));
+//    cv::Mat img_roi = image(cv::Rect(left_offset,22,bwd.cols-2*left_offset,bwd.rows-44));
+    cv::Mat img_roi_blob = image(cv::Rect(left_offset,top_offset,bwd.cols-left_offset-right_offset,bwd.rows-bottom_offset-top_offset));
+    cv::Mat img_roi_boundry, blob_binary, boundry_binary;
+    img_roi_blob.copyTo(img_roi_boundry);
+    blob_binary = cv::Mat::zeros(img_roi_blob.rows,img_roi_blob.cols, CV_8UC1);
+    boundry_binary = cv::Mat::zeros(img_roi_blob.rows,img_roi_blob.cols, CV_8UC1);
+    std::vector<std::vector<cv::Point> > contours;
+    cv::findContours(bwd_roi, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+//    std::cout<<"Inside IntensityBasedDetection in negObstacles.cpp - Debug 4"<<std::endl;
+
+    for( int i = 0; i< contours.size(); i++ ){
+        if(contourArea(contours[i])>minContourLengthForNegObs){
+            cv::drawContours( blob_binary, contours, i, 1, CV_FILLED, 8);
+            cv::Scalar mean_blob = mean(img_roi_blob, blob_binary);
+            double mean_blob1 = mean_blob.val[0];
+            cv::Mat morph1;
+            cv::dilate( blob_binary, morph1, element);
+            boundry_binary = morph1 - blob_binary;
+            cv::Scalar mean_boundry = mean(img_roi_boundry, boundry_binary);
+            double mean_boundry1 = mean_boundry.val[0];
+            if (mean_boundry1-mean_blob1>minBlobDistanceForNegObs){
+                contourList.push_back(contours[i]);
+            }
+        }
+    }
+//    cv::imshow("bwd_roi",bwd_roi);
+//    cv::imshow("bw",bw);
+//    cv::imshow("disparity_input",disparity_input*255);
+//    cv::imshow("image",image);
+    //CRectangleDetector detector;
+//  std::vector<std::vector<cv::Point> > squares;
+    //std::vector<std::vector<cv::Point> > colorSquares[3];
+//  detector.FindSquares(bw, squares, colorSquares);
+//  result=detector.DrawSquares(clrimage, colorSquares, road_starting_row);
+//
+//  cv::imshow("result_neg",result);
+    // cv::waitKey(1);
+
+}
+
+void ObstaclesDetection::GenerateNegativeObstacles() {
+
+//    std::cout << "Entered GenerateNegativeObstacles function in negObstacles.cpp" << std::endl;
+    contourList.clear();
+    contourListSaliency.clear();
+
+    IntensityBasedDetection();
+//    SaliencyBasedDetection();
+
+//    std::cout << "Completed GenerateNegativeObstacles function in negObstacles.cpp" << std::endl;
+    cv::Mat negObsSaliencyOutput = left_rect_clr_sp.clone();
+    cv::Mat negObsIntensityOutput = left_rect_clr_sp.clone();
+    cv::Scalar color(0, 255, 0);
+
+    if (saliencyBased) {
+        cv::Point offset1(left_offset, road_starting_row);
+
+        if (contourListSaliency.size() > 2) {
+            cv::drawContours(negObsSaliencyOutput, contourListSaliency, 0, color, CV_FILLED, 8, cv::noArray(), INT_MAX,
+                             offset1);
+            std::vector<cv::Moments> mu(2);
+            double mc[2];
+            mu[0] = moments(contourListSaliency[0], false);
+            mc[0] = mu[0].m01 / mu[0].m00;
+            mu[1] = moments(contourListSaliency[1], false);
+            mc[1] = mu[1].m01 / mu[1].m00;
+            std::ostringstream str1, str2;
+
+            int center_row1;
+            center_row1 = (int) (road_starting_row + mc[0]);
+            int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
+            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]] << "m";
+            cv::putText(negObsSaliencyOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
+                        0.6, CV_RGB(250, 250, 250));
+//            if(contourListSaliency[0][0].y-contourListSaliency[1][0].y<20){
+            if (fabs(mc[0] - mc[1]) < 10) {
+                cv::drawContours(negObsSaliencyOutput, contourListSaliency, 1, color, CV_FILLED, 8, cv::noArray(), INT_MAX,
+                                 offset1);
+                int center_row2 = (int) (road_starting_row + mc[1]);
+                int center_col2 = (int) (left_offset + mu[1].m10 / mu[1].m00);
+                str2 << depthTable[dynamicLookUpTableRoadProfile[center_row2]] << "m";
+                cv::putText(negObsSaliencyOutput, str2.str(), cv::Point(center_col2, center_row2),
+                            CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250, 250, 250));
+            }
+//        }
+        } else if (contourListSaliency.size() == 1) {
+//        for (int i = 0; i < contourListSaliency.size(); i++) {
+            cv::drawContours(negObsSaliencyOutput, contourListSaliency, 0, color, CV_FILLED, 8, cv::noArray(), INT_MAX,
+                             offset1);
+            std::vector<cv::Moments> mu(1);
+            double mc[1];
+            mu[0] = moments(contourListSaliency[0], false);
+            mc[0] = mu[0].m01 / mu[0].m00;
+            std::ostringstream str1;
+            int center_row1 = (int) (road_starting_row + mc[0]);
+            int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
+            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]] << "m";
+            cv::putText(negObsSaliencyOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
+                        0.6, CV_RGB(250, 250, 250));//        }
+        }
+        cv::imshow("negObsSaliencyOutput", negObsSaliencyOutput);
+        cv::waitKey(1);
+    }
+
+    if (intensityBased) {
+        cv::Point offset2(left_offset, road_starting_row + top_offset);
+        for (int i = 0; i < contourList.size(); i++) {
+            cv::drawContours(negObsIntensityOutput, contourList, i, color, CV_FILLED, 8, cv::noArray(), INT_MAX, offset2);
+            std::vector<cv::Moments> mu(1);
+            double mc[1];
+            mu[0] = moments(contourList[i], false);
+            mc[0] = mu[0].m01 / mu[0].m00;
+            std::ostringstream str1;
+            int center_row1 = (int) (road_starting_row + mc[0] + top_offset);
+            int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
+            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]] << "m";
+            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]] << "m";
+            cv::putText(negObsIntensityOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
+                        0.6, CV_RGB(250, 250, 250));
+        }
+        cv::imshow("negObsIntensityOutput", negObsIntensityOutput);
+        cv::waitKey(1);
+    }
+
+
+}
+
 void ObstaclesDetection::Initiate(int disparity_size, double baseline,
-        double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity){
+        double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity,
+        bool enNeg, const std::string& Parameter_filename){
 
 //    std::cout<<camera_type<<", "<<disparity_size<<", "<<baseline<<std::endl;
 
@@ -1068,12 +1436,21 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     double uHysteresisThreshRatio = 0.7;
     double minWidthToSeperate = 0.5; //0.5m
     double minDepthToSeperate = 6; //6m
+    double minHeightNeg = 0.5; //m; for negative
     disp_size = disparity_size;
     minimum_disparity = min_disparity;
+    enNegObsDet = enNeg;
+    if (enNegObsDet)
+        seg_params = ReadParameters(Parameter_filename);
 
     uDispThresh = static_cast<int *>(calloc(disp_size + 1, sizeof(int)));
     for( int i = 0; i < disp_size+1; ++i) {
         uDispThresh[i]=cvRound(minHeight*i/baseline); //Y*dx/B
+    }
+
+    dispThreshForNeg = static_cast<int *>(calloc(disp_size + 1, sizeof(int)));
+    for( int i = 0; i < disp_size+1; ++i){
+        dispThreshForNeg[i]=cvRound(minHeightNeg*i/baseline); //Y*dx/B
     }
 
     int ii;
@@ -1139,6 +1516,10 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     slopeAdjLength = 1500/scale; // cm -- slope
     minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
     minNoOfPixelsForObject = 100/scale;
+    //negative obstacles
+    left_offset = 60/scale; right_offset =36/scale; bottom_offset=60/scale; top_offset=60/scale;
+    minContourLengthForNegObs = 600/scale;//pixels
+    minBlobDistanceForNegObs = 90/scale;
 
 //    if (camera_type == "long_camera") {
 //        rdRowToDisRegard = 10;
@@ -1202,6 +1583,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //    cv::cvtColor(left_rect_gray, left_rect_clr, cv::COLOR_GRAY2BGR);
 
     img.copyTo(left_rect_clr);
+    img.copyTo(left_rect_clr_sp);
 
 //    std::string img_name1;
 //    char im1[20];
@@ -1247,6 +1629,9 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
         surfaceN = cv::Vec3d(0.0,0.0,0.0);
 
         RoadSlopeInit();
+
+        if (enNegObsDet)
+            GenerateNegativeObstacles(); // for negative obstacle detection
 
 //        cv::imshow("Slope Map", slope_map);
 //        cv::imshow("Obstacle Mask", left_rect_clr);

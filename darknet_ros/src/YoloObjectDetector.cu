@@ -159,6 +159,9 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     nodeHandle_.param<bool>("enable_classification", enableClassification, true);
     nodeHandle_.param<int>("scale", Scale, 1);
     nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
+    nodeHandle_.param<bool>("enable_neg", enableNeg, false);
+    nodeHandle_.param<std::string>("seg_path", parameter_filename, "");
+//    std::cout<<"parameter_filename: "<<parameter_filename<<std::endl;
     // Threshold of object detection.
     float thresh;
     nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
@@ -328,7 +331,7 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
   depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
 //  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
-  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 12);
+  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 12, enableNeg, parameter_filename);
 }
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {

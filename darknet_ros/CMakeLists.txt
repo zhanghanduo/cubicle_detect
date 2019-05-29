@@ -229,6 +229,11 @@ include_directories(
           #src/hog.cpp
           src/Hungarian.cpp
           src/Obstacles.cpp
+          src/segengine.cpp
+          src/stdafx.cpp
+          src/structures.cpp
+          src/functions.cpp
+          src/utilsSeg.cpp
 #          src/image_opencv.cpp
 #          src/track_kalman.hpp
 #          src/track.hpp

@@ -7,6 +7,12 @@ typedef struct node{
     struct node *prev;
 } node;
 
+//typedef struct list{
+//    int size;
+//    node *front;
+//    node *back;
+//} list;
+
 typedef struct list{
     int size;
     node *front;

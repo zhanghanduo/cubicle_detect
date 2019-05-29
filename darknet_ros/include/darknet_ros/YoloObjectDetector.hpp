@@ -378,12 +378,14 @@ private:
     int min_disparity;
     bool enableStereo = true;
     bool enableClassification = true;
+    bool enableNeg = false; //negative obstacle detection
 // Disparity
     stereo_msgs::DisparityImage disparity_info;
     stereo_msgs::DisparityImage disparity_obs;
     std::ofstream file;
     std::string file_name;
     std::string img_name;
+    std::string parameter_filename; //negative obstacle detection
     char s[20];
     char im[20];
     int frame_num, counter;

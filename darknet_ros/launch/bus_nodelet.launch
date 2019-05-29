@@ -4,6 +4,7 @@
   <!-- Config and weights folder. -->
   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
+  <arg name="seg_param_path"             default="$(find cubicle_detect)/config/params.yml"/>
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
   <arg name="nodelet_manager_name"       default="ugv_nodelet_manager" />
@@ -37,6 +38,8 @@
     <param name="scale"                 value="1" />
     <param name="enable_stereo"         value="true" />
     <param name="enable_classification" value="true" />
+    <param name="enable_neg"            value="false" />
+    <param name="seg_path"              value="$(arg seg_param_path)" />
   </node>
 
   <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />
