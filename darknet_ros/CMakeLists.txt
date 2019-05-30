@@ -59,13 +59,34 @@ if (CUDA_FOUND)
   message(STATUS "CUDA Version: ${BoldGreen} ${CUDA_VERSION_STRINGS} ${ColourReset}")
   message(STATUS "CUDA Libararies: ${BoldGreen} ${CUDA_LIBRARIES} ${ColourReset}")
 
+  #Get CUDA compute capability
+  set(OUTPUTFILE ${CMAKE_CURRENT_SOURCE_DIR}/../darknet/scripts/cuda_script) # No suffix required
+  set(CUDAFILE ${CMAKE_CURRENT_SOURCE_DIR}/../darknet/scripts/check_cuda.cu)
+  execute_process(COMMAND nvcc -lcuda ${CUDAFILE} -o ${OUTPUTFILE})
+  execute_process(COMMAND ${OUTPUTFILE}
+          RESULT_VARIABLE CUDA_RETURN_CODE
+          OUTPUT_VARIABLE ARCH)
+
+  if(${CUDA_RETURN_CODE} EQUAL 0)
+    set(CUDA_SUCCESS "TRUE")
+  else()
+    set(CUDA_SUCCESS "FALSE")
+  endif()
+
+  if (${CUDA_SUCCESS})
+    message( "CUDA Architecture: ${ARCH}")
+    message( "CUDA Version: ${CUDA_VERSION_STRING}")
+    message( "CUDA Path: ${CUDA_TOOLKIT_ROOT_DIR}")
+#    set(CUDA_NVCC_FLAGS "${ARCH}")
+  else()
+    message(WARNING ${ARCH})
+  endif()
+
   if ("${CUDA_VERSION}" VERSION_LESS "10.0")
     set(
       CUDA_NVCC_FLAGS
       ${CUDA_NVCC_FLAGS};
       -O3
-#      -gencode arch=compute_30,code=sm_30
-#      -gencode arch=compute_35,code=sm_35
       -gencode arch=compute_50,code=[sm_50,compute_50]
       -gencode arch=compute_52,code=[sm_52,compute_52]
       -gencode arch=compute_61,code=[sm_61,compute_61]
@@ -73,18 +94,33 @@ if (CUDA_FOUND)
     )
   else()
   # Add SM 75 for CUDA versions >= 10.0
-  set(
-          CUDA_NVCC_FLAGS
-          ${CUDA_NVCC_FLAGS};
-          -O3
-          -gencode arch=compute_50,code=[sm_50,compute_50]
-          -gencode arch=compute_52,code=[sm_52,compute_52]
-          -gencode arch=compute_61,code=[sm_61,compute_61]
-          -gencode arch=compute_62,code=[sm_62,compute_62]  # GTX 1080 (Ti)
-#          -gencode arch=compute_75,code=[sm_75,compute_75]  # RTX 2080 (Ti)
-  )
-  endif()
+    set(CUDA_COMPUTE_MODEL_75 "75") #Compute capability for Tesla T4, RTX 2080
+    set(CUDA_COMPUTE_MODEL_72 "72") #Compute capability for Jetson Xavier
+    set(CUDA_COMPUTE_MODEL_70 "70") #Compute capability for Tesla V100
+    set(CUDA_COMPUTE_MODEL_62 "62") #Compute capability for Jetson TX2
+    set(CUDA_COMPUTE_MODEL_61 "61") #Compute capability for Tesla P40
+    set(CUDA_COMPUTE_MODEL_60 "60") #Compute capability for Tesla P100
+    set(CUDA_COMPUTE_MODEL_53 "53") #Compute capability for Jetson TX1
+    set(CUDA_COMPUTE_MODEL_52 "52") #Compute capability for Tesla M40/M60
 
+    set(default_cuda_compute_model ${CUDA_COMPUTE_MODEL_52})
+    if(ENABLE_CUDA AND NOT CUDA_COMPUTE_MODEL)
+      message(STATUS "Setting the compute model to ${default_cuda_compute_model} as none was specified.")
+      set(CUDA_COMPUTE_MODEL "${default_cuda_compute_model}" CACHE
+              STRING "Choose the best compute model supported by your GPU" FORCE)
+      set_property(CACHE CUDA_COMPUTE_MODEL PROPERTY STRINGS ${CUDA_COMPUTE_MODEL_75} ${CUDA_COMPUTE_MODEL_72} ${CUDA_COMPUTE_MODEL_70} ${CUDA_COMPUTE_MODEL_62} ${CUDA_COMPUTE_MODEL_61} ${CUDA_COMPUTE_MODEL_60} ${CUDA_COMPUTE_MODEL_53} ${CUDA_COMPUTE_MODEL_52})
+    endif()
+    set(
+            CUDA_NVCC_FLAGS
+            ${CUDA_NVCC_FLAGS};
+            -O3
+            -gencode arch=compute_52,code=[sm_52,compute_52]
+            -gencode arch=compute_61,code=[sm_61,compute_61]
+            -gencode arch=compute_62,code=[sm_62,compute_62]  # GTX 1080 (Ti)
+            -gencode arch=compute_72,code=[sm_75,compute_72]  # Jetson Xavier
+            -gencode arch=compute_75,code=[sm_75,compute_75]  # RTX 2080 (Ti)
+    )
+  endif()
   add_definitions(-DGPU)
 else()
   list(APPEND LIBRARIES "m")
@@ -217,6 +253,11 @@ include_directories(
       message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
       option(CUDNN "Enable CuDNN" ON)
       add_definitions(-DCUDNN)
+      # If cuda arch is sm_75 (RTX 2080 or 2080 Ti), add definition of CUDNN_HALF to accelerate
+      if( ${ARCH} STREQUAL "-arch=sm_75")
+        add_definitions(-DCUDNN_HALF)
+        message("${BoldGreen} Enabled CUDNN_HALF ${ColourReset}")
+      endif()
   else()
       message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
   endif()
