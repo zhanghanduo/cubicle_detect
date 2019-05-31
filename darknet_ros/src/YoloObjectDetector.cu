@@ -1140,17 +1140,22 @@ void *YoloObjectDetector::trackInThread() {
                 outputObs.probability = detListCurrFrame.at(ii).det_conf;
 
                 if (outputObs.category == "person" || outputObs.category == "vehicle" ||
-                    outputObs.category == "bicycle") {
+                    outputObs.category == "bicycle" || outputObs.category == "traffic light" ||
+                    outputObs.category == "stop sign") {
 
                     if (rect.area() > 300) {
                         if (outputObs.category == "person") {
                             cellsX = 3;
                             cellsY = 4;//6;
                             bboxResize = cv::Size(60, 180);
-                        } else {
+                        } else if (outputObs.category == "vehicle" || outputObs.category == "bicycle") {
                             cellsX = 4;
                             cellsY = 3;
                             bboxResize = cv::Size(180, 60);
+                        } else {
+                            cellsX = 1;
+                            cellsY = 1;
+                            bboxResize = cv::Size(80, 80);
                         }
                         cv::resize(clrBBox, resizeClrBBox, bboxResize);//bboxResize
                         cv::resize(mask, resizeMask, bboxResize);//bboxResize
@@ -1488,10 +1493,14 @@ void YoloObjectDetector::trackingFNs() {
                             cellsX = 3;
                             cellsY = 4;//6;
                             bboxResize = cv::Size(60,180);
-                        } else {
+                        } else if (tmpTrack.category == "vehicle" || tmpTrack.category == "bicycle") {
                             cellsX = 4;
                             cellsY = 3;
-                            bboxResize = cv::Size(180,60);
+                            bboxResize = cv::Size(180, 60);
+                        } else {
+                            cellsX = 1;
+                            cellsY = 1;
+                            bboxResize = cv::Size(80, 80);
                         }
 
                         cv::resize(clrBBoxROI, resizeClrBBox, bboxResize);
