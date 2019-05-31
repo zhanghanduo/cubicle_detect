@@ -10,10 +10,6 @@
   <arg name="yolo_config_path"           default="$(find cubicle_detect)/yolo_network_config/cfg"/>
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
-  <arg name="nodelet_manager_name"       default="ugv_nodelet_manager" />
-
-  <!-- Nodelet manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
 <!--  <param name="use_sim_time" value="true" />-->
 
@@ -22,10 +18,9 @@
   <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--   Start darknet and ros wrapper-->
-  <node pkg="nodelet" type="nodelet" name="cubicle_detection" args="load darknet_ros/detection_nodelet
-    $(arg nodelet_manager_name)" output="screen">
+  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" >
     <!--whether use one-channel as input-->
-    <rosparam command="load"            file="$(find cubicle_detect)/config/ros.yaml"/>
+    <rosparam command="load"            file="$(find cubicle_detect)/config/cv.yaml"/>
     <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
     <param name="use_grey"              value="false" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
@@ -42,8 +37,7 @@
     <param name="enable_classification" value="true" />
   </node>
 
-  <node pkg="nodelet" type="nodelet" name="volumetric_map" args="load volumetric_mapping/map_manager
-    $(arg nodelet_manager_name)" output="screen">
+  <node pkg="octomap_world" type="octomap_manager" name="octomap_publisher" output="screen" >
     <param name="tf_frame"                type="string"     value="$(arg source_frame)" />
     <param name="resolution"              value="0.5" />
     <param name="sensor_max_range"        value="40.0" />
@@ -66,14 +60,19 @@
       <param name="publish/map"                       value="$(arg publish_obstacle)" />
   </node>
 
-  <node pkg="nodelet" type="nodelet" name="curb_detect" args="load curbDetection/curb_nodelet
-    $(arg nodelet_manager_name)" output="screen">
-        <!--        <param name="config_path"     value="$(arg config_path)" />-->
+  <node pkg="curbDetection" type="curbDetection_node" name="curbDetection_node" output="screen">
+    <!--        <param name="config_path"     value="$(arg config_path)" />-->
   </node>
-<!--  <node pkg="nodelet" type="nodelet" name="lane_detect" args="load multi_lane/lane_nodelet-->
-<!--    $(arg nodelet_manager_name)" output="screen">-->
-<!--  </node>-->
-<!--  -->
+
+  <node pkg="multi_lanedetection" type="multi_lanedetection_node" name="lanedetection_node" output="screen">
+    <param name="make_offline_video"            value="false"/>
+    <param name="disparityTopic"                value="/disparity_map" />
+    <param name="leftRectTopic"                 value="/left/image_rect" />
+    <!--        <param name="intrinsic"                     value="$(arg intrinsic_param)" />-->
+    <!--        <param name="extrinsic"                     value="$(arg extrinsic_param)" />-->
+    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>
+  </node>
+
  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->

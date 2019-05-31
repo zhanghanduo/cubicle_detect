@@ -10,10 +10,6 @@
   <arg name="seg_param_path"             default="$(find cubicle_detect)/config/params.yml"/>
   <arg name="min_disparity"              default="7"/>
   <arg name="disparity_scope"            default="128"/>
-  <arg name="nodelet_manager_name"  default="ugv_nodelet_manager" />
-
-  <!-- Nodelet manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
   <!--<param name="use_sim_time" value="true" />-->
   <!--Rectify input stereo images  -->

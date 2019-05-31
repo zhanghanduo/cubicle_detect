@@ -7,20 +7,14 @@
   <arg name="seg_param_path"             default="$(find cubicle_detect)/config/params.yml"/>
   <arg name="min_disparity"              default="6"/>
   <arg name="disparity_scope"            default="128"/>
-  <arg name="nodelet_manager_name"       default="ugv_nodelet_manager" />
-
-  <!-- Nodelet manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager_name)"  args="manager" output="screen"/>
 
 <!--  <param name="use_sim_time" value="true" />-->
 
 <!--  Localization-->
-  <include file="$(find sslam_estimator)/launch/bus_core.launch" />
   <include file="$(find undistort_images)/launch/bus.launch" />
 
 <!--   Start darknet and ros wrapper-->
-  <node pkg="nodelet" type="nodelet" name="cubicle_detection" args="load darknet_ros/detection_nodelet
-    $(arg nodelet_manager_name)" output="screen">
+  <node pkg="cubicle_detect" type="cubicle_detect" name="cubicle_detect_bus" output="screen" launch-prefix="$(arg launch_prefix)">
     <!--whether use one-channel as input-->
     <rosparam command="load"            file="$(find cubicle_detect)/config/ros.yaml"/>
     <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>

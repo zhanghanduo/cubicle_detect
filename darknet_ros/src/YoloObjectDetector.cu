@@ -16,6 +16,8 @@
 // Check for xServer
 #include <X11/Xlib.h>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 
 #ifdef DARKNET_FILE_PATH
 std::string darknetFilePath_ = DARKNET_FILE_PATH;
@@ -25,7 +27,7 @@ std::string darknetFilePath_ = DARKNET_FILE_PATH;
 #error Path of darknet repository is not defined in CMakeLists.txt.
 #endif
 
-using namespace message_filters;
+using namespace std::chrono;
 
 namespace darknet_ros {
 
@@ -524,7 +526,9 @@ int YoloObjectDetector::sizeNetwork(network *net)
 
 void *YoloObjectDetector::detectInThread()
 {
-  double classi_time_ = what_time_is_it_now();
+//  double classi_time_ = what_time_is_it_now();
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 //  globalframe++;
 //  running_ = 1;
   float nms = .45;
@@ -625,16 +629,23 @@ void *YoloObjectDetector::detectInThread()
 //  demoIndex_ = (demoIndex_ + 1) % demoFrame_;
 //  running_ = 0;
 
-  classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+    classi_fps_ = 1./time_span.count();
+//  classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
 
   return nullptr;
 }
 
 void *YoloObjectDetector::stereoInThread()
 {
-    double stereo_time_ = what_time_is_it_now();
+//    double stereo_time_ = what_time_is_it_now();
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     disparityFrame = getDepth(left_rectified, right_rectified);
-    stereo_fps_ = 1./(what_time_is_it_now() - stereo_time_);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+    stereo_fps_ = 1./time_span.count();
 
 //    cv::imshow("left_rectified", buff_cv_l_);
 //    cv::imshow("right_rectified",  buff_cv_r_);
@@ -1940,7 +1951,8 @@ void YoloObjectDetector::generateStaticObsDisparityMap() {
 
 void YoloObjectDetector::Process(){
 
-    demoTime_ = what_time_is_it_now();
+//    demoTime_ = what_time_is_it_now();
+    high_resolution_clock::time_point demo_t1 = high_resolution_clock::now();
 //    std::cout<<"before fetchInThread"<<std::endl;
     // 1. To get the image data
     fetchInThread();
@@ -1963,10 +1975,15 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {
         stereo_thread.join();
-        double obs_time_ = what_time_is_it_now();
+
+        high_resolution_clock::time_point obs_time_ = high_resolution_clock::now();
+//        double obs_time_ = what_time_is_it_now();
         // 4. Obstacle detection according to the u-v disparity
         ObstacleDetector.ExecuteDetection(disparityFrame, camImageCopy_);
-        obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        duration<double> time_span = duration_cast<duration<double>>(t2 - obs_time_);
+        obs_fps_ = 1./time_span.count();
+//        obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
     }
 
 //    std::cout<<"before trackInThread"<<std::endl;
@@ -2000,7 +2017,12 @@ void YoloObjectDetector::Process(){
         obs_disparityPublisher_.publish(disparity_obs);
     }
 
-    fps_ = 1./(what_time_is_it_now() - demoTime_);
+    high_resolution_clock::time_point demo_t2 = high_resolution_clock::now();
+
+    duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
+    fps_ = 1./time_span.count();
+
+//    fps_ = 1./(what_time_is_it_now() - demoTime_);
 //    demoTime_ = what_time_is_it_now();
 
     CreateMsg();
