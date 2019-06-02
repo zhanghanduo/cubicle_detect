@@ -785,17 +785,17 @@ void YoloObjectDetector:: yolo()
         cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
         cvMoveWindow("Slope Map", 1460, 0);
 
-        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
-        cvMoveWindow("Detection and Tracking", 0, 0);
-        cvResizeWindow("Detection and Tracking", 720, 453);
+//        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
+//        cvMoveWindow("Detection and Tracking", 0, 0);
+//        cvResizeWindow("Detection and Tracking", 720, 453);
 
         cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
-        cvMoveWindow("Obstacle Mask", 700, 0);
+        cvMoveWindow("Obstacle Mask", 0, 0);
         cvResizeWindow("Obstacle Mask", 720, 453);
 
         if(enableStereo) {
             cvNamedWindow("Disparity", CV_WINDOW_NORMAL);
-            cvMoveWindow("Disparity", 0, 500);
+            cvMoveWindow("Disparity", 700, 0);
             cvResizeWindow("Disparity", 720, 453);
         }
 //        cv::startWindowThread();
@@ -1818,7 +1818,7 @@ void YoloObjectDetector::CreateMsg(){
             int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
             str_ << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
 //            str_ << i;
-            cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , CV_FONT_HERSHEY_PLAIN, 0.8, CV_RGB(255,255,255));
+            cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , FONT_HERSHEY_DUPLEX, 0.9, CV_RGB(255,255,255), 1.5);
 
 //            cv::Rect predRect;
 //            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
@@ -1844,8 +1844,12 @@ void YoloObjectDetector::CreateMsg(){
         applyColorMap(scaledDisparityMap, cm_disp, cv::COLORMAP_JET);
     }
 
+    if (!publishDetectionImage(tracking_output, trackingPublisher_)) {
+        ROS_DEBUG("Tracking image has not been broadcast.");
+    }
+
     if(viewImage_) {
-        cv::imshow("Detection and Tracking", tracking_output);
+//        cv::imshow("Detection and Tracking", tracking_output);
         cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
         cv::imshow("Slope Map", ObstacleDetector.slope_map);
         if (enableStereo) {
@@ -1857,9 +1861,6 @@ void YoloObjectDetector::CreateMsg(){
 
        cv::waitKey(waitKeyDelay_);
     } else {
-        if (!publishDetectionImage(tracking_output, trackingPublisher_)) {
-            ROS_DEBUG("Tracking image has not been broadcast.");
-        }
 //        if (!publishDetectionImage_single(ObsDisparity * 255 /disp_size, trackingPublisher_)) {
 //            ROS_DEBUG("Tracking image has not been broadcasted.");
 //        }
