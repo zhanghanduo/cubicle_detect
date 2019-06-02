@@ -162,7 +162,8 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     nodeHandle_.param<int>("scale", Scale, 1);
     nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
     nodeHandle_.param<bool>("enable_neg", enableNeg, false);
-    nodeHandle_.param<std::string>("seg_path", parameter_filename, "");
+    nodeHandle_.param<std::string>("seg_path", parameter_filename,
+            ros::package::getPath("cubicle_detect") + "/config/params.yml");
 //    std::cout<<"parameter_filename: "<<parameter_filename<<std::endl;
     // Threshold of object detection.
     float thresh;
@@ -171,14 +172,16 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     // Path to weights file.
     nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
                       std::string("yolov3-spp.weights"));
-    nodeHandle_.param("weights_path", weightsPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/weights");
+    nodeHandle_.param("weights_path", weightsPath, ros::package::getPath
+    ("cubicle_detect") + "/yolo_network_config/weights");
     weightsPath += "/" + weightsModel;
     weights = new char[weightsPath.length() + 1];
     strcpy(weights, weightsPath.c_str());
 
     // Path to config file.
     nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov3-spp.cfg"));
-    nodeHandle_.param("config_path", configPath, ros::package::getPath("cubicle_detect") + "/yolo_network_config/cfg");
+    nodeHandle_.param("config_path", configPath, ros::package::getPath
+    ("cubicle_detect") + "/yolo_network_config/cfg");
     configPath += "/" + configModel;
     cfg = new char[configPath.length() + 1];
     strcpy(cfg, configPath.c_str());
@@ -190,21 +193,24 @@ bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p
     strcpy(data, dataPath.c_str());
 
     // Get classes.
-    detectionNames = (char**) realloc((void*) detectionNames, (numClasses_ + 1) * sizeof(char*));
+    detectionNames = (char**) realloc((void*)
+            detectionNames, (numClasses_ + 1) * sizeof(char*));
     for (int i = 0; i < numClasses_; i++) {
         detectionNames[i] = new char[classLabels_[i].length() + 1];
         strcpy(detectionNames[i], classLabels_[i].c_str());
     }
 
-    compact_detectionNames = (char**) realloc((void*) compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
+    compact_detectionNames = (char**) realloc((void*)
+            compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
     for (int i = 0; i < compact_numClasses_; i++) {
         compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
         strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
     }
 
     // Load network.
-    setupNetwork(cfg, weights, data, thresh, detectionNames, compact_detectionNames, numClasses_,
-                 0, nullptr, 1, 0.5, 0, 0, 0, 0);
+    setupNetwork(cfg, weights, data, thresh, detectionNames,
+            compact_detectionNames, numClasses_,
+            0, nullptr, 1, 0.5, 0, 0, 0, 0);
 
     std::string detectionImageTopicName;
     int detectionImageQueueSize;
@@ -632,20 +638,18 @@ void *YoloObjectDetector::detectInThread()
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-    classi_fps_ = 1./time_span.count();
-//  classi_fps_ = 1./(what_time_is_it_now() - classi_time_);
+    classi_duration_ += time_span.count();
 
   return nullptr;
 }
 
 void *YoloObjectDetector::stereoInThread()
 {
-//    double stereo_time_ = what_time_is_it_now();
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
     disparityFrame = getDepth(left_rectified, right_rectified);
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-    stereo_fps_ = 1./time_span.count();
+    stereo_duration_ += time_span.count();
 
 //    cv::imshow("left_rectified", buff_cv_l_);
 //    cv::imshow("right_rectified",  buff_cv_r_);
@@ -1952,9 +1956,7 @@ void YoloObjectDetector::generateStaticObsDisparityMap() {
 
 void YoloObjectDetector::Process(){
 
-//    demoTime_ = what_time_is_it_now();
     high_resolution_clock::time_point demo_t1 = high_resolution_clock::now();
-//    std::cout<<"before fetchInThread"<<std::endl;
     // 1. To get the image data
     fetchInThread();
 
@@ -1978,13 +1980,11 @@ void YoloObjectDetector::Process(){
         stereo_thread.join();
 
         high_resolution_clock::time_point obs_time_ = high_resolution_clock::now();
-//        double obs_time_ = what_time_is_it_now();
         // 4. Obstacle detection according to the u-v disparity
         ObstacleDetector.ExecuteDetection(disparityFrame, camImageCopy_);
         high_resolution_clock::time_point t2 = high_resolution_clock::now();
         duration<double> time_span = duration_cast<duration<double>>(t2 - obs_time_);
-        obs_fps_ = 1./time_span.count();
-//        obs_fps_ = 1./(what_time_is_it_now() - obs_time_);
+        obs_duration_ += time_span.count();
     }
 
 //    std::cout<<"before trackInThread"<<std::endl;
@@ -2021,17 +2021,16 @@ void YoloObjectDetector::Process(){
     high_resolution_clock::time_point demo_t2 = high_resolution_clock::now();
 
     duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
-    fps_ = 1./time_span.count();
-
-//    fps_ = 1./(what_time_is_it_now() - demoTime_);
-//    demoTime_ = what_time_is_it_now();
+    whole_duration_ += time_span.count();
+//    fps_ = 1./time_span.count();
 
     CreateMsg();
 
     obstacleBoxesResults_.header.stamp = image_time_;
     obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
-    obstacleBoxesResults_.real_header.stamp = ros::Time::now();
-    obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
+//    obstacleBoxesResults_.real_header.stamp = ros::Time::now();
+//    obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
+    obstacleBoxesResults_.pitch = ObstacleDetector.slope_angle / 100;
     obstaclePublisher_.publish(obstacleBoxesResults_);
 
     obstacleBoxesResults_.obsData.clear();
@@ -2041,8 +2040,15 @@ void YoloObjectDetector::Process(){
 //    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
 //    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
-    if ( frame_num%30==1 && enableConsoleOutput_ ) {
-        printf("FPS:%.1f, Stereo:%.1f, Obs:%.1f, Classification:%.1f\n", fps_, stereo_fps_, obs_fps_, classi_fps_);
+    if ( frame_num % 30 == 0 && enableConsoleOutput_ ) {
+        fps_ = 1/(whole_duration_/30);
+        printf("Detection: %.1fFPS\n"
+               "    Disparity:%.1fms, Obstacle:%.1fms, Classification:%.1fms\n",
+               fps_, stereo_duration_ * 1000/30, obs_duration_ * 1000/30, classi_duration_ * 1000/30);
+        whole_duration_ = 0;
+        stereo_duration_ = 0;
+        obs_duration_ = 0;
+        classi_duration_ = 0;
     }
 
     frame_num++;

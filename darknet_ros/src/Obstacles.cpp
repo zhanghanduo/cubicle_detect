@@ -1,4 +1,5 @@
 #include "darknet_ros/Obstacles.h"//"Hungarian.h"
+#include <math.h>
 
 ObstaclesDetection::ObstaclesDetection(){}
 
@@ -314,8 +315,8 @@ std::vector<std::vector<u_span> > searchList (std::vector<u_span> uList, std::ve
             if(!iList[i].empty()){
                 for (int j=0; j<iList[i].size();j++){
                     std::vector<int> list1 = searchElement(iList,iList[i][j],uList, visited);
-                    for(int k=0;k<list1.size();k++){
-                        tmp.push_back(uList[list1[k]]);
+                    for(int k : list1){
+                        tmp.push_back(uList[k]);
                     }
                 }
             }
@@ -885,9 +886,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
                 rightLeft = 115;
             }
             if (point1Z<pointZ) {
-                double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
+                slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
                 std::ostringstream strSlope;
-                strSlope << (pointZ / 100) << "m: " << slope << " deg";//<<road_height;
+                strSlope << (pointZ / 100) << "m: " << slope_angle << " deg";//<<road_height;
                 cv::putText(slope_map, strSlope.str(), cv::Point(slope_map.cols-rightLeft, 40 + rowDiff2), CV_FONT_HERSHEY_PLAIN, 0.6,
                             CV_RGB(0, 250, 0));
                 rowDiff2 = rowDiff2 + 10;
@@ -896,9 +897,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 
 
         if ((pointZ - point1Z) > minDepthDiffToCalculateSlope) {
-            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
+            slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
             std::ostringstream strSlope;
-            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
+            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope_angle
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));
@@ -931,7 +932,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
                 cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
 
                 std::ostringstream strRollPitch;
-                strRollPitch << "R. R. Pitch: "<<((int) (1000*angle*180.0/3.14159265))/1000.0;
+                strRollPitch << "R. R. Pitch: "<<((int) (1000*angle*180.0/M_PI))/1000.0;
                 cv::putText(slope_map, strRollPitch.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                             CV_RGB(0, 250, 0));
 
@@ -947,9 +948,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             rowDiff = rowDiff + 10;
 
         } else if (d == minDispForSlope + 1) {
-            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
+            slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
             std::ostringstream strSlope;
-            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
+            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope_angle
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));

@@ -280,9 +280,10 @@ private:
 //  IplImage * ipl_;
 //  cv::Mat ipl_cv;
   double fps_ = 0;
-  double stereo_fps_ = 0;
-  double classi_fps_ = 0;
-  double obs_fps_ = 0;
+  double whole_duration_ = 0;
+  double stereo_duration_ = 0;
+  double classi_duration_ = 0;
+  double obs_duration_ = 0;
   float demoThresh_ = 0;
   float demoHier_ = .5;
 //  int running_ = 0;
