@@ -339,7 +339,7 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
   depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
 //  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
-  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 12, enableNeg, parameter_filename);
+  ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 8, enableNeg, parameter_filename);
 }
 
 cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
@@ -786,7 +786,7 @@ void YoloObjectDetector:: yolo()
 //        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
 //        cvMoveWindow("Refined roadmap", 900, 350);
 
-        cvNamedWindow("Slope Map", CV_WINDOW_AUTOSIZE);
+        cvNamedWindow("Slope Map", CV_WINDOW_NORMAL);
         cvMoveWindow("Slope Map", 1460, 0);
 
 //        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
@@ -1820,9 +1820,9 @@ void YoloObjectDetector::CreateMsg(){
             int rectMinY = blobs[i].boundingRects.back().y;
             cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
             int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
-            str_ << distance <<"m, "<<i;//<<"; "<<blobs[i].disparity;
+            str_ << i <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
 //            str_ << i;
-            cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , FONT_HERSHEY_DUPLEX, 0.9, CV_RGB(255,255,255), 1.5);
+            cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255,255,255), 1.8);
 
 //            cv::Rect predRect;
 //            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
@@ -1853,7 +1853,7 @@ void YoloObjectDetector::CreateMsg(){
     }
 
     if(viewImage_) {
-//        cv::imshow("Detection and Tracking", tracking_output);
+        cv::imshow("Detection and Tracking", tracking_output);
         cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
         cv::imshow("Slope Map", ObstacleDetector.slope_map);
         if (enableStereo) {
@@ -1978,13 +1978,15 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {
         stereo_thread.join();
+        if(frame_num % 2 == 0) {
 
-        high_resolution_clock::time_point obs_time_ = high_resolution_clock::now();
-        // 4. Obstacle detection according to the u-v disparity
-        ObstacleDetector.ExecuteDetection(disparityFrame, camImageCopy_);
-        high_resolution_clock::time_point t2 = high_resolution_clock::now();
-        duration<double> time_span = duration_cast<duration<double>>(t2 - obs_time_);
-        obs_duration_ += time_span.count();
+            high_resolution_clock::time_point obs_time_ = high_resolution_clock::now();
+            // 4. Obstacle detection according to the u-v disparity
+            ObstacleDetector.ExecuteDetection(disparityFrame, camImageCopy_);
+            high_resolution_clock::time_point t2 = high_resolution_clock::now();
+            duration<double> time_span = duration_cast<duration<double>>(t2 - obs_time_);
+            obs_duration_ += time_span.count();
+        }
     }
 
 //    std::cout<<"before trackInThread"<<std::endl;

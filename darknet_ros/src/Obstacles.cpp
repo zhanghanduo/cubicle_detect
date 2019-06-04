@@ -790,14 +790,14 @@ void ObstaclesDetection::SurfaceNormalCalculation () {
 
 void ObstaclesDetection::RoadSlopeCalculation () {
 
-    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
-    int rowForDisparity35 = dynamicLookUpTableRoad[disForSlope];
+//    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
+//    int rowForDisparity35 = dynamicLookUpTableRoad[disForSlope];
 //        int inRdHeight = 150;//cm
     int roadStartDis = refinedRoadProfile[0].y;
     double inRdHeight = abs(yDirectionPosition[dynamicLookUpTableRoad[disForSlopeStart]][disForSlopeStart] * 100);
 
-    cv::putText(slope_map, "Relative Slope at;", cv::Point(slope_map.cols-180, 40), CV_FONT_HERSHEY_PLAIN, 0.6,
-                CV_RGB(0, 250, 0));
+//    cv::putText(slope_map, "Relative Slope at;", cv::Point(slope_map.cols-180, 40), CV_FONT_HERSHEY_PLAIN, 0.6,
+//                CV_RGB(0, 250, 0));
 
 //        std::cout<<"roadStartDis: "<<roadStartDis<<"; disForSlopeStart: "<< disForSlopeStart <<"; inRdHeight: "<<inRdHeight<<std::endl;
     int maxDispForSlopeStart = disForSlopeStart;
@@ -820,8 +820,10 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 
     double startDepth = depthTable[maxDispForSlopeStart] * 100;
     double point1Z = startDepth;
+    double pointLastZ = startDepth;
     int point1R = dynamicLookUpTableRoad[maxDispForSlopeStart];
     double point1Y = yDirectionPosition[point1R][maxDispForSlopeStart] * 100;
+    double pointLastY = point1Y;
     cv::line(left_rect_clr, cv::Point(0, point1R), cv::Point(left_rect_clr.cols - 1, point1R), cv::Scalar(0, 200, 0), 2);
     int rowDiff = 0;
     int rowDiff2 = 10;
@@ -830,6 +832,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //        std::cout<<"point1Y: "<<point1Y<<", inRdHeight: "<<inRdHeight<<", pointY: "<<point1Y-((point1Z-startDepth)*slopeAdjHeight/slopeAdjLength)<<std::endl;
 
     bool toggle = true;
+    std::vector<cv::Point2f> pts;
     for (int d = maxDispForSlopeStart; d > minDispForSlope; d--) {
         double pointZ = depthTable[d] * 100;
         int pointR = dynamicLookUpTableRoad[d];
@@ -853,8 +856,8 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //                    c = roadmap.cols;
                 }
             }
-            randomRoadPoints.emplace_back(pointX,pointY,pointZ);
-            randomRoadPoints2D.emplace_back(selectedCol,pointR);
+            randomRoadPoints.push_back(cv::Vec3d(pointX,pointY,pointZ));
+            randomRoadPoints2D.push_back(cv::Point2i(selectedCol,pointR));
             toggle = false;
         } else {
             bool criteria = false;
@@ -871,44 +874,51 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //                    c=0;
                 }
             }
-            randomRoadPoints.emplace_back(pointX,pointY,pointZ);
-            randomRoadPoints2D.emplace_back(selectedCol,pointR);
+            randomRoadPoints.push_back(cv::Vec3d(pointX,pointY,pointZ));
+            randomRoadPoints2D.push_back(cv::Point2i(selectedCol,pointR));
             toggle = true;
         }
 
-        if (currentY < slope_map.rows && currentZ < slope_map.cols-250) {
-            for (int c = slope_map.rows - 1; c > currentY; c--) {
-                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
-            }
+//        if (currentY < slope_map.rows && currentZ < slope_map.cols-250) {
+        if (currentY < slope_map.rows && currentZ < slope_map.cols) {
+            pts.emplace_back((float)currentZ,(float)currentY);
+//            pts.emplace_back((float)currentY,(float)currentZ);
+//            yVals.push_back(currentY);
+//            for (int c = slope_map.rows - 1; c > currentY; c--) {
+//                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+//            }
 
-            if (rowDiff2>(slope_map.rows-80)){
-                rowDiff2 = 10;
-                rightLeft = 115;
-            }
-            if (point1Z<pointZ) {
-                slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
-                std::ostringstream strSlope;
-                strSlope << (pointZ / 100) << "m: " << slope_angle << " deg";//<<road_height;
-                cv::putText(slope_map, strSlope.str(), cv::Point(slope_map.cols-rightLeft, 40 + rowDiff2), CV_FONT_HERSHEY_PLAIN, 0.6,
-                            CV_RGB(0, 250, 0));
-                rowDiff2 = rowDiff2 + 10;
-            }
+//            if (rowDiff2>(slope_map.rows-80)){
+//                rowDiff2 = 10;
+//                rightLeft = 115;
+//            }
+//            if (point1Z<pointZ) {
+//                double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
+//                std::ostringstream strSlope;
+//                strSlope << (pointZ / 100) << "m: " << slope << " deg";//<<road_height;
+//                cv::putText(slope_map, strSlope.str(), cv::Point(slope_map.cols-rightLeft, 40 + rowDiff2), CV_FONT_HERSHEY_PLAIN, 0.6,
+//                            CV_RGB(0, 250, 0));
+//                rowDiff2 = rowDiff2 + 10;
+//            }
         }
 
 
-        if ((pointZ - point1Z) > minDepthDiffToCalculateSlope) {
-            slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
+        if ((pointZ - pointLastZ) > minDepthDiffToCalculateSlope) {
+            double slope = (cvRound(10*atan((pointY - pointLastY) / (pointZ - pointLastZ)) * 180 / 3.14159265))/10;
             std::ostringstream strSlope;
-            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope_angle
+            strSlope << (int) (pointLastZ / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));
             rowDiff = rowDiff + 10;
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
             cv::line(left_rect_clr, cv::Point(0, pointR), cv::Point(left_rect_clr.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+            for (int c = slope_map.rows - 1; c > currentY; c--) {
+                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+            }
 
 //            if (!imuDetected)
-                SurfaceNormalCalculation();
+            SurfaceNormalCalculation();
 
             if(norm(surfaceN)>0){
                 surfaceN = surfaceN/norm(surfaceN);
@@ -932,7 +942,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
                 cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
 
                 std::ostringstream strRollPitch;
-                strRollPitch << "R. R. Pitch: "<<((int) (1000*angle*180.0/M_PI))/1000.0;
+                strRollPitch << "R. R. Pitch: "<<((int) (1000*angle*180.0/3.14159265))/1000.0;
                 cv::putText(slope_map, strRollPitch.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                             CV_RGB(0, 250, 0));
 
@@ -943,14 +953,16 @@ void ObstaclesDetection::RoadSlopeCalculation () {
                             CV_RGB(0, 250, 0));
             }
 
-            point1Z = pointZ;
-            point1Y = pointY;
+//            point1Z = pointZ;
+            pointLastZ = pointZ;
+            pointLastY = pointY;
+//            point1Y = pointY;
             rowDiff = rowDiff + 10;
 
         } else if (d == minDispForSlope + 1) {
-            slope_angle = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / M_PI))/10;
+            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10;
             std::ostringstream strSlope;
-            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope_angle
+            strSlope << (int) (point1Z / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
                      << " deg";//<<road_height;
             cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
                         CV_RGB(0, 250, 0));
@@ -960,17 +972,179 @@ void ObstaclesDetection::RoadSlopeCalculation () {
         }
     }
 
-    cv::putText(slope_map, "Slope w.r.t. camera plane:", cv::Point(50,30), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
-    for (int c=50;c<slope_map.cols;c=c+50){
-        std::ostringstream str;
-        str << c*zResolutionForSlopeMap/100<<"m";
-        cv::putText(slope_map, str.str(), cv::Point(c,10), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+//    int n = pts.size();
+//    if (n>1){
+//        float norm_f = 1.f;
+//        float temp;
+//        float err = 0;
+//        cv::Mat a = cv::Mat(3, 3, CV_32FC1);
+//        cv::Mat b = cv::Mat(3, 1, CV_32FC1);
+//        cv::Mat c = cv::Mat(3, 3, CV_32FC1);
+//        cv::Mat d = cv::Mat(3, 1, CV_32FC1);
+//        cv::Mat e = cv::Mat(3, 1, CV_32FC1);
+//
+//        for (int ii = 0; ii < n; ii++) {
+//            std::cout<<"("<<pts[ii].x<<", "<<pts[ii].y<<"); ";
+//            pts[ii].x = pts[ii].x / norm_f;
+//            pts[ii].y = pts[ii].y / norm_f;
+//        }
+//        std::cout<<std::endl;
+//        // configuring matrix 'a'
+//        a.at<float>(0, 0) = (float)n;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].y;
+//        }
+//        a.at<float>(0, 1) = (float)temp;
+//        a.at<float>(1, 0) = (float)temp;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].y * pts[i].y;
+//        }
+//        a.at<float>(0, 2) = (float)temp;
+//        a.at<float>(1, 1) = (float)temp;
+//        a.at<float>(2, 0) = (float)temp;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].y * pts[i].y * pts[i].y;
+//        }
+//        a.at<float>(1, 2) = (float)temp;
+//        a.at<float>(2, 1) = (float)temp;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].y * pts[i].y * pts[i].y * pts[i].y;
+//        }
+//        a.at<float>(2, 2) = (float)temp;
+//
+//        // configuring matrix 'b'
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].x;
+//        }
+//        b.at<float>(0, 0) = (float)temp;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].x * pts[i].y;
+//        }
+//        b.at<float>(1, 0) = (float)temp;
+//        temp = 0;
+//        for (int i = 0; i < n; i++) {
+//            temp += pts[i].y * pts[i].y * pts[i].x;
+//        }
+//        b.at<float>(2, 0) = (float)temp;
+//
+//        // matrix operation
+//        c = a.inv();
+//        d = c*b;
+//        std::vector<float> coeff;
+//        coeff.resize(3);
+////        double aCoeff = d.at<float>(0, 0)*norm_f;
+////        double bCoeff  = d.at<float>(1, 0)*norm_f;
+////        double cCoeff  = d.at<float>(2, 0) / norm_f;
+//        coeff[0] = d.at<float>(0, 0)*norm_f;
+//        coeff[1] = d.at<float>(1, 0)*norm_f;
+//        coeff[2] = d.at<float>(2, 0) / norm_f;
+//
+//        std::cout<<"a: "<<coeff[0]<<", b: "<<coeff[1]<<", c: "<<coeff[2]<<std::endl;
+//
+////        e = a*d;
+////        err = abs(e.at<float>(0, 0) - b.at<float>(0, 0)) + abs(e.at<float>(1, 0) - b.at<float>(1, 0)) + abs(e.at<float>(2, 0) - b.at<float>(2, 0));
+//
+//        int xx = static_cast<int>(pts[0].y);
+//        for (xx; xx<slope_map.rows; xx++){
+//            float ans =0.f;// = static_cast<int>(cCoeff + bCoeff * xx + aCoeff * xx*xx);
+//            for (int i = (int)coeff.size() - 1; i >= 0; --i)
+//                ans = ans * xx + coeff[i];
+//            std::cout<<"("<<xx<<", "<<ans<<"); ";
+////            slope_map.at<cv::Vec3b>(cuurY,xx) = cv::Vec3b(0, 255, 0);
+//        }
+//
+//        std::cout<<"************************"<<std::endl;
+//
+//    }
+
+    if (pts.size()>1){
+        int n =2;
+        int N = pts.size();
+        int i, j, k;
+        double X[2*n+1];                        //Array that will store the values of sigma(xi),sigma(xi^2),sigma(xi^3)....sigma(xi^2n)
+        for (i=0;i<2*n+1;i++)
+        {
+            X[i]=0;
+            for (j=0;j<N;j++)
+                X[i]=X[i]+pow(pts[j].x,i);        //consecutive positions of the array will store N,sigma(xi),sigma(xi^2),sigma(xi^3)....sigma(xi^2n)
+        }
+        double B[n+1][n+2],a[n+1];            //B is the Normal matrix(augmented) that will store the equations, 'a' is for value of the final coefficients
+        for (i=0;i<=n;i++)
+            for (j=0;j<=n;j++)
+                B[i][j]=X[i+j];            //Build the Normal matrix by storing the corresponding coefficients at the right positions except the last column of the matrix
+        double Y[n+1];                    //Array to store the values of sigma(yi),sigma(xi*yi),sigma(xi^2*yi)...sigma(xi^n*yi)
+        for (i=0;i<n+1;i++)
+        {
+            Y[i]=0;
+            for (j=0;j<N;j++)
+                Y[i]=Y[i]+pow(pts[j].x,i)*pts[j].y;        //consecutive positions will store sigma(yi),sigma(xi*yi),sigma(xi^2*yi)...sigma(xi^n*yi)
+        }
+        for (i=0;i<=n;i++)
+            B[i][n+1]=Y[i];                //load the values of Y as the last column of B(Normal Matrix but augmented)
+        n=n+1;                //n is made n+1 because the Gaussian Elimination part below was for n equations, but here n is the degree of polynomial and for n degree we get n+1 equations
+//        cout<<"\nThe Normal(Augmented Matrix) is as follows:\n";
+        for (i=0;i<n;i++)            //print the Normal-augmented matrix
+        {
+            for (j=0;j<=n;j++)
+                std::cout<<B[i][j]<<std::setw(16);
+//            cout<<"\n";
+        }
+        for (i=0;i<n;i++)                    //From now Gaussian Elimination starts(can be ignored) to solve the set of linear equations (Pivotisation)
+            for (k=i+1;k<n;k++)
+                if (B[i][i]<B[k][i])
+                    for (j=0;j<=n;j++)
+                    {
+                        double temp=B[i][j];
+                        B[i][j]=B[k][j];
+                        B[k][j]=temp;
+                    }
+
+        for (i=0;i<n-1;i++)            //loop to perform the gauss elimination
+            for (k=i+1;k<n;k++)
+            {
+                double t=B[k][i]/B[i][i];
+                for (j=0;j<=n;j++)
+                    B[k][j]=B[k][j]-t*B[i][j];    //make the elements below the pivot elements equal to zero or elimnate the variables
+            }
+        for (i=n-1;i>=0;i--)                //back-substitution
+        {                        //x is an array whose values correspond to the values of x,y,z..
+            a[i]=B[i][n];                //make the variable to be calculated equal to the rhs of the last equation
+            for (j=0;j<n;j++)
+                if (j!=i)            //then subtract all the lhs values except the coefficient of the variable whose value                                   is being calculated
+                    a[i]=a[i]-B[i][j]*a[j];
+            a[i]=a[i]/B[i][i];            //now finally divide the rhs by the coefficient of the variable to be calculated
+        }
+
+        int xx = static_cast<int>(pts[0].x);
+        for (xx; xx<slope_map.cols; xx++){
+            int ans =static_cast<int>(a[0] + a[1] * xx + a[2] * xx*xx);
+//            for (int i = (int)coeff.size() - 1; i >= 0; --i)
+//                ans = ans * xx + coeff[i];
+//            std::cout<<"("<<xx<<", "<<ans<<"); ";
+            slope_map.at<cv::Vec3b>(ans,xx) = cv::Vec3b(0, 255, 0);
+        }
+
+//        std::cout<<"************************"<<std::endl;
+
     }
-    for (int r=20;r<slope_map.rows;r=r+20){
-        std::ostringstream str;
-        str << (slope_map.rows/2-r)*yResolutionForSlopeMap<<"cm";
-        cv::putText(slope_map, str.str(), cv::Point(5,r), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
-    }
+
+//    cv::putText(slope_map, "Slope w.r.t. camera plane:", cv::Point(50,30), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(0,250,0));
+//    for (int c=50;c<slope_map.cols;c=c+50){
+//        std::ostringstream str;
+//        str << c*zResolutionForSlopeMap/100<<"m";
+//        cv::putText(slope_map, str.str(), cv::Point(c,10), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+//    }
+//    for (int r=20;r<slope_map.rows;r=r+20){
+//        std::ostringstream str;
+//        str << (slope_map.rows/2-r)*yResolutionForSlopeMap<<"cm";
+//        cv::putText(slope_map, str.str(), cv::Point(5,r), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+//    }
     /*double curr_road_slope = round(atan((refinedRoadProfile[0].x-rowForDisparity35)/(refinedRoadProfile[0].y-disForSlope))*180/3.14159265 - 63.4349);
     road_slope = curr_road_slope;// - prv_road_slope;
     prv_road_slope = curr_road_slope;
@@ -1505,17 +1679,17 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
     rdRowToDisRegard = 10/scale;
     rdStartCheckLines = 10/scale;
-    intensityThVDisPoint = 80/scale;
+    intensityThVDisPoint = 60/scale;
     thHorizon = 20/scale;
     rdProfileRowDistanceTh = 6/scale;
     rdProfileColDistanceTh = 16/scale;
-    intensityThVDisPointForSlope = 200/scale;
+    intensityThVDisPointForSlope = 100/scale;
 //    pubName = "/wide/map_msg";
-    depthForSlpoe = 18/scale; //m -- slope
+    depthForSlpoe = 30/scale; //m -- slope
     depthForSlopeStart = 5/scale; //m -- slope
     slopeAdjHeight = 10/scale; // cm -- slope
     slopeAdjLength = 1500/scale; // cm -- slope
-    minDepthDiffToCalculateSlope = 400/scale; // cm -- slope
+    minDepthDiffToCalculateSlope = 1000/scale; // cm -- slope
     minNoOfPixelsForObject = 100/scale;
     //negative obstacles
     left_offset = 60/scale; right_offset =36/scale; bottom_offset=60/scale; top_offset=60/scale;
@@ -1556,6 +1730,26 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 
     disForSlope = cvRound(focal * baseline / depthForSlpoe);
     disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
+
+//    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
+    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+10, CV_8UC3);
+
+    for (int r=20;r<slope_map.rows;r=r+20){
+        std::ostringstream str;
+        str << (slope_map.rows/2-r)*yResolutionForSlopeMap<<"cm";
+        cv::putText(slope_map, str.str(), cv::Point(5,r), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+    }
+
+    for (int c=50;c<slope_map.cols;c=c+50){
+        std::ostringstream str;
+        str << c*zResolutionForSlopeMap/100<<"m";
+        cv::putText(slope_map, str.str(), cv::Point(c,slope_map.rows-5), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
+    }
+
+    std::ostringstream strHeading;
+    strHeading << "Relative Road: [Slope, Pitch]";
+    cv::putText(slope_map, strHeading.str(), cv::Point(50, 20), CV_FONT_HERSHEY_PLAIN, 1,
+                CV_RGB(0, 250, 0));
 
     //OpenCV windows
 }
@@ -1598,7 +1792,9 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
     v_disparity_map = cv::Mat(disparity_map.rows, disp_size, CV_8UC1, cv::Scalar::all(0));
     u_disparity_map = cv::Mat(disp_size, disparity_map.cols, CV_8UC1, cv::Scalar::all(0));
     obsMask = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
-    obsDisFiltered = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);;
+    obsDisFiltered = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
+//    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
+    slope_map(cv::Rect(50,30,slope_map.cols-50,slope_map.rows-50)).setTo(cv::Scalar::all(0));
 
     initialRoadProfile.clear();
     refinedRoadProfile.clear();
@@ -1646,6 +1842,9 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //        img_name = std::string("/home/ugv/slope/") + im;
 //        cv::imwrite(img_name, left_rect_clr);
 //
+    } else{
+        cv::putText(slope_map, "No visible ground plane detected", cv::Point(40, 40), CV_FONT_HERSHEY_PLAIN, 2,
+                    CV_RGB(250, 0, 0));
     }
 
     frameCount++;
