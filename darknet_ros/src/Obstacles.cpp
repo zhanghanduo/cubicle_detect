@@ -1089,12 +1089,12 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             B[i][n+1]=Y[i];                //load the values of Y as the last column of B(Normal Matrix but augmented)
         n=n+1;                //n is made n+1 because the Gaussian Elimination part below was for n equations, but here n is the degree of polynomial and for n degree we get n+1 equations
 //        cout<<"\nThe Normal(Augmented Matrix) is as follows:\n";
-        for (i=0;i<n;i++)            //print the Normal-augmented matrix
-        {
-            for (j=0;j<=n;j++)
-                std::cout<<B[i][j]<<std::setw(16);
-//            cout<<"\n";
-        }
+//        for (i=0;i<n;i++)            //print the Normal-augmented matrix
+//        {
+//            for (j=0;j<=n;j++)
+//                std::cout<<B[i][j]<<std::setw(16);
+////            cout<<"\n";
+//        }
         for (i=0;i<n;i++)                    //From now Gaussian Elimination starts(can be ignored) to solve the set of linear equations (Pivotisation)
             for (k=i+1;k<n;k++)
                 if (B[i][i]<B[k][i])
