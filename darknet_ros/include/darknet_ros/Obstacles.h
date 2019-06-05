@@ -92,8 +92,8 @@ private:
     int rdProfileRowDistanceTh, rdProfileColDistanceTh, intensityThVDisPointForSlope;
     int disp_size, minimum_disparity;
     int road_starting_row, minNoOfPixelsForObject;
-    int yResolutionForSlopeMap = 2;//how many cm per pixel -- slope
-    int zResolutionForSlopeMap = 10;//how many cm per pixel -- slope
+    int yResolutionForSlopeMap = 4;//how many cm per pixel -- slope
+    int zResolutionForSlopeMap = 5;//how many cm per pixel -- slope
     int heightForSlope = 800, humpEndFrames = 0;//cm both direction -- slope
     int disForSlope, disForSlopeStart; // slope
     int slopeAdjHeight, slopeAdjLength;//cm -- slope

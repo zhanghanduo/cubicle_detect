@@ -803,14 +803,14 @@ void ObstaclesDetection::RoadSlopeCalculation () {
     int maxDispForSlopeStart = disForSlopeStart;
     if (disForSlopeStart > roadStartDis) {
         inRdHeight = abs(yDirectionPosition[dynamicLookUpTableRoad[roadStartDis]][roadStartDis] * 100);
-        int currentY = slope_map.rows / 2;// - (int) ((1.5+yDirectionPosition[dynamicLookUpTableRoad[roadStartDis]+topShift][roadStartDis])*100/2);
-        for (int d = disForSlopeStart; d > roadStartDis; d--) {
-            int currentZ = (int) (depthTable[d] * 100 / zResolutionForSlopeMap);
-            cv::circle(slope_map,cv::Point(currentZ,currentY),2,CV_RGB(0,250,0));
-//            for (int c = slope_map.rows - 1; c > currentY; c--) {
-//                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
-//            }
-        }
+//        int currentY = slope_map.rows / 2;// - (int) ((1.5+yDirectionPosition[dynamicLookUpTableRoad[roadStartDis]+topShift][roadStartDis])*100/2);
+//        for (int d = disForSlopeStart; d > roadStartDis; d--) {
+//            int currentZ = (int) (depthTable[d] * 100 / zResolutionForSlopeMap);
+//            cv::circle(slope_map,cv::Point(currentZ,currentY),2,CV_RGB(0,250,0));
+////            for (int c = slope_map.rows - 1; c > currentY; c--) {
+////                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+////            }
+//        }
         maxDispForSlopeStart = roadStartDis;
     }
 
@@ -886,9 +886,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             pts.emplace_back((float)currentZ,(float)currentY);
 //            pts.emplace_back((float)currentY,(float)currentZ);
 //            yVals.push_back(currentY);
-//            for (int c = slope_map.rows - 1; c > currentY; c--) {
-//                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
-//            }
+            for (int c = slope_map.rows - 50; c > currentY; c--) {
+                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+            }
 
 //            if (rowDiff2>(slope_map.rows-80)){
 //                rowDiff2 = 10;
@@ -918,8 +918,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //            rowDiff = rowDiff + 10;
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
             cv::line(left_rect_clr, cv::Point(0, pointR), cv::Point(left_rect_clr.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
-            for (int c = slope_map.rows - 30; c > currentY; c--) {
-                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(0, 255, 0);
+            for (int c = slope_map.rows - 30; c > 80; c=c-2) {
+                slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(255, 255, 255);
+                slope_map.at<cv::Vec3b>(c, currentZ+1) = cv::Vec3b(255, 255, 255);
             }
 
 //            if (!imuDetected)
@@ -969,9 +970,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 
             std::ostringstream strSlopePitch;
             strSlopePitch << "[" << slope << ", " << ((int) (10*angle*180.0/3.14159265))/10.0 <<"]";
-            int strStart = (int) ((pointLastZ) / zResolutionForSlopeMap);
+            int strStart = (int) ((pointLastZ) / zResolutionForSlopeMap)+10;
 //            std::cout<<"pointLastZ: "<<pointLastZ<<", minDepthDiff: "<<minDepthDiffToCalculateSlope<<", strStart: "<<strStart<<std::endl;
-            cv::putText(slope_map, strSlopePitch.str(), cv::Point(strStart, 100), CV_FONT_HERSHEY_PLAIN, 0.5,
+            cv::putText(slope_map, strSlopePitch.str(), cv::Point(strStart, 100), CV_FONT_HERSHEY_PLAIN, 1,
                         CV_RGB(0, 250, 0));
 
 //            point1Z = pointZ;
@@ -989,9 +990,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //            cv::putText(slope_map, strSlope.str(), cv::Point(50, 40 + rowDiff), CV_FONT_HERSHEY_PLAIN, 0.6,
 //                        CV_RGB(0, 250, 0));
             std::ostringstream strSlopePitch;
-            strSlopePitch << "[" << slope << ", N.A.]";
-            int strStart = (int) ((pointLastZ) / zResolutionForSlopeMap);
-            cv::putText(slope_map, strSlopePitch.str(), cv::Point(strStart, 100), CV_FONT_HERSHEY_PLAIN, 0.5,
+            strSlopePitch << "[" << slope << ", ]";
+            int strStart = (int) ((pointLastZ) / zResolutionForSlopeMap)+10;
+            cv::putText(slope_map, strSlopePitch.str(), cv::Point(strStart, 100), CV_FONT_HERSHEY_PLAIN, 1,
                         CV_RGB(0, 250, 0));
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
             cv::line(left_rect_clr, cv::Point(0, pointR), cv::Point(left_rect_clr.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
@@ -1057,7 +1058,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             a[i]=a[i]/B[i][i];            //now finally divide the rhs by the coefficient of the variable to be calculated
         }
 
-        int xx = static_cast<int>(pts[0].x);
+        int xx = static_cast<int>(depthForSlopeStart*100/zResolutionForSlopeMap);//static_cast<int>(pts[0].x);
         for (xx; xx<=static_cast<int>(pts.back().x); xx++){
             int ans =static_cast<int>(a[0] + a[1] * xx + a[2] * xx*xx);
 //            std::cout<<"("<<xx<<", "<<ans<<"); ";
@@ -1618,13 +1619,13 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     thHorizon = 20/scale;
     rdProfileRowDistanceTh = 6/scale;
     rdProfileColDistanceTh = 16/scale;
-    intensityThVDisPointForSlope = 100/scale;
+    intensityThVDisPointForSlope = 120/scale;
 //    pubName = "/wide/map_msg";
     depthForSlpoe = 30/scale; //m -- slope
     depthForSlopeStart = 5/scale; //m -- slope
-    slopeAdjHeight = 10/scale; // cm -- slope
+    slopeAdjHeight = 20/scale; // cm -- slope
     slopeAdjLength = 1500/scale; // cm -- slope
-    minDepthDiffToCalculateSlope = 1000/scale; // cm -- slope
+    minDepthDiffToCalculateSlope = 800/scale; // cm -- slope
     minNoOfPixelsForObject = 100/scale;
     //negative obstacles
     left_offset = 60/scale; right_offset =36/scale; bottom_offset=60/scale; top_offset=60/scale;
@@ -1667,9 +1668,9 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     disForSlopeStart = cvRound(focal * baseline / depthForSlopeStart);
 
 //    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
-    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+50, CV_8UC3);
+    slope_map = cv::Mat::zeros(heightForSlope/2, static_cast<int>(depthForSlpoe*100/zResolutionForSlopeMap+50), CV_8UC3);
 
-    for (int r=20;r<slope_map.rows;r=r+20){
+    for (int r=40;r<slope_map.rows;r=r+40){
         std::ostringstream str;
         str << (slope_map.rows/2-r)*yResolutionForSlopeMap<<"cm";
         cv::putText(slope_map, str.str(), cv::Point(5,r), CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250,250,250));
@@ -1729,7 +1730,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
     obsMask = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
     obsDisFiltered = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
 //    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
-    slope_map(cv::Rect(50,30,slope_map.cols-50,slope_map.rows-50)).setTo(cv::Scalar::all(0));
+    slope_map(cv::Rect(40,30,slope_map.cols-50,slope_map.rows-50)).setTo(cv::Scalar::all(0));
 
     initialRoadProfile.clear();
     refinedRoadProfile.clear();
@@ -1740,7 +1741,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
     GenerateVDisparityMap();
     RoadProfileCalculation();
 
-    int minNoOfPointsForRdProfile =80;
+    int minNoOfPointsForRdProfile =100;
     if (refinedRoadProfile.size()>minNoOfPointsForRdProfile){
         DisplayRoad();//
         obstacleDisparityMap = cv::Mat::zeros(disparity_map.rows,disparity_map.cols, CV_8UC1);
@@ -1778,7 +1779,7 @@ void ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){
 //        cv::imwrite(img_name, left_rect_clr);
 //
     } else{
-        cv::putText(slope_map, "No visible ground plane detected", cv::Point(60, 40), CV_FONT_HERSHEY_PLAIN, 1.5,
+        cv::putText(slope_map, "No visible ground plane detected", cv::Point(100, 60), CV_FONT_HERSHEY_PLAIN, 1.5,
                     CV_RGB(250, 0, 0));
     }
 

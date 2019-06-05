@@ -11,6 +11,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/sync_policies/exact_time.h>
 //#include <message_filters/sync_policies/exact_time.h>
 
 using namespace message_filters;
@@ -56,17 +57,17 @@ int main(int argc, char** argv) {
 
 //  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 20);
 //  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 20);
-  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 10);
-  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 10);
+  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 5);
+  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 5);
 
 //  Subscriber<sensor_msgs::CameraInfo> sub_info_l_(nh_pub, image_left_info, 20);
 //  Subscriber<sensor_msgs::CameraInfo> sub_info_r_(nh_pub, image_right_info, 20);
 
-  typedef sync_policies::ApproximateTime<sensor_msgs::Image,
+  typedef sync_policies::ExactTime<sensor_msgs::Image,
           sensor_msgs::Image> MySyncPolicy;
 
   // ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
-  Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),
+  Synchronizer<MySyncPolicy> sync(MySyncPolicy(5),
                                   image1_sub, image2_sub);
 
   sync.registerCallback(boost::bind(&darknet_ros::YoloObjectDetector::cameraCallback,
