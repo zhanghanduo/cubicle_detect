@@ -181,7 +181,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-find_package(OpenCV 3.4.0 REQUIRED)
+find_package(OpenCV 3.4.3 REQUIRED)
 
 find_package(catkin REQUIRED
         COMPONENTS

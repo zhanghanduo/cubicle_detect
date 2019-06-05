@@ -56,8 +56,8 @@ int main(int argc, char** argv) {
 
 //  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 20);
 //  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 20);
-  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 20);
-  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 20);
+  Subscriber<sensor_msgs::Image> image1_sub(nh_pub, image_left_topic, 10);
+  Subscriber<sensor_msgs::Image> image2_sub(nh_pub, image_right_topic, 10);
 
 //  Subscriber<sensor_msgs::CameraInfo> sub_info_l_(nh_pub, image_left_info, 20);
 //  Subscriber<sensor_msgs::CameraInfo> sub_info_r_(nh_pub, image_right_info, 20);

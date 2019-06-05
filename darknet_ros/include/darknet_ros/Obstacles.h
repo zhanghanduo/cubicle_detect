@@ -48,7 +48,7 @@ public:
     void ExecuteDetection(cv::Mat &disparity_map, cv::Mat &img);
     cv::Mat obsDisFiltered;
     cv::Mat slope_map, left_rect_clr;
-    double slope_angle;
+    double slope_angle =0.0, pitch_angle = 0.0;
 
 private:
     cv::Mat GenerateUDisparityMap (cv::Mat disp_map);

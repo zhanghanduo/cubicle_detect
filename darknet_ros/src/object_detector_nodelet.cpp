@@ -56,8 +56,8 @@ namespace darknet_ros {
         detector.loadCameraCalibration(left_info, right_info);
         detector.DefineLUTs();
 
-        image1_sub.subscribe(nh_, image_left_topic, 20);
-        image2_sub.subscribe(nh_, image_right_topic, 20);
+        image1_sub.subscribe(nh_, image_left_topic, 10);
+        image2_sub.subscribe(nh_, image_right_topic, 10);
 
         exact_sync_.reset( new ExactSync( ExactPolicy(10),
                                           image1_sub,

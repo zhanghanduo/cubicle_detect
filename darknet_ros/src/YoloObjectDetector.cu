@@ -2032,7 +2032,7 @@ void YoloObjectDetector::Process(){
     obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;
 //    obstacleBoxesResults_.real_header.stamp = ros::Time::now();
 //    obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
-    obstacleBoxesResults_.pitch = ObstacleDetector.slope_angle / 100;
+    obstacleBoxesResults_.pitch = ObstacleDetector.pitch_angle;
     obstaclePublisher_.publish(obstacleBoxesResults_);
 
     obstacleBoxesResults_.obsData.clear();
