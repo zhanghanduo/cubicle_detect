@@ -950,7 +950,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
                 cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
 
                 if (firstSeg){
-                    pitch_angle = angle*180.0/3.14159265;
+                    pitch_angle = angle;
                 }
 //                std::ostringstream strRollPitch;
 ////                strRollPitch << "R. R. Pitch: "<<((int) (1000*angle*180.0/3.14159265))/1000.0;

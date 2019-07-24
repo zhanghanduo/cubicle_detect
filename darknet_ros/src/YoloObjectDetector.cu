@@ -788,10 +788,11 @@ void YoloObjectDetector:: yolo()
 
         cvNamedWindow("Slope Map", CV_WINDOW_NORMAL);
         cvMoveWindow("Slope Map", 1460, 0);
+        cvResizeWindow("Slope Map", 720, 453);
 
-//        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
-//        cvMoveWindow("Detection and Tracking", 0, 0);
-//        cvResizeWindow("Detection and Tracking", 720, 453);
+        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
+        cvMoveWindow("Detection and Tracking", 0, 455);
+        cvResizeWindow("Detection and Tracking", 720, 453);
 
         cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
         cvMoveWindow("Obstacle Mask", 0, 0);
@@ -1897,45 +1898,48 @@ void YoloObjectDetector::CreateMsg(){
     }
     int cate = 0;
     for (unsigned long int i = 0; i < blobs.size(); i++) {
-        obstacle_msgs::obs tmpObs;
-        tmpObs.identityID = i;
-
-        tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
-        tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
-        tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
-        tmpObs.diameter = static_cast<float>(blobs[i].diameter);
-        tmpObs.height = static_cast<float>(blobs[i].height);
-        tmpObs.counter = blobs[i].counter;
-        tmpObs.classes = blobs[i].category;
-        tmpObs.probability = static_cast<float>(blobs[i].probability);
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
+            obstacle_msgs::obs tmpObs;
+            tmpObs.identityID = i;
 
-            if(!blobs[i].category.empty() ) {
+            tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
+            tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
+            tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
+            tmpObs.diameter = static_cast<float>(blobs[i].diameter);
+            tmpObs.height = static_cast<float>(blobs[i].height);
+            tmpObs.counter = blobs[i].counter;
+            tmpObs.classes = blobs[i].category;
+            tmpObs.probability = static_cast<float>(blobs[i].probability);
+            if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
 
-                if(enableEvaluation_){
-                    if( (blobs[i].category == "vehicle") || (blobs[i].category == "bicycle") )
-                        cate = 0;
-                    else if(blobs[i].category == "person")
-                        cate = 1;
-                }
+                if (!blobs[i].category.empty()) {
 
-                tmpObs.xmin = static_cast<unsigned int>(blobs[i].boundingRects.back().x);
-                tmpObs.ymin = static_cast<unsigned int>(blobs[i].boundingRects.back().y);
-                tmpObs.xmax = tmpObs.xmin + blobs[i].boundingRects.back().width;
-                tmpObs.ymax = tmpObs.ymin + blobs[i].boundingRects.back().height;
+                    if (enableEvaluation_) {
+                        if ((blobs[i].category == "vehicle") || (blobs[i].category == "bicycle"))
+                            cate = 0;
+                        else if (blobs[i].category == "person")
+                            cate = 1;
+                    }
+
+                    tmpObs.xmin = static_cast<unsigned int>(blobs[i].boundingRects.back().x);
+                    tmpObs.ymin = static_cast<unsigned int>(blobs[i].boundingRects.back().y);
+                    tmpObs.xmax = tmpObs.xmin + blobs[i].boundingRects.back().width;
+                    tmpObs.ymax = tmpObs.ymin + blobs[i].boundingRects.back().height;
 //            tmpObs.histogram = blobs[i].obsHog;
 
-                obstacleBoxesResults_.obsData.push_back(tmpObs);
+                    obstacleBoxesResults_.obsData.push_back(tmpObs);
 
 //            ROS_WARN("center ID: %d | type: %s\nx: %f| y: %f| z: %f \n", i, tmpObs.classes,
 //                    tmpObs.centerPos.x, tmpObs.centerPos.y, tmpObs.centerPos.z);
 
-                ////*--------------Generate Evaluation files----------------------*////
-                if(enableEvaluation_){
-                    file << i << " " << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y << " "
-                         << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " " <<
-                         blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " " << cate
-                         << std::endl;
+                    ////*--------------Generate Evaluation files----------------------*////
+                    if (enableEvaluation_) {
+                        file << i << " " << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y
+                             << " "
+                             << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " " <<
+                             blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " " << cate
+                             << std::endl;
+                    }
                 }
             }
         }
@@ -2033,6 +2037,7 @@ void YoloObjectDetector::Process(){
 //    obstacleBoxesResults_.real_header.stamp = ros::Time::now();
 //    obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;
     obstacleBoxesResults_.pitch = ObstacleDetector.pitch_angle;
+//    obstacleBoxesResults_.pitch = 0;
     obstaclePublisher_.publish(obstacleBoxesResults_);
 
     obstacleBoxesResults_.obsData.clear();
@@ -2042,11 +2047,11 @@ void YoloObjectDetector::Process(){
 //    sprintf(name, "%s_%08d", "/home/ugv/yolo/f", frame_num);
 //    save_image(buff_, name);//[(buffIndex_ + 1) % 3], name);
 
-    if ( frame_num % 30 == 0 && enableConsoleOutput_ ) {
-        fps_ = 1/(whole_duration_/30);
+    if ( frame_num % 100 == 0 && enableConsoleOutput_ ) {
+        fps_ = 1/(whole_duration_/100);
         printf("Detection: %.1fFPS\n"
                "    Disparity:%.1fms, Obstacle:%.1fms, Classification:%.1fms\n",
-               fps_, stereo_duration_ * 1000/30, obs_duration_ * 1000/30, classi_duration_ * 1000/30);
+               fps_, stereo_duration_ * 10, obs_duration_ * 10, classi_duration_ * 10);
         whole_duration_ = 0;
         stereo_duration_ = 0;
         obs_duration_ = 0;
@@ -2055,6 +2060,5 @@ void YoloObjectDetector::Process(){
 
     frame_num++;
 }
-
 
 } /* namespace darknet_ros*/
