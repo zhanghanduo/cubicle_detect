@@ -1,0 +1,8 @@
+
+
+OpenCV Installation
+===================
+
+Prerequisites
+-------------
+
