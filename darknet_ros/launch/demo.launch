@@ -18,7 +18,7 @@
 <!--        args="-0.123 -0.754 1.287 0 1.3962633 -1.5707963 velo camera1 100" />-->
 
 <!--  Localization-->
-  <include file="$(find sslam_estimator)/launch/bus_core.launch" />
+  <include file="$(find sslam)/launch/bus_core.launch" />
 <!--  <include file="$(find sslam_estimator)/launch/bus_global_core.launch" />-->
 <!--  <include file="$(find undistort_images)/launch/bus.launch" />-->
 <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
@@ -78,7 +78,7 @@
 <!--    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>-->
 <!--  </node>-->
 
- <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam_estimator)/../config/sslam_rviz_config.rviz" />
+ <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam)/config/sslam_rviz_config.rviz" />
 <!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/../config/demo.rviz" />-->
 
  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->

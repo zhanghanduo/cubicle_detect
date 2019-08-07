@@ -18,24 +18,10 @@ if(BUILD_DOC)
         # note the option ALL which allows to build the doc together with the application
         add_custom_target( doc_doxygen_cubicle ALL
                 COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                WORKING_DIRECTORY ${DOXYGEN_OUTPUT_DIR}
                 COMMENT "Generating API documentation with Doxygen"
                 VERBATIM )
     else (DOXYGEN_FOUND)
         message("Doxygen need to be installed to generate the doxygen documentation")
     endif (DOXYGEN_FOUND)
-
-    find_package(Sphinx REQUIRED)
-
-    # HTML output directory
-#    set(SPHINX_HTML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/docs/sphinx/html")
-    set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/source)
-    set(SPHINX_BUILD ${PROJECT_SOURCE_DIR}/docs/sphinx)
-
-    # Building using 'make_docs.py' python script
-    add_custom_target(sslam_doc_cubicle ALL
-            ${SPHINX_EXECUTABLE} -b html
-            ${SPHINX_SOURCE} ${SPHINX_BUILD}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Building HTML documentation with Sphinx")
 endif()
