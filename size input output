@@ -1,0 +1,1520 @@
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/.gitignore b/darknet/.gitignore[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/3rdparty/pthreads/include/pthread.h b/darknet/3rdparty/pthreads/include/pthread.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/3rdparty/pthreads/include/sched.h b/darknet/3rdparty/pthreads/include/sched.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/3rdparty/pthreads/include/semaphore.h b/darknet/3rdparty/pthreads/include/semaphore.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/3rdparty/stb/include/stb_image.h b/darknet/3rdparty/stb/include/stb_image.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/3rdparty/stb/include/stb_image_write.h b/darknet/3rdparty/stb/include/stb_image_write.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/CMakeLists.txt b/darknet/CMakeLists.txt[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/CMakeSettings.json b/darknet/CMakeSettings.json[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/DarknetConfig.cmake.in b/darknet/DarknetConfig.cmake.in[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/LICENSE b/darknet/LICENSE[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/Makefile b/darknet/Makefile[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/README.md b/darknet/README.md[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/cmake/Modules/FindCUDNN.cmake b/darknet/cmake/Modules/FindCUDNN.cmake[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/cmake/Modules/FindPThreads_windows.cmake b/darknet/cmake/Modules/FindPThreads_windows.cmake[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/cmake/Modules/FindStb.cmake b/darknet/cmake/Modules/FindStb.cmake[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/darknet.py b/darknet/darknet.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/darknet_video.py b/darknet/darknet_video.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/9k.tree b/darknet/data/9k.tree[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/coco.names b/darknet/data/coco.names[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/coco9k.map b/darknet/data/coco9k.map[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/dog.jpg b/darknet/data/dog.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/eagle.jpg b/darknet/data/eagle.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/giraffe.jpg b/darknet/data/giraffe.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/goal.txt b/darknet/data/goal.txt[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/horses.jpg b/darknet/data/horses.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/imagenet.labels.list b/darknet/data/imagenet.labels.list[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/imagenet.shortnames.list b/darknet/data/imagenet.shortnames.list[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/openimages.names b/darknet/data/openimages.names[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/person.jpg b/darknet/data/person.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/data/voc.names b/darknet/data/voc.names[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/include/darknet.h b/darknet/include/darknet.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/include/darknet_bak.h b/darknet/include/darknet_bak.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/include/yolo_v2_class.hpp b/darknet/include/yolo_v2_class.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/README.md b/darknet/scripts/README.md[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/check_cuda.cu b/darknet/scripts/check_cuda.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/cuda_script b/darknet/scripts/cuda_script[m
+[1mindex db278a3..f21e54d 100755[m
+Binary files a/darknet/scripts/cuda_script and b/darknet/scripts/cuda_script differ
+[1mdiff --git a/darknet/scripts/dice_label.sh b/darknet/scripts/dice_label.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/gen_anchors.py b/darknet/scripts/gen_anchors.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/get_coco_dataset.sh b/darknet/scripts/get_coco_dataset.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/get_imagenet_train.sh b/darknet/scripts/get_imagenet_train.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/get_openimages_dataset.py b/darknet/scripts/get_openimages_dataset.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/imagenet_label.sh b/darknet/scripts/imagenet_label.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/kmeansiou.c b/darknet/scripts/kmeansiou.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/log_parser.py b/darknet/scripts/log_parser/log_parser.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/plot.jpg b/darknet/scripts/log_parser/plot.jpg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/readme.md b/darknet/scripts/log_parser/readme.md[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/run_log_parser_windows.cmd b/darknet/scripts/log_parser/run_log_parser_windows.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/test.log b/darknet/scripts/log_parser/test.log[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/test_new.log b/darknet/scripts/log_parser/test_new.log[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/log_parser/test_new.svg b/darknet/scripts/log_parser/test_new.svg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/reval_voc.py b/darknet/scripts/reval_voc.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/reval_voc_py3.py b/darknet/scripts/reval_voc_py3.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/voc_eval.py b/darknet/scripts/voc_eval.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/voc_eval_py3.py b/darknet/scripts/voc_eval_py3.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/voc_label.py b/darknet/scripts/voc_label.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/voc_label_difficult.py b/darknet/scripts/voc_label_difficult.py[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/otb_get_labels.sh b/darknet/scripts/windows/otb_get_labels.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/win_cifar.cmd b/darknet/scripts/windows/win_cifar.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/win_get_imagenet_train_48hours.cmd b/darknet/scripts/windows/win_get_imagenet_train_48hours.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/win_get_imagenet_valid.cmd b/darknet/scripts/windows/win_get_imagenet_valid.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/win_get_otb_datasets.cmd b/darknet/scripts/windows/win_get_otb_datasets.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/win_install_cygwin.cmd b/darknet/scripts/windows/win_install_cygwin.cmd[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/windows_imagenet_label.sh b/darknet/scripts/windows/windows_imagenet_label.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/scripts/windows/windows_imagenet_train.sh b/darknet/scripts/windows/windows_imagenet_train.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/.editorconfig b/darknet/src/.editorconfig[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/activation_kernels.cu b/darknet/src/activation_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/activation_layer.c b/darknet/src/activation_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/activation_layer.h b/darknet/src/activation_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/activations.c b/darknet/src/activations.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/activations.h b/darknet/src/activations.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/art.c b/darknet/src/art.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/avgpool_layer.c b/darknet/src/avgpool_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/avgpool_layer.h b/darknet/src/avgpool_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/avgpool_layer_kernels.cu b/darknet/src/avgpool_layer_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/batchnorm_layer.c b/darknet/src/batchnorm_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/batchnorm_layer.h b/darknet/src/batchnorm_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/blas.c b/darknet/src/blas.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/blas.h b/darknet/src/blas.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/blas_kernels.cu b/darknet/src/blas_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/box.c b/darknet/src/box.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/box.h b/darknet/src/box.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/captcha.c b/darknet/src/captcha.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/cifar.c b/darknet/src/cifar.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/classifier.c b/darknet/src/classifier.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/classifier.h b/darknet/src/classifier.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/coco.c b/darknet/src/coco.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/col2im.c b/darknet/src/col2im.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/col2im.h b/darknet/src/col2im.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/col2im_kernels.cu b/darknet/src/col2im_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/compare.c b/darknet/src/compare.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/connected_layer.c b/darknet/src/connected_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/connected_layer.h b/darknet/src/connected_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/conv_lstm_layer.c b/darknet/src/conv_lstm_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/conv_lstm_layer.h b/darknet/src/conv_lstm_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/convolutional_kernels.cu b/darknet/src/convolutional_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/convolutional_layer.c b/darknet/src/convolutional_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/convolutional_layer.h b/darknet/src/convolutional_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/cost_layer.c b/darknet/src/cost_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/cost_layer.h b/darknet/src/cost_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/cpu_gemm.c b/darknet/src/cpu_gemm.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/crnn_layer.c b/darknet/src/crnn_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/crnn_layer.h b/darknet/src/crnn_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/crop_layer.c b/darknet/src/crop_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/crop_layer.h b/darknet/src/crop_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/crop_layer_kernels.cu b/darknet/src/crop_layer_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dark_cuda.c b/darknet/src/dark_cuda.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dark_cuda.h b/darknet/src/dark_cuda.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/darknet.c b/darknet/src/darknet.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/darkunistd.h b/darknet/src/darkunistd.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/data.c b/darknet/src/data.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/data.h b/darknet/src/data.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/deconvolutional_kernels.cu b/darknet/src/deconvolutional_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/deconvolutional_layer.c b/darknet/src/deconvolutional_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/deconvolutional_layer.h b/darknet/src/deconvolutional_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/demo.c b/darknet/src/demo.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/demo.h b/darknet/src/demo.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/detection_layer.c b/darknet/src/detection_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/detection_layer.h b/darknet/src/detection_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/detector.c b/darknet/src/detector.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dice.c b/darknet/src/dice.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dropout_layer.c b/darknet/src/dropout_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dropout_layer.h b/darknet/src/dropout_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/dropout_layer_kernels.cu b/darknet/src/dropout_layer_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gemm.c b/darknet/src/gemm.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gemm.h b/darknet/src/gemm.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/getopt.c b/darknet/src/getopt.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/getopt.h b/darknet/src/getopt.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gettimeofday.c b/darknet/src/gettimeofday.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gettimeofday.h b/darknet/src/gettimeofday.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/go.c b/darknet/src/go.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gru_layer.c b/darknet/src/gru_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/gru_layer.h b/darknet/src/gru_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/http_stream.cpp b/darknet/src/http_stream.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/http_stream.h b/darknet/src/http_stream.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/im2col.c b/darknet/src/im2col.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/im2col.h b/darknet/src/im2col.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/im2col_kernels.cu b/darknet/src/im2col_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/image.c b/darknet/src/image.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/image.h b/darknet/src/image.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/image_opencv.cpp b/darknet/src/image_opencv.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/image_opencv.h b/darknet/src/image_opencv.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/layer.c b/darknet/src/layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/layer.h b/darknet/src/layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/list.c b/darknet/src/list.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/list.h b/darknet/src/list.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/local_layer.c b/darknet/src/local_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/local_layer.h b/darknet/src/local_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/lstm_layer.c b/darknet/src/lstm_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/lstm_layer.h b/darknet/src/lstm_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/matrix.c b/darknet/src/matrix.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/matrix.h b/darknet/src/matrix.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/maxpool_layer.c b/darknet/src/maxpool_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/maxpool_layer.h b/darknet/src/maxpool_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/maxpool_layer_kernels.cu b/darknet/src/maxpool_layer_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/network.c b/darknet/src/network.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/network.h b/darknet/src/network.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/network_kernels.cu b/darknet/src/network_kernels.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/nightmare.c b/darknet/src/nightmare.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/normalization_layer.c b/darknet/src/normalization_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/normalization_layer.h b/darknet/src/normalization_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/option_list.c b/darknet/src/option_list.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/option_list.h b/darknet/src/option_list.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/parser.c b/darknet/src/parser.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/parser.h b/darknet/src/parser.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/region_layer.c b/darknet/src/region_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/region_layer.h b/darknet/src/region_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/reorg_layer.c b/darknet/src/reorg_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/reorg_layer.h b/darknet/src/reorg_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/reorg_old_layer.c b/darknet/src/reorg_old_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/reorg_old_layer.h b/darknet/src/reorg_old_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/rnn.c b/darknet/src/rnn.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/rnn_layer.c b/darknet/src/rnn_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/rnn_layer.h b/darknet/src/rnn_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/rnn_vid.c b/darknet/src/rnn_vid.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/route_layer.c b/darknet/src/route_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/route_layer.h b/darknet/src/route_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/shortcut_layer.c b/darknet/src/shortcut_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/shortcut_layer.h b/darknet/src/shortcut_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/softmax_layer.c b/darknet/src/softmax_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/softmax_layer.h b/darknet/src/softmax_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/super.c b/darknet/src/super.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/swag.c b/darknet/src/swag.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/tag.c b/darknet/src/tag.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/tree.c b/darknet/src/tree.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/tree.h b/darknet/src/tree.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/upsample_layer.c b/darknet/src/upsample_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/upsample_layer.h b/darknet/src/upsample_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/utils.c b/darknet/src/utils.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/utils.h b/darknet/src/utils.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/version.h b/darknet/src/version.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/version.h.in b/darknet/src/version.h.in[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/voxel.c b/darknet/src/voxel.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/writing.c b/darknet/src/writing.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/yolo.c b/darknet/src/yolo.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/yolo_console_dll.cpp b/darknet/src/yolo_console_dll.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/yolo_layer.c b/darknet/src/yolo_layer.c[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/yolo_layer.h b/darknet/src/yolo_layer.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet/src/yolo_v2_class.cpp b/darknet/src/yolo_v2_class.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/config/demo.rviz b/darknet_ros/config/demo.rviz[m
+[1mindex 469acef..aabbb4f 100644[m
+[1m--- a/darknet_ros/config/demo.rviz[m
+[1m+++ b/darknet_ros/config/demo.rviz[m
+[36m@@ -1,12 +1,14 @@[m
+ Panels:[m
+   - Class: rviz/Displays[m
+[31m-    Help Height: 87[m
+[32m+[m[32m    Help Height: 75[m
+     Name: Displays[m
+     Property Tree Widget:[m
+       Expanded:[m
+         - /road slope1/Namespaces1[m
+[32m+[m[32m        - /PoseWithCovariance1/Covariance1[m
+[32m+[m[32m        - /PoseWithCovariance1/Covariance1/Position1[m
+       Splitter Ratio: 0.5[m
+[31m-    Tree Height: 392[m
+[32m+[m[32m    Tree Height: 316[m
+   - Class: rviz/Selection[m
+     Name: Selection[m
+   - Class: rviz/Tool Properties[m
+[36m@@ -32,7 +34,7 @@[m [mVisualization Manager:[m
+   Class: ""[m
+   Displays:[m
+     - Alpha: 0.5[m
+[31m-      Cell Size: 40[m
+[32m+[m[32m      Cell Size: 100[m
+       Class: rviz/Grid[m
+       Color: 160; 160; 164[m
+       Enabled: true[m
+[36m@@ -88,7 +90,7 @@[m [mVisualization Manager:[m
+     - Alpha: 1[m
+       Buffer Length: 1[m
+       Class: rviz/Path[m
+[31m-      Color: 255; 255; 255[m
+[32m+[m[32m      Color: 255; 255; 0[m
+       Enabled: true[m
+       Head Diameter: 0.300000012[m
+       Head Length: 0.200000003[m
+[36m@@ -105,7 +107,7 @@[m [mVisualization Manager:[m
+       Radius: 0.0299999993[m
+       Shaft Diameter: 0.100000001[m
+       Shaft Length: 0.100000001[m
+[31m-      Topic: /pose_graph_node/pose_graph_path[m
+[32m+[m[32m      Topic: /pose_graph_path[m
+       Unreliable: false[m
+       Value: true[m
+     - Class: rviz/MarkerArray[m
+[36m@@ -133,7 +135,7 @@[m [mVisualization Manager:[m
+       Marker Topic: /mapObs_text[m
+       Name: Obstacle Annotation[m
+       Namespaces:[m
+[31m-        {}[m
+[32m+[m[32m        obstacles_text: true[m
+       Queue Size: 100[m
+       Value: true[m
+     - Class: rviz/MarkerArray[m
+[36m@@ -141,7 +143,7 @@[m [mVisualization Manager:[m
+       Marker Topic: /mapObs[m
+       Name: Movable Object[m
+       Namespaces:[m
+[31m-        {}[m
+[32m+[m[32m        obstacles: true[m
+       Queue Size: 100[m
+       Value: true[m
+     - Alpha: 1[m
+[36m@@ -156,7 +158,7 @@[m [mVisualization Manager:[m
+       Color: 255; 255; 255[m
+       Color Transformer: RGB8[m
+       Decay Time: 0[m
+[31m-      Enabled: true[m
+[32m+[m[32m      Enabled: false[m
+       Invert Rainbow: false[m
+       Max Color: 255; 255; 255[m
+       Max Intensity: 4096[m
+[36m@@ -173,7 +175,7 @@[m [mVisualization Manager:[m
+       Unreliable: false[m
+       Use Fixed Frame: true[m
+       Use rainbow: true[m
+[31m-      Value: true[m
+[32m+[m[32m      Value: false[m
+     - Alpha: 1[m
+       Autocompute Intensity Bounds: true[m
+       Autocompute Value Bounds:[m
+[36m@@ -209,7 +211,9 @@[m [mVisualization Manager:[m
+       Marker Topic: /road_slope[m
+       Name: road slope[m
+       Namespaces:[m
+[31m-        {}[m
+[32m+[m[32m        road_slope_arrow: true[m
+[32m+[m[32m        road_slope_disk: true[m
+[32m+[m[32m        road_slope_text: true[m
+       Queue Size: 100[m
+       Value: true[m
+     - Alpha: 1[m
+[36m@@ -244,7 +248,7 @@[m [mVisualization Manager:[m
+       Value: true[m
+     - Class: rviz/Image[m
+       Enabled: false[m
+[31m-      Image Topic: /sslam_estimator_node/image_track[m
+[32m+[m[32m      Image Topic: /lane_images[m
+       Max Value: 1[m
+       Median window: 5[m
+       Min Value: 0[m
+[36m@@ -264,7 +268,7 @@[m [mVisualization Manager:[m
+       Length: 0.300000012[m
+       Line Style: Lines[m
+       Line Width: 0.0299999993[m
+[31m-      Name: GPS[m
+[32m+[m[32m      Name: Gps[m
+       Offset:[m
+         X: 0[m
+         Y: 0[m
+[36m@@ -277,6 +281,89 @@[m [mVisualization Manager:[m
+       Topic: /gps/path[m
+       Unreliable: false[m
+       Value: true[m
+[32m+[m[32m    - Alpha: 1[m
+[32m+[m[32m      Axes Length: 1[m
+[32m+[m[32m      Axes Radius: 0.100000001[m
+[32m+[m[32m      Class: rviz/PoseWithCovariance[m
+[32m+[m[32m      Color: 255; 25; 0[m
+[32m+[m[32m      Covariance:[m
+[32m+[m[32m        Orientation:[m
+[32m+[m[32m          Alpha: 0.5[m
+[32m+[m[32m          Color: 255; 255; 127[m
+[32m+[m[32m          Color Style: Unique[m
+[32m+[m[32m          Frame: Local[m
+[32m+[m[32m          Offset: 1[m
+[32m+[m[32m          Scale: 1[m
+[32m+[m[32m          Value: true[m
+[32m+[m[32m        Position:[m
+[32m+[m[32m          Alpha: 0.400000006[m
+[32m+[m[32m          Color: 0; 255; 127[m
+[32m+[m[32m          Scale: 200[m
+[32m+[m[32m          Value: true[m
+[32m+[m[32m        Value: true[m
+[32m+[m[32m      Enabled: true[m
+[32m+[m[32m      Head Length: 0.300000012[m
+[32m+[m[32m      Head Radius: 0.100000001[m
+[32m+[m[32m      Name: PoseWithCovariance[m
+[32m+[m[32m      Shaft Length: 1[m
+[32m+[m[32m      Shaft Radius: 0.0500000007[m
+[32m+[m[32m      Shape: Arrow[m
+[32m+[m[32m      Topic: /pose_graph_node/odometry_rect[m
+[32m+[m[32m      Unreliable: false[m
+[32m+[m[32m      Value: true[m
+[32m+[m[32m    - Alpha: 1[m
+[32m+[m[32m      Buffer Length: 1[m
+[32m+[m[32m      Class: rviz/Path[m
+[32m+[m[32m      Color: 161; 161; 161[m
+[32m+[m[32m      Enabled: true[m
+[32m+[m[32m      Head Diameter: 0.300000012[m
+[32m+[m[32m      Head Length: 0.200000003[m
+[32m+[m[32m      Length: 0.300000012[m
+[32m+[m[32m      Line Style: Lines[m
+[32m+[m[32m      Line Width: 0.0299999993[m
+[32m+[m[32m      Name: Prior Path[m
+[32m+[m[32m      Offset:[m
+[32m+[m[32m        X: 0[m
+[32m+[m[32m        Y: 0[m
+[32m+[m[32m        Z: 0[m
+[32m+[m[32m      Pose Color: 255; 85; 255[m
+[32m+[m[32m      Pose Style: None[m
+[32m+[m[32m      Radius: 0.0299999993[m
+[32m+[m[32m      Shaft Diameter: 0.100000001[m
+[32m+[m[32m      Shaft Length: 0.100000001[m
+[32m+[m[32m      Topic: /pose_graph_node/base_path[m
+[32m+[m[32m      Unreliable: false[m
+[32m+[m[32m      Value: true[m
+[32m+[m[32m    - Alpha: 1[m
+[32m+[m[32m      Autocompute Intensity Bounds: true[m
+[32m+[m[32m      Autocompute Value Bounds:[m
+[32m+[m[32m        Max Value: 10[m
+[32m+[m[32m        Min Value: -10[m
+[32m+[m[32m        Value: true[m
+[32m+[m[32m      Axis: Z[m
+[32m+[m[32m      Channel Name: intensity[m
+[32m+[m[32m      Class: rviz/PointCloud[m
+[32m+[m[32m      Color: 255; 255; 255[m
+[32m+[m[32m      Color Transformer: Intensity[m
+[32m+[m[32m      Decay Time: 0[m
+[32m+[m[32m      Enabled: true[m
+[32m+[m[32m      Invert Rainbow: false[m
+[32m+[m[32m      Max Color: 255; 255; 255[m
+[32m+[m[32m      Max Intensity: 4096[m
+[32m+[m[32m      Min Color: 0; 0; 0[m
+[32m+[m[32m      Min Intensity: 0[m
+[32m+[m[32m      Name: Prior Points[m
+[32m+[m[32m      Position Transformer: XYZ[m
+[32m+[m[32m      Queue Size: 10[m
+[32m+[m[32m      Selectable: true[m
+[32m+[m[32m      Size (Pixels): 3[m
+[32m+[m[32m      Size (m): 0.00999999978[m
+[32m+[m[32m      Style: Flat Squares[m
+[32m+[m[32m      Topic: /pose_graph_node/base_points[m
+[32m+[m[32m      Unreliable: false[m
+[32m+[m[32m      Use Fixed Frame: true[m
+[32m+[m[32m      Use rainbow: true[m
+[32m+[m[32m      Value: true[m
+   Enabled: true[m
+   Global Options:[m
+     Background Color: 48; 48; 48[m
+[36m@@ -301,26 +388,21 @@[m [mVisualization Manager:[m
+   Value: true[m
+   Views:[m
+     Current:[m
+[31m-      Class: rviz/Orbit[m
+[31m-      Distance: 934.757751[m
+[32m+[m[32m      Angle: -0.234999999[m
+[32m+[m[32m      Class: rviz/TopDownOrtho[m
+       Enable Stereo Rendering:[m
+         Stereo Eye Separation: 0.0599999987[m
+         Stereo Focal Distance: 1[m
+         Swap Stereo Eyes: false[m
+         Value: false[m
+[31m-      Focal Point:[m
+[31m-        X: 273.81427[m
+[31m-        Y: 18.4058609[m
+[31m-        Z: -48.1219749[m
+[31m-      Focal Shape Fixed Size: true[m
+[31m-      Focal Shape Size: 0.0500000007[m
+       Invert Z Axis: false[m
+       Name: Current View[m
+       Near Clip Distance: 0.00999999978[m
+[31m-      Pitch: 1.56979632[m
+[32m+[m[32m      Scale: 1.26389337[m
+       Target Frame: <Fixed Frame>[m
+[31m-      Value: Orbit (rviz)[m
+[31m-      Yaw: 3.14039588[m
+[32m+[m[32m      Value: TopDownOrtho (rviz)[m
+[32m+[m[32m      X: 74.9199982[m
+[32m+[m[32m      Y: -62.9923897[m
+     Saved: ~[m
+ Window Geometry:[m
+   Curb Image:[m
+[36m@@ -329,12 +411,12 @@[m [mWindow Geometry:[m
+     collapsed: false[m
+   Displays:[m
+     collapsed: false[m
+[31m-  Height: 1018[m
+[32m+[m[32m  Height: 876[m
+   Hide Left Dock: false[m
+   Hide Right Dock: true[m
+   Lane Image:[m
+     collapsed: false[m
+[31m-  QMainWindow State: 000000ff00000000fd0000000400000000000001ae00000396fc0200000010fb000000100044006900730070006c006100790073010000004300000225000000f400fffffffb0000002a00440069007300700061007200690074007900200043006f006c006f007200200049006d00610067006500000001a30000014c0000001800fffffffb0000002a004f0062006a00650063007400200043006c0061007300730069006600690063006100740069006f006e0000000028000002640000000000000000fb0000001e0054007200610063006b0069006e006700200052006500730075006c0074020000037300000132000003ee000002a9fb000000160054007200610063006b00200069006d006100670065010000026e0000016b0000001800fffffffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006f00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120053006c006f007000650020004d006100700200000517000002000000026900000238fb00000014004300750072006200200049006d00610067006500000002d0000001090000001800fffffffb00000014004c0061006e006500200049006d0061006700650000000335000000cd0000001800fffffffb00000014004300750072006200200049006d00610067006500000002b70000014b0000000000000000000000010000010f00000396fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000004300000396000000c100fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f000000f4fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000044fc0100000002fb0000000800540069006d00650000000000000007800000028700fffffffb0000000800540069006d006501000000000000045000000000000000000000058b0000039600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000[m
+[32m+[m[32m  QMainWindow State: 000000ff00000000fd00000004000000000000016a00000326fc0200000010fb000000100044006900730070006c0061007900730100000028000001c7000000d600fffffffb0000002a00440069007300700061007200690074007900200043006f006c006f007200200049006d00610067006500000001a30000014c0000001600fffffffb0000002a004f0062006a00650063007400200043006c0061007300730069006600690063006100740069006f006e0000000028000002640000000000000000fb0000001e0054007200610063006b0069006e006700200052006500730075006c0074020000037300000132000003ee000002a9fb000000160054007200610063006b00200069006d00610067006501000001f5000001590000001600fffffffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120053006c006f007000650020004d006100700200000517000002000000026900000238fb00000014004300750072006200200049006d00610067006500000001ac000000dc0000001600fffffffb00000014004c0061006e006500200049006d00610067006500000002420000010c0000001600fffffffb00000014004300750072006200200049006d00610067006500000002b70000014b0000000000000000000000010000010f000003dafc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000028000003da000000ac00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f000000f4fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000044fc0100000002fb0000000800540069006d00650000000000000007800000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000003ef0000032600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000[m
+   Selection:[m
+     collapsed: false[m
+   Time:[m
+[36m@@ -345,6 +427,6 @@[m [mWindow Geometry:[m
+     collapsed: false[m
+   Views:[m
+     collapsed: true[m
+[31m-  Width: 1855[m
+[31m-  X: 53[m
+[31m-  Y: 0[m
+[32m+[m[32m  Width: 1375[m
+[32m+[m[32m  X: 65[m
+[32m+[m[32m  Y: 24[m
+[1mdiff --git a/darknet_ros/config/params.yml b/darknet_ros/config/params.yml[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/config/ros.yaml b/darknet_ros/config/ros.yaml[m
+[1mindex f7cbc43..71e70b8 100755[m
+[1m--- a/darknet_ros/config/ros.yaml[m
+[1m+++ b/darknet_ros/config/ros.yaml[m
+[36m@@ -27,7 +27,7 @@[m [mpublishers:[m
+ [m
+ image_view:[m
+ [m
+[31m-  enable_opencv: false[m
+[32m+[m[32m  enable_opencv: true[m
+   wait_key_delay: 1[m
+   enable_console_output: true[m
+   eval: false[m
+[1mdiff --git a/darknet_ros/detection_plugin.xml b/darknet_ros/detection_plugin.xml[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/YoloObjectDetector.hpp b/darknet_ros/include/darknet_ros/YoloObjectDetector.hpp[m
+[1mindex f0612c1..2cea474 100755[m
+[1m--- a/darknet_ros/include/darknet_ros/YoloObjectDetector.hpp[m
+[1m+++ b/darknet_ros/include/darknet_ros/YoloObjectDetector.hpp[m
+[36m@@ -122,6 +122,7 @@[m [mclass YoloObjectDetector[m
+   void cameraCallback(const sensor_msgs::ImageConstPtr &image1, const sensor_msgs::ImageConstPtr &image2); //,[m
+ //                      const sensor_msgs::CameraInfoConstPtr& left_info, const sensor_msgs::CameraInfoConstPtr& right_info);[m
+ [m
+[32m+[m[32m  void evalClassification(cv::Mat img_to_eval, cv::String det_file_name);[m
+   int globalframe, Scale;[m
+   double stereo_baseline_, u0, v0, focal;[m
+ [m
+[36m@@ -308,6 +309,7 @@[m [mprivate:[m
+   char *demoPrefix_;[m
+ [m
+   ros::Time image_time_, prvImageTime;[m
+[32m+[m[32m  uint32_t sequence_;[m
+   std_msgs::Header imageHeader_;[m
+   cv::Mat camImageCopy_, origLeft, origRight, camImageOrig;[m
+   cv::Mat left_rectified, right_rectified, output, ObsDisparity;[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/functions.h b/darknet_ros/include/darknet_ros/functions.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/segengine.h b/darknet_ros/include/darknet_ros/segengine.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/stdafx.h b/darknet_ros/include/darknet_ros/stdafx.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/structures.h b/darknet_ros/include/darknet_ros/structures.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/targetver.h b/darknet_ros/include/darknet_ros/targetver.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/tinydir.h b/darknet_ros/include/darknet_ros/tinydir.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/tsdeque.h b/darknet_ros/include/darknet_ros/tsdeque.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/include/darknet_ros/utilsSeg.h b/darknet_ros/include/darknet_ros/utilsSeg.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/launch/bus.launch b/darknet_ros/launch/bus.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mindex 639c397..36f0af7[m
+[1m--- a/darknet_ros/launch/bus.launch[m
+[1m+++ b/darknet_ros/launch/bus.launch[m
+[36m@@ -38,7 +38,7 @@[m
+     <param name="filter_dynamic"        value="true" />[m
+     <param name="scale"                 value="1" />[m
+     <param name="enable_stereo"         value="true" />[m
+[31m-    <param name="enable_classification" value="false" />[m
+[32m+[m[32m    <param name="enable_classification" value="true" />[m
+     <param name="enable_neg"            value="false" />[m
+     <param name="seg_path"              value="$(arg seg_param_path)" />[m
+   </node>[m
+[1mdiff --git a/darknet_ros/launch/bus_core.launch b/darknet_ros/launch/bus_core.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/launch/bus_nodelet.launch b/darknet_ros/launch/bus_nodelet.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/launch/bus_tiny.launch b/darknet_ros/launch/bus_tiny.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/launch/debug_bus.launch b/darknet_ros/launch/debug_bus.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/launch/demo.launch b/darknet_ros/launch/demo.launch[m
+[1mindex 0c77926..1a4f0da 100755[m
+[1m--- a/darknet_ros/launch/demo.launch[m
+[1m+++ b/darknet_ros/launch/demo.launch[m
+[36m@@ -3,7 +3,7 @@[m
+ <launch>[m
+   <!-- Config and weights folder. -->[m
+   <arg name="source_frame"                            value="world"/>[m
+[31m-  <arg name="robot_frame"                             value="camera"/>[m
+[32m+[m[32m  <arg name="robot_frame"                             value="gps"/>[m
+   <arg name="publish_obstacle"                        value="/mapObs"/>[m
+   <arg name="road_slope_vis"                          value="true"/>[m
+   <arg name="yolo_weights_path"          default="$(find cubicle_detect)/yolo_network_config/weights"/>[m
+[36m@@ -12,7 +12,7 @@[m
+   <arg name="min_disparity"              default="7"/>[m
+   <arg name="disparity_scope"            default="128"/>[m
+ [m
+[31m-<!--  <param name="use_sim_time" value="true" />-->[m
+[32m+[m[32m  <param name="use_sim_time" value="false" />[m
+ [m
+ <!--  Localization-->[m
+   <include file="$(find sslam_estimator)/launch/bus_core.launch" />[m
+[36m@@ -56,27 +56,27 @@[m
+ <!--  </node>-->[m
+ [m
+   <node pkg="cmerge" type="cmerge_node" name="cubicle_merge_bus" output="screen">[m
+[31m-      <param name="source_frame"                      value="$(arg source_frame)" />[m
+[31m-      <param name="base_frame"                        value="$(arg robot_frame)" />[m
+[31m-      <param name="input_type"                        value="2" />[m
+[31m-      <param name="smooth_value"                      value="0.7" />[m
+[31m-      <param name="obstacle/map"                      value="/obs_map" />[m
+[31m-      <param name="road_slope_vis"                    value="$(arg road_slope_vis)" />[m
+[31m-      <param name="publish/map"                       value="$(arg publish_obstacle)" />[m
+[32m+[m[32m    <param name="source_frame"                      value="$(arg source_frame)" />[m
+[32m+[m[32m    <param name="base_frame"                        value="$(arg robot_frame)" />[m
+[32m+[m[32m    <param name="input_type"                        value="2" />[m
+[32m+[m[32m    <param name="smooth_value"                      value="0.7" />[m
+[32m+[m[32m    <param name="obstacle/map"                      value="/obs_map" />[m
+[32m+[m[32m    <param name="road_slope_vis"                    value="$(arg road_slope_vis)" />[m
+[32m+[m[32m    <param name="publish/map"                       value="$(arg publish_obstacle)" />[m
+   </node>[m
+ [m
+ <!--  <node pkg="curbDetection" type="curbDetection_node" name="curbDetection_node" output="screen">-->[m
+ <!--    &lt;!&ndash;        <param name="config_path"     value="$(arg config_path)" />&ndash;&gt;-->[m
+ <!--  </node>-->[m
+ [m
+[31m-  <node pkg="multi_lanedetection" type="multi_lanedetection_node" name="lanedetection_node" output="screen">[m
+[31m-    <param name="make_offline_video"            value="false"/>[m
+[31m-    <param name="disparityTopic"                value="/disparity_map" />[m
+[31m-    <param name="leftRectTopic"                 value="/left/image_rect" />[m
+[31m-    <!--        <param name="intrinsic"                     value="$(arg intrinsic_param)" />-->[m
+[31m-    <!--        <param name="extrinsic"                     value="$(arg extrinsic_param)" />-->[m
+[31m-    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>[m
+[31m-  </node>[m
+[32m+[m[32m<!--  <node pkg="multi_lanedetection" type="multi_lanedetection_node" name="lanedetection_node" output="screen">-->[m
+[32m+[m[32m<!--    <param name="make_offline_video"            value="false"/>-->[m
+[32m+[m[32m<!--    <param name="disparityTopic"                value="/disparity_map" />-->[m
+[32m+[m[32m<!--    <param name="leftRectTopic"                 value="/left/image_rect" />-->[m
+[32m+[m[32m<!--    &lt;!&ndash;        <param name="intrinsic"                     value="$(arg intrinsic_param)" />&ndash;&gt;-->[m
+[32m+[m[32m<!--    &lt;!&ndash;        <param name="extrinsic"                     value="$(arg extrinsic_param)" />&ndash;&gt;-->[m
+[32m+[m[32m<!--    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>-->[m
+[32m+[m[32m<!--  </node>-->[m
+ [m
+  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />[m
+ [m
+[1mdiff --git a/darknet_ros/launch/loc.launch b/darknet_ros/launch/loc.launch[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/Obstacles.cpp b/darknet_ros/src/Obstacles.cpp[m
+[1mindex bbe9dc7..718d811 100755[m
+[1m--- a/darknet_ros/src/Obstacles.cpp[m
+[1m+++ b/darknet_ros/src/Obstacles.cpp[m
+[36m@@ -1754,7 +1754,7 @@[m [mvoid ObstaclesDetection::ExecuteDetection(cv::Mat &disp_img, cv::Mat &img){[m
+         InitiateObstaclesMap();[m
+         RefineObstaclesMap();[m
+ [m
+[31m-        DisplayPosObs();[m
+[32m+[m[32m//        DisplayPosObs();[m
+ [m
+         randomRoadPoints.clear();[m
+         randomRoadPoints2D.clear();[m
+[1mdiff --git a/darknet_ros/src/YoloObjectDetector.cu b/darknet_ros/src/YoloObjectDetector.cu[m
+[1mindex cd8443e..7ff522c 100755[m
+[1m--- a/darknet_ros/src/YoloObjectDetector.cu[m
+[1m+++ b/darknet_ros/src/YoloObjectDetector.cu[m
+[36m@@ -413,7 +413,7 @@[m [mvoid YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1[m
+                                         const sensor_msgs::ImageConstPtr &image2){[m
+ //    ROS_WARN("[ObstacleDetector] Stereo images received.");[m
+ [m
+[31m-    // std::cout<<"Debug starting cameraCallBack"<<std::endl;[m
+[32m+[m[32m//     std::cout<<"Debug starting cameraCallBack"<<std::endl;[m
+     cv_bridge::CvImageConstPtr cam_image1, cam_image2, cv_rgb;[m
+ [m
+     try {[m
+[36m@@ -427,6 +427,7 @@[m [mvoid YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1[m
+             cv_rgb = cv_bridge::toCvShare(image1, sensor_msgs::image_encodings::BGR8);[m
+         }[m
+         image_time_ = image1->header.stamp;[m
+[32m+[m[32m        sequence_ = image1->header.seq;[m
+ //        image_time_ = ros::Time::now();[m
+         imageHeader_ = image1->header;[m
+     } catch (cv_bridge::Exception& e) {[m
+[36m@@ -787,7 +788,7 @@[m [mvoid YoloObjectDetector:: yolo()[m
+ //        cvMoveWindow("Refined roadmap", 900, 350);[m
+ [m
+         cvNamedWindow("Slope Map", CV_WINDOW_NORMAL);[m
+[31m-        cvMoveWindow("Slope Map", 1460, 0);[m
+[32m+[m[32m        cvMoveWindow("Slope Map", 0, 0);[m
+ [m
+ //        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);[m
+ //        cvMoveWindow("Detection and Tracking", 0, 0);[m
+[36m@@ -1180,17 +1181,20 @@[m [mvoid *YoloObjectDetector::trackInThread() {[m
+ [m
+                         if (enableStereo) {[m
+                             if (dis > min_disparity) { //(3600-200)*(dis-12)/(128-12)[m
+[31m-                                outputObs.position_3d[0] = x3DPosition[center_c_][dis];[m
+[31m-                                outputObs.position_3d[1] = y3DPosition[center_r_][dis];[m
+[31m-                                outputObs.position_3d[2] = depth3D[dis];[m
+[31m-                                double xmin_3d, xmax_3d, ymin_3d, ymax_3d;[m
+[31m-                                xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];[m
+[31m-                                xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];[m
+[31m-                                ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];[m
+[31m-                                ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];[m
+[31m-                                outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));[m
+[31m-                                outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));[m
+[31m-                                outputObs.disparity = dis;[m
+[32m+[m[32m                                if (outputObs.category == "person" || outputObs.category == "vehicle" ||[m
+[32m+[m[32m                                        outputObs.category == "bicycle" ) {[m
+[32m+[m[32m                                    outputObs.position_3d[0] = x3DPosition[center_c_][dis];[m
+[32m+[m[32m                                    outputObs.position_3d[1] = y3DPosition[center_r_][dis];[m
+[32m+[m[32m                                    outputObs.position_3d[2] = depth3D[dis];[m
+[32m+[m[32m                                    double xmin_3d, xmax_3d, ymin_3d, ymax_3d;[m
+[32m+[m[32m                                    xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];[m
+[32m+[m[32m                                    xmax_3d = x3DPosition[static_cast<int>(xmax)][dis];[m
+[32m+[m[32m                                    ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];[m
+[32m+[m[32m                                    ymax_3d = y3DPosition[static_cast<int>(ymax)][dis];[m
+[32m+[m[32m                                    outputObs.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));[m
+[32m+[m[32m                                    outputObs.height = abs(static_cast<int>(ymax_3d - ymin_3d));[m
+[32m+[m[32m                                    outputObs.disparity = dis;[m
+[32m+[m[32m                                }[m
+                                 currentFrameBlobs.push_back(outputObs);[m
+ [m
+                             }[m
+[36m@@ -1562,22 +1566,25 @@[m [mvoid YoloObjectDetector::trackingFNs() {[m
+ //                                    std::cout << "debug 1.5" << std::endl;[m
+ //                                    std::cout << "disparity: " << dis << std::endl;[m
+                                     if (dis > min_disparity && hsvBBox.area() > 300) { //(3600-200)*(dis-12)/(128-12)[m
+[31m-                                        tmpTrack.position_3d[0] = x3DPosition[center_c_][dis];[m
+[31m-                                        tmpTrack.position_3d[1] = y3DPosition[center_r_][dis];[m
+[31m-                                        tmpTrack.position_3d[2] = depth3D[dis];[m
+[31m-                                        double xmin_3d, xmax_3d, ymin_3d, ymax_3d;[m
+[32m+[m[32m                                        if (tmpTrack.category == "person" || tmpTrack.category == "vehicle" ||[m
+[32m+[m[32m                                                tmpTrack.category == "bicycle") {[m
+[32m+[m[32m                                            tmpTrack.position_3d[0] = x3DPosition[center_c_][dis];[m
+[32m+[m[32m                                            tmpTrack.position_3d[1] = y3DPosition[center_r_][dis];[m
+[32m+[m[32m                                            tmpTrack.position_3d[2] = depth3D[dis];[m
+[32m+[m[32m                                            double xmin_3d, xmax_3d, ymin_3d, ymax_3d;[m
+ //                                        std::cout << "debug 1.6" << std::endl;[m
+[31m-                                        xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];[m
+[32m+[m[32m                                            xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];[m
+ //                                        std::cout << "debug 1.6.1" << std::endl;[m
+[31m-                                        xmax_3d = x3DPosition[static_cast<int>(xmin+width)][dis];[m
+[32m+[m[32m                                            xmax_3d = x3DPosition[static_cast<int>(xmin + width)][dis];[m
+ //                                        std::cout << "debug 1.6.2" << std::endl;[m
+[31m-                                        ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];[m
+[32m+[m[32m                                            ymin_3d = y3DPosition[static_cast<int>(ymin)][dis];[m
+ //                                        std::cout << "debug 1.6.3" << std::endl;[m
+[31m-                                        ymax_3d = y3DPosition[static_cast<int>(ymin+height)][dis];[m
+[32m+[m[32m                                            ymax_3d = y3DPosition[static_cast<int>(ymin + height)][dis];[m
+ //                                        std::cout << "debug 1.7" << std::endl;[m
+[31m-                                        tmpTrack.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));[m
+[31m-                                        tmpTrack.height = abs(static_cast<int>(ymax_3d - ymin_3d));[m
+[31m-                                        tmpTrack.disparity = dis;[m
+[32m+[m[32m                                            tmpTrack.diameter = abs(static_cast<int>(xmax_3d - xmin_3d));[m
+[32m+[m[32m                                            tmpTrack.height = abs(static_cast<int>(ymax_3d - ymin_3d));[m
+[32m+[m[32m                                            tmpTrack.disparity = dis;[m
+[32m+[m[32m                                        }[m
+ //                                        std::cout << "debug 1.8" << std::endl;[m
+                                         matchedFNs.push_back(tmpTrack);[m
+                                         matchedTrackID.push_back(r);[m
+[36m@@ -1836,6 +1843,18 @@[m [mvoid YoloObjectDetector::CreateMsg(){[m
+ [m
+     }[m
+ [m
+[32m+[m[32m//    sprintf(s, "%06d_slope.png", frame_num);[m
+[32m+[m[32m//    sprintf(im, "%06d_img.png", frame_num);[m
+[32m+[m[32m//    img_name = ros::package::getPath("cubicle_detect") + "/seq09/" + im;[m
+[32m+[m[32m//    std::string img_name2 = ros::package::getPath("cubicle_detect") + "/seq09/" + s;[m
+[32m+[m[32m//    imwrite(img_name,ObstacleDetector.left_rect_clr);[m
+[32m+[m[32m//    imwrite(img_name2,ObstacleDetector.slope_map);[m
+[32m+[m[32m//    char res[1000];[m
+[32m+[m[32m//    sprintf(res, "%d.png", frame_num);[m
+[32m+[m[32m//    std::string img_name3 = ros::package::getPath("cubicle_detect") + "/images/" + res;[m
+[32m+[m[32m////    std::cout<<res<<std::endl;[m
+[32m+[m[32m//    imwrite(img_name3,tracking_output);[m
+[32m+[m
+     cv::Mat cm_disp;[m
+ [m
+     if (enableStereo) {[m
+[36m@@ -1886,56 +1905,62 @@[m [mvoid YoloObjectDetector::CreateMsg(){[m
+ //    std::cout<<enableEvaluation_<<std::endl;[m
+ [m
+     if(enableEvaluation_){[m
+[31m-        sprintf(s, "f%03d.txt", frame_num);[m
+[31m-        sprintf(im, "f%03d.png", frame_num);[m
+[32m+[m[32m        sprintf(s, "slope_%03d.txt", frame_num);[m
+[32m+[m[32m        sprintf(im, "img_%03d.png", frame_num);[m
+ //        file_name = ros::package::getPath("cubicle_detect") + "/seq_1/results/" + s;[m
+ //        file_name = ros::package::getPath("cubicle_detect") + "/dis_1/" + s;[m
+[31m-        img_name = ros::package::getPath("cubicle_detect") + "/seq_1/" + im;[m
+[32m+[m[32m        img_name = ros::package::getPath("cubicle_detect") + "/seq09/" + im;[m
+[32m+[m[32m        std::string img_name2 = ros::package::getPath("cubicle_detect") + "/seq09/" + s;[m
+[32m+[m[32m//        imwrite(img_name,ObstacleDetector.left_rect_clr);[m
+[32m+[m[32m//        imwrite(img_name2,ObstacleDetector.slope_map);[m
+ //        std::cout<<img_name<<std::endl;[m
+ //        img_name = std::string("/home/ugv/seq_1/") + im;[m
+ //    file.open(file_name.c_str(), std::ios::app);[m
+     }[m
+     int cate = 0;[m
+     for (unsigned long int i = 0; i < blobs.size(); i++) {[m
+[31m-        obstacle_msgs::obs tmpObs;[m
+[31m-        tmpObs.identityID = i;[m
+[31m-[m
+[31m-        tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);[m
+[31m-        tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);[m
+[31m-        tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);[m
+[31m-        tmpObs.diameter = static_cast<float>(blobs[i].diameter);[m
+[31m-        tmpObs.height = static_cast<float>(blobs[i].height);[m
+[31m-        tmpObs.counter = blobs[i].counter;[m
+[31m-        tmpObs.classes = blobs[i].category;[m
+[31m-        tmpObs.probability = static_cast<float>(blobs[i].probability);[m
+         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {[m
+[32m+[m[32m            obstacle_msgs::obs tmpObs;[m
+[32m+[m[32m            tmpObs.identityID = i;[m
+[32m+[m
+[32m+[m[32m            tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);[m
+[32m+[m[32m            tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);[m
+[32m+[m[32m            tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);[m
+[32m+[m[32m            tmpObs.diameter = static_cast<float>(blobs[i].diameter);[m
+[32m+[m[32m            tmpObs.height = static_cast<float>(blobs[i].height);[m
+[32m+[m[32m            tmpObs.counter = blobs[i].counter;[m
+[32m+[m[32m            tmpObs.classes = blobs[i].category;[m
+[32m+[m[32m            tmpObs.probability = static_cast<float>(blobs[i].probability);[m
+[32m+[m[32m            if (blobs[i].blnCurrentMatchFoundOrNewBlob) {[m
+[32m+[m
+[32m+[m[32m                if (!blobs[i].category.empty()) {[m
+[32m+[m
+[32m+[m[32m                    if (enableEvaluation_) {[m
+[32m+[m[32m                        if ((blobs[i].category == "vehicle") || (blobs[i].category == "bicycle"))[m
+[32m+[m[32m                            cate = 0;[m
+[32m+[m[32m                        else if (blobs[i].category == "person")[m
+[32m+[m[32m                            cate = 1;[m
+[32m+[m[32m                    }[m
+ [m
+[31m-            if(!blobs[i].category.empty() ) {[m
+[31m-[m
+[31m-                if(enableEvaluation_){[m
+[31m-                    if( (blobs[i].category == "vehicle") || (blobs[i].category == "bicycle") )[m
+[31m-                        cate = 0;[m
+[31m-                    else if(blobs[i].category == "person")[m
+[31m-                        cate = 1;[m
+[31m-                }[m
+[31m-[m
+[31m-                tmpObs.xmin = static_cast<unsigned int>(blobs[i].boundingRects.back().x);[m
+[31m-                tmpObs.ymin = static_cast<unsigned int>(blobs[i].boundingRects.back().y);[m
+[31m-                tmpObs.xmax = tmpObs.xmin + blobs[i].boundingRects.back().width;[m
+[31m-                tmpObs.ymax = tmpObs.ymin + blobs[i].boundingRects.back().height;[m
+[32m+[m[32m                    tmpObs.xmin = static_cast<unsigned int>(blobs[i].boundingRects.back().x);[m
+[32m+[m[32m                    tmpObs.ymin = static_cast<unsigned int>(blobs[i].boundingRects.back().y);[m
+[32m+[m[32m                    tmpObs.xmax = tmpObs.xmin + blobs[i].boundingRects.back().width;[m
+[32m+[m[32m                    tmpObs.ymax = tmpObs.ymin + blobs[i].boundingRects.back().height;[m
+ //            tmpObs.histogram = blobs[i].obsHog;[m
+ [m
+[31m-                obstacleBoxesResults_.obsData.push_back(tmpObs);[m
+[32m+[m[32m                    obstacleBoxesResults_.obsData.push_back(tmpObs);[m
+ [m
+ //            ROS_WARN("center ID: %d | type: %s\nx: %f| y: %f| z: %f \n", i, tmpObs.classes,[m
+ //                    tmpObs.centerPos.x, tmpObs.centerPos.y, tmpObs.centerPos.z);[m
+ [m
+[31m-                ////*--------------Generate Evaluation files----------------------*////[m
+[31m-                if(enableEvaluation_){[m
+[31m-                    file << i << " " << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y << " "[m
+[31m-                         << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " " <<[m
+[31m-                         blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " " << cate[m
+[31m-                         << std::endl;[m
+[32m+[m[32m                    ////*--------------Generate Evaluation files----------------------*////[m
+[32m+[m[32m                    if (enableEvaluation_) {[m
+[32m+[m[32m                        file << i << " " << blobs[i].boundingRects.back().x << " " << blobs[i].boundingRects.back().y[m
+[32m+[m[32m                             << " "[m
+[32m+[m[32m                             << blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width << " " <<[m
+[32m+[m[32m                             blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height << " " << cate[m
+[32m+[m[32m                             << std::endl;[m
+[32m+[m[32m                    }[m
+                 }[m
+             }[m
+         }[m
+[36m@@ -2030,6 +2055,7 @@[m [mvoid YoloObjectDetector::Process(){[m
+ [m
+     obstacleBoxesResults_.header.stamp = image_time_;[m
+     obstacleBoxesResults_.header.frame_id = pub_obs_frame_id;[m
+[32m+[m[32m    obstacleBoxesResults_.sequence = frame_num;[m
+ //    obstacleBoxesResults_.real_header.stamp = ros::Time::now();[m
+ //    obstacleBoxesResults_.real_header.frame_id = pub_obs_frame_id;[m
+     obstacleBoxesResults_.pitch = ObstacleDetector.pitch_angle;[m
+[36m@@ -2056,5 +2082,55 @@[m [mvoid YoloObjectDetector::Process(){[m
+     frame_num++;[m
+ }[m
+ [m
+[32m+[m[32mvoid YoloObjectDetector::evalClassification(cv::Mat img_to_eval, cv::String det_file_name){[m
+[32m+[m
+[32m+[m[32m    camImageCopy_ =  img_to_eval;[m
+[32m+[m[32m//    cv::imshow("camImageCopy_1",camImageCopy_);[m
+[32m+[m[32m//    cv::waitKey(0);[m
+[32m+[m[32m    if (notInitiated) {[m
+[32m+[m[32m        Width_crp = camImageCopy_.cols;[m
+[32m+[m[32m        Height_crp = camImageCopy_.rows;[m
+[32m+[m[32m        layer l = net_->layers[net_->n - 1];[m
+[32m+[m[32m        roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));[m
+[32m+[m[32m        buff_ = mat_to_image(camImageCopy_);[m
+[32m+[m[32m        buffLetter_ = letterbox_image(buff_, net_->w, net_->h);[m
+[32m+[m[32m        notInitiated = false;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    std::ofstream file_det;[m
+[32m+[m[32m    file_det.open(det_file_name);[m
+[32m+[m
+[32m+[m[32m    buff_ = mat_to_image(camImageCopy_);[m
+[32m+[m[32m    letterbox_image_into(buff_, net_->w, net_->h, buffLetter_);[m
+[32m+[m[32m    detectInThread();[m
+[32m+[m[32m    displayInThread();[m
+[32m+[m
+[32m+[m[32m//    cv::imshow("camImageCopy_2",camImageCopy_);[m
+[32m+[m[32m//    cv::waitKey(0);[m
+[32m+[m
+[32m+[m[32m    trackInThread();[m
+[32m+[m
+[32m+[m[32m    for (size_t ii = 0; ii < currentFrameBlobs.size(); ii++) {[m
+[32m+[m[32m        int top_left_x = currentFrameBlobs.at(ii).boundingRects.back().x;[m
+[32m+[m[32m        int top_left_y = currentFrameBlobs.at(ii).boundingRects.back().y;[m
+[32m+[m[32m        int bottom_right_x = top_left_x+currentFrameBlobs.at(ii).boundingRects.back().width;[m
+[32m+[m[32m        int bottom_right_y = top_left_y+currentFrameBlobs.at(ii).boundingRects.back().height;[m
+[32m+[m
+[32m+[m[32m        file_det << currentFrameBlobs.at(ii).category << " " <<[m
+[32m+[m[32m        top_left_x << " " << top_left_y << " " <<[m
+[32m+[m[32m        bottom_right_x << " " << bottom_right_y << " " <<[m
+[32m+[m[32m        currentFrameBlobs.at(ii).probability << std::endl;[m
+[32m+[m
+[32m+[m[32m        cv::rectangle(camImageCopy_, currentFrameBlobs[ii].boundingRects.back(), cv::Scalar(255,255,255), 2);[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    currentFrameBlobs.clear();[m
+[32m+[m[32m    cv::imshow("camImageCopy_",camImageCopy_);[m
+[32m+[m[32m    cv::waitKey(1);[m
+[32m+[m
+[32m+[m[32m    file_det.close();[m
+[32m+[m[32m}[m
+[32m+[m
+ [m
+ } /* namespace darknet_ros*/[m
+[1mdiff --git a/darknet_ros/src/functions.cpp b/darknet_ros/src/functions.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/image_opencv.cpp b/darknet_ros/src/image_opencv.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/pointcloud.cpp b/darknet_ros/src/pointcloud.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/pointcloud.h b/darknet_ros/src/pointcloud.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/segengine.cpp b/darknet_ros/src/segengine.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/stdafx.cpp b/darknet_ros/src/stdafx.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/structures.cpp b/darknet_ros/src/structures.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/utilsSeg.cpp b/darknet_ros/src/utilsSeg.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/darknet_ros/src/yolo_object_detector_node.cpp b/darknet_ros/src/yolo_object_detector_node.cpp[m
+[1mindex 1afd495..252f6f1 100755[m
+[1m--- a/darknet_ros/src/yolo_object_detector_node.cpp[m
+[1m+++ b/darknet_ros/src/yolo_object_detector_node.cpp[m
+[36m@@ -16,6 +16,39 @@[m
+ [m
+ using namespace message_filters;[m
+ [m
+[32m+[m[32mvoid readFilenames(std::vector<String> &filenames, const String &directory, const String &extension)[m
+[32m+[m[32m{[m
+[32m+[m[32m    DIR *dir;[m
+[32m+[m[32m    class dirent *ent;[m
+[32m+[m[32m    class stat st;[m
+[32m+[m
+[32m+[m[32m    dir = opendir(directory.c_str());[m
+[32m+[m[32m    while ((ent = readdir(dir)) != NULL) {[m
+[32m+[m[32m        const std::string file_name = ent->d_name;[m
+[32m+[m[32m        const std::string full_file_name = directory + "/" + file_name ;[m
+[32m+[m
+[32m+[m[32m        if (file_name[0] == '.')[m
+[32m+[m[32m            continue;[m
+[32m+[m
+[32m+[m[32m        if (stat(full_file_name.c_str(), &st) == -1)[m
+[32m+[m[32m            continue;[m
+[32m+[m
+[32m+[m[32m        const bool is_directory = (st.st_mode & S_IFDIR) != 0;[m
+[32m+[m
+[32m+[m[32m        if (is_directory)[m
+[32m+[m[32m            continue;[m
+[32m+[m
+[32m+[m[32m        size_t pos = file_name.find(extension);[m
+[32m+[m
+[32m+[m[32m        if (pos!=std::string::npos) {[m
+[32m+[m[32m            std::string file_name_no_ext = file_name.substr (0,pos);[m
+[32m+[m[32m            filenames.push_back(file_name_no_ext);[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m    }[m
+[32m+[m[32m    closedir(dir);[m
+[32m+[m[32m}[m
+[32m+[m
+ int main(int argc, char** argv) {[m
+   ros::init(argc, argv, "cubicle_detect");[m
+   ros::NodeHandle nh_pub;[m
+[36m@@ -51,6 +84,23 @@[m [mint main(int argc, char** argv) {[m
+   sensor_msgs::CameraInfoConstPtr left_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(image_left_info);[m
+   sensor_msgs::CameraInfoConstPtr right_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>(image_right_info);[m
+ [m
+[32m+[m[32m    //following codes created for evaluation purposes[m
+[32m+[m
+[32m+[m[32m//  String folder = "/home/ugv/Desktop/stereovision_evaluation/objectdetect_validation/validation_set/";[m
+[32m+[m[32m//  String ext = ".jpg";[m
+[32m+[m[32m//  std::vector<String> filenames;[m
+[32m+[m[32m//  readFilenames(filenames, folder, ext);[m
+[32m+[m[32m//[m
+[32m+[m[32m//  for(size_t frame = 0; frame < filenames.size(); ++frame) {[m
+[32m+[m[32m//      cv::Mat src = imread(folder+filenames[frame]+ext);[m
+[32m+[m[32m//      if(!src.data)[m
+[32m+[m[32m//          std::cerr << "Problem loading image!!!" << std::endl;[m
+[32m+[m[32m//      cv::String result_file = folder+filenames[frame]+".txt";[m
+[32m+[m[32m//      detector.evalClassification(src,result_file);[m
+[32m+[m[32m//  }[m
+[32m+[m
+[32m+[m[32m    //end of evaluation code[m
+[32m+[m
+   detector.loadCameraCalibration(left_info, right_info);[m
+ //  detector.init();[m
+   detector.DefineLUTs();[m
+[1mdiff --git a/darknet_ros/yolo_network_config/cfg/yolov3-spp.cfg b/darknet_ros/yolo_network_config/cfg/yolov3-spp.cfg[m
+[1mindex 12bd6ba..0ea56f1 100755[m
+[1m--- a/darknet_ros/yolo_network_config/cfg/yolov3-spp.cfg[m
+[1m+++ b/darknet_ros/yolo_network_config/cfg/yolov3-spp.cfg[m
+[36m@@ -5,8 +5,8 @@[m [msubdivisions=1[m
+ # Training[m
+ # batch=64[m
+ # subdivisions=16[m
+[31m-width=512[m
+[31m-height=512[m
+[32m+[m[32mwidth=416[m
+[32m+[m[32mheight=416[m
+ channels=3[m
+ momentum=0.9[m
+ decay=0.0005[m
+[1mdiff --git a/darknet_ros/yolo_network_config/cfg/yolov3-tiny.cfg b/darknet_ros/yolo_network_config/cfg/yolov3-tiny.cfg[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/.gitignore b/libSGM/.gitignore[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/CMakeLists.txt b/libSGM/CMakeLists.txt[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/FindLibSGM.cmake b/libSGM/FindLibSGM.cmake[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/LICENSE b/libSGM/LICENSE[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/README.md b/libSGM/README.md[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/include/libsgm.h b/libSGM/include/libsgm.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/include/libsgm_config.h b/libSGM/include/libsgm_config.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/include/libsgm_config.h.in b/libSGM/include/libsgm_config.h.in[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/include/libsgm_wrapper.h b/libSGM/include/libsgm_wrapper.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/CMakeLists.txt b/libSGM/src/CMakeLists.txt[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/census_transform.cu b/libSGM/src/census_transform.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/census_transform.hpp b/libSGM/src/census_transform.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/check_consistency.cu b/libSGM/src/check_consistency.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/cuda_utils.cu b/libSGM/src/cuda_utils.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/device_buffer.hpp b/libSGM/src/device_buffer.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/horizontal_path_aggregation.cu b/libSGM/src/horizontal_path_aggregation.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/horizontal_path_aggregation.hpp b/libSGM/src/horizontal_path_aggregation.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/internal.h b/libSGM/src/internal.h[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/libsgm_wrapper.cpp b/libSGM/src/libsgm_wrapper.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/median_filter.cu b/libSGM/src/median_filter.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/oblique_path_aggregation.cu b/libSGM/src/oblique_path_aggregation.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/oblique_path_aggregation.hpp b/libSGM/src/oblique_path_aggregation.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/path_aggregation.cu b/libSGM/src/path_aggregation.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/path_aggregation.hpp b/libSGM/src/path_aggregation.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/path_aggregation_common.hpp b/libSGM/src/path_aggregation_common.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/sgm.cu b/libSGM/src/sgm.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/sgm.hpp b/libSGM/src/sgm.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/stereo_sgm.cpp b/libSGM/src/stereo_sgm.cpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/types.hpp b/libSGM/src/types.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/utility.hpp b/libSGM/src/utility.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/vertical_path_aggregation.cu b/libSGM/src/vertical_path_aggregation.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/vertical_path_aggregation.hpp b/libSGM/src/vertical_path_aggregation.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/winner_takes_all.cu b/libSGM/src/winner_takes_all.cu[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mdiff --git a/libSGM/src/winner_takes_all.hpp b/libSGM/src/winner_takes_all.hpp[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
