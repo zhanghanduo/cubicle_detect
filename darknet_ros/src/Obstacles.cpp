@@ -1260,6 +1260,9 @@ void ObstaclesDetection::SaliencyBasedDetection(){
             for (int j = 0; j < spnum; j++) {
                 if (i == j)
                     continue;
+
+                saliencyValue.at(i) = saliencyValue.at(i) +exp(pow(-1.0 * pos_diff.at<double>(i, j) / max_pos_diff, 2.0) / 0.25) *((y_mean.at(i) + 1) / image_roi.rows) * ((y_mean.at(i) + 1) / image_roi.rows) *((y_mean.at(j) + 1) / image_roi.rows) * clr_diff.at<double>(i, j) *(isroad.at(i).x / isroad.at(i).y);
+
             }
         }
     }

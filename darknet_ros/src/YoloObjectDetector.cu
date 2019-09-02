@@ -1361,6 +1361,7 @@ void YoloObjectDetector::addBlobToExistingBlobs(Blob &currentFrameBlob, std::vec
 
     existingBlobs[intIndex].blnStillBeingTracked = true;
     existingBlobs[intIndex].blnCurrentMatchFoundOrNewBlob = true;
+    existingBlobs[intIndex].trackedInCurrentFrame = true;
     existingBlobs[intIndex].blnAlreadyTrackedInThisFrame = true;
     existingBlobs[intIndex].counter ++;
     existingBlobs[intIndex].intNumOfConsecutiveFramesWithoutAMatch =0;
@@ -1387,6 +1388,7 @@ void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &e
     currentFrameBlob.blnCurrentMatchFoundOrNewBlob = true;
     currentFrameBlob.blnStillBeingTracked = true;
     currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
+    currentFrameBlob.trackedInCurrentFrame = true;
 
     existingBlobs.push_back(currentFrameBlob);
 }
@@ -1734,6 +1736,7 @@ void YoloObjectDetector::Tracking (){
             blnFirstFrame = false;
             for (auto &currentFrameBlob : currentFrameBlobs){
                 currentFrameBlob.blnCurrentMatchFoundOrNewBlob = true;
+                currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
                 currentFrameBlob.trackedInCurrentFrame = true;
                 currentFrameBlob.blnStillBeingTracked = true;
                 blobs.push_back(currentFrameBlob);
@@ -1743,6 +1746,7 @@ void YoloObjectDetector::Tracking (){
         for (auto &existingBlob : blobs) {
             existingBlob.blnCurrentMatchFoundOrNewBlob = false;
             existingBlob.blnAlreadyTrackedInThisFrame = false;
+            existingBlob.trackedInCurrentFrame = false;
 
             existingBlob.predictNextPosition();
             existingBlob.predictWidthHeight();

@@ -8,3 +8,6 @@ dis_2/
 *.png
 lib/
 *.a
+docs/
+doc/source/api/
+doc/Doxyfile
