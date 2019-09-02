@@ -56,6 +56,11 @@ namespace sgm {
 		EXECUTE_INOUT_CUDA2CUDA = (1 << 1) | 1,
 	};
 
+	enum class PathType {
+		SCAN_4PATH,
+		SCAN_8PATH
+	};
+
 	/**
 	* @brief StereoSGM class
 	*/
@@ -69,16 +74,25 @@ namespace sgm {
 			int P2;
 			float uniqueness;
 			bool subpixel;
-			Parameters(int P1 = 10, int P2 = 120, float uniqueness = 0.95f, bool subpixel = false) : P1(P1), P2(P2), uniqueness(uniqueness), subpixel(subpixel) {}
+			PathType path_type;
+			int min_disp;
+			Parameters(int P1 = 10, int P2 = 120, float uniqueness = 0.95f, bool subpixel = false, PathType path_type = PathType::SCAN_8PATH, int min_disp = 0)
+				: P1(P1)
+				, P2(P2)
+				, uniqueness(uniqueness)
+				, subpixel(subpixel)
+				, path_type(path_type)
+				, min_disp(min_disp)
+			{ }
 		};
 
 		/**
 		* @param width Processed image's width.
 		* @param height Processed image's height.
-		* @param disparity_size It must be 64 or 128.
+		* @param disparity_size It must be 64, 128 or 256.
 		* @param input_depth_bits Processed image's bits per pixel. It must be 8 or 16.
 		* @param output_depth_bits Disparity image's bits per pixel. It must be 8 or 16.
-		* @param inout_type 	Specify input/output pointer type. See sgm::EXECUTE_TYPE.
+		* @param inout_type Specify input/output pointer type. See sgm::EXECUTE_TYPE.
 		* @attention
 		* output_depth_bits must be set to 16 when subpixel is enabled.
 		*/
@@ -88,12 +102,12 @@ namespace sgm {
 		/**
 		* @param width Processed image's width.
 		* @param height Processed image's height.
-		* @param disparity_size It must be 64 or 128.
+		* @param disparity_size It must be 64, 128 or 256.
 		* @param input_depth_bits Processed image's bits per pixel. It must be 8 or 16.
 		* @param output_depth_bits Disparity image's bits per pixel. It must be 8 or 16.
 		* @param src_pitch Source image's pitch (pixels).
 		* @param dst_pitch Destination image's pitch (pixels).
-		* @param inout_type 	Specify input/output pointer type. See sgm::EXECUTE_TYPE.
+		* @param inout_type Specify input/output pointer type. See sgm::EXECUTE_TYPE.
 		* @attention
 		* output_depth_bits must be set to 16 when subpixel is enabled.
 		*/
@@ -104,15 +118,24 @@ namespace sgm {
 
 		/**
 		* Execute stereo semi global matching.
-		* @param left_pixels	A pointer stored input left image.
-		* @param right_pixels	A pointer stored input right image.
-		* @param dst	        Output pointer. User must allocate enough memory.
+		* @param left_pixels  A pointer stored input left image.
+		* @param right_pixels A pointer stored input right image.
+		* @param dst          Output pointer. User must allocate enough memory.
 		* @attention
 		* You need to allocate dst memory at least width x height x sizeof(element_type) bytes.
 		* The element_type is uint8_t for output_depth_bits == 8 and uint16_t for output_depth_bits == 16.
 		* Note that dst element value would be multiplied StereoSGM::SUBPIXEL_SCALE if subpixel option was enabled.
+		* Value of Invalid disparity is equal to return value of `get_invalid_disparity` member function.
 		*/
 		LIBSGM_API void execute(const void* left_pixels, const void* right_pixels, void* dst);
+
+		/**
+		* Generate invalid disparity value from Parameter::min_disp and Parameter::subpixel
+		* @attention
+		* Cast properly if you receive disparity value as `unsigned` type.
+		* See sample/movie for an example of this.
+		*/
+		LIBSGM_API int get_invalid_disparity() const;
 
 	private:
 		StereoSGM(const StereoSGM&);

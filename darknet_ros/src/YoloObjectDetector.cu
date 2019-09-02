@@ -375,7 +375,7 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 //    fps_ = 1./(what_time_is_it_now() - demoTime_);
 
 //    cv::imshow("sgm",disparity_SGM);
-//    cv::imshow("sgbm",disparity_SGBM);
+    cv::imshow("sgbm",disparity_SGBM);
 
     return disparity_SGBM;
 }
@@ -1442,12 +1442,14 @@ void YoloObjectDetector::trackingFNs() {
             for (int c = 0; c < simWidth; c++) {
                 Blob &currDet = currentFrameBlobs[c];
                 if (!currDet.trackedInCurrentFrame) {
-                    double iou = (double) (existingTrack.preditcRect & currDet.boundingRects.back()).area() /
-                                 (existingTrack.preditcRect | currDet.boundingRects.back()).area();
-                    localizeDisSimilarity.at<double>(r, c) = 1.0 - iou;
+                    if (existingTrack.category == currDet.category) {
+                        double iou = (double) (existingTrack.preditcRect & currDet.boundingRects.back()).area() /
+                                     (existingTrack.preditcRect | currDet.boundingRects.back()).area();
+                        localizeDisSimilarity.at<double>(r, c) = 1.0 - iou;
 
-                    if (iou > 0.5) {
-                        isNotOverlap = false;
+                        if (iou > 0.5) {
+                            isNotOverlap = false;
+                        }
                     }
                 }
             }
@@ -1762,9 +1764,13 @@ void YoloObjectDetector::Tracking (){
 //            std::cout<<"blob prediction finished"<<std::endl;
 
         if (!currentFrameBlobs.empty()){
+            std::cout<<"before matchCurrentFrameBlobsToExistingBlobs"<<std::endl;
             matchCurrentFrameBlobsToExistingBlobs();
+            std::cout<<"before trackingFNs"<<std::endl;
             trackingFNs();
+            std::cout<<"before addNewTracks"<<std::endl;
             addNewTracks();
+            std::cout<<"before updateUnmatchedTracks"<<std::endl;
             updateUnmatchedTracks();
         } else {
             for (auto &existingBlob : blobs) {
@@ -1964,13 +1970,13 @@ void YoloObjectDetector::Process(){
     // 1. To get the image data
     fetchInThread();
 
-//    std::cout<<"before detect_thread"<<std::endl;
+    std::cout<<"before detect_thread"<<std::endl;
     // 2. YOLOv3 to detect 2D bounding boxes
     if (enableClassification)
         detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
 //        detectInThread();
 
-//    std::cout<<"before stereo_thread"<<std::endl;
+    std::cout<<"before stereo_thread"<<std::endl;
     // 3. Stereo matching to get disparity map
     if (enableStereo)
         stereo_thread = std::thread(&YoloObjectDetector::stereoInThread, this);
@@ -1979,7 +1985,7 @@ void YoloObjectDetector::Process(){
     if (enableClassification)
         detect_thread.join();
 
-//    std::cout<<"before ObstacleDetector"<<std::endl;
+    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {
         stereo_thread.join();
         if(frame_num % 2 == 0) {
@@ -1993,12 +1999,12 @@ void YoloObjectDetector::Process(){
         }
     }
 
-//    std::cout<<"before trackInThread"<<std::endl;
+    std::cout<<"before trackInThread"<<std::endl;
 
     // 5. Put bounding boxes into 3D blobs and track them.
     trackInThread();
 
-//    std::cout<<"before ObsDisparity"<<std::endl;
+    std::cout<<"before ObsDisparity"<<std::endl;
 
     // 6. Get obstacle disparity map by filtering ground and moving objects
     ObsDisparity = cv::Mat(camImageCopy_.size(), CV_8UC1, cv::Scalar::all(0));
@@ -2029,6 +2035,8 @@ void YoloObjectDetector::Process(){
     duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
     whole_duration_ += time_span.count();
 //    fps_ = 1./time_span.count();
+
+    std::cout<<"before Createmsg"<<std::endl;
 
     CreateMsg();
 
