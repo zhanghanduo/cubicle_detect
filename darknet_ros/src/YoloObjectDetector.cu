@@ -389,7 +389,8 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 //    fps_ = 1./(what_time_is_it_now() - demoTime_);
 
 //    cv::imshow("sgm",disparity_SGM);
-    cv::imshow("sgbm",disparity_SGBM);
+//    cv::imshow("sgbm",disparity_SGBM);
+//    cv::waitKey(0);
 
     return disparity_SGBM;
 }
@@ -397,8 +398,8 @@ cv::Mat YoloObjectDetector::getDepth(cv::Mat &leftFrame, cv::Mat &rightFrame) {
 void YoloObjectDetector::DefineLUTs() {
 
 //  ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d | Height: %d", u0, v0, focal, stereo_baseline_, Width_crp, Height_crp);
-    ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d | Height: %d | Angle: %d | CamHeight: %d ", u0, v0,
-            focal, stereo_baseline_, Width_crp, Height_crp, camHeight, camAngle);
+    ROS_WARN("u0: %f | v0: %f | focal: %f | base: %f | width: %d | Height: %d | Angle: %f | CamHeight: %f ", u0, v0,
+            focal, stereo_baseline_, Width_crp, Height_crp, camAngle, camHeight);
 
     for (int r=0; r<Width_crp; r++) {
         x3DPosition[r][0]=0;
@@ -415,7 +416,7 @@ void YoloObjectDetector::DefineLUTs() {
         for (int c=1; c<disp_size+1; c++) {
 //            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c;
             y3DPosition[r][c]=((v0-r)*stereo_baseline_/c) - (focal*stereo_baseline_*sin(camAngle*M_PI/180)/c);
-//            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c;//-camHeight;
+//            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c - camHeight;
 //      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
         }
     }
@@ -1878,9 +1879,11 @@ void YoloObjectDetector::CreateMsg(){
         std::ostringstream str_;
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
             cv::rectangle(tracking_output, blobs[i].boundingRects.back(), colors.at(i), 2);
-            int rectMinX = static_cast<int>((blobs[i].boundingRects.back().x + blobs[i].boundingRects.back().width) / 2.0);
-            int rectMinY = static_cast<int>((blobs[i].boundingRects.back().y + blobs[i].boundingRects.back().height) / 2.0);
-            cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width/2, 20), colors.at(i), CV_FILLED);
+            int rectMinX = blobs[i].boundingRects.back().x;
+            int rectMinY = blobs[i].boundingRects.back().y;
+            cv::rectangle(tracking_output, cv::Rect(static_cast<int>(rectMinX+blobs[i].boundingRects.back().width/2),
+                    static_cast<int>(rectMinY+blobs[i].boundingRects.back().height/2), 2, 2), colors.at(i), CV_FILLED);
+            cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
             int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
             str_ << i <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
 //            str_ << i;
@@ -1915,11 +1918,11 @@ void YoloObjectDetector::CreateMsg(){
     }
 
     if(viewImage_) {
-        cv::imshow("Detection and Tracking", tracking_output);
-        cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
-        cv::imshow("Slope Map", ObstacleDetector.slope_map);
         if (enableStereo) {
             cv::imshow("Disparity", cm_disp);
+            cv::imshow("Detection and Tracking", tracking_output);
+            cv::imshow("Obstacle Mask", ObstacleDetector.left_rect_clr);
+            cv::imshow("Slope Map", ObstacleDetector.slope_map);
 //            cv::imshow("ObsDisparity", ObsDisparity * 255 / disp_size);
         }
         if (enableClassification)
@@ -2039,6 +2042,8 @@ void YoloObjectDetector::Process(){
 
     if (enableClassification)
         detect_thread.join();
+
+//    std::cout<<disparityFrame.size()<<std::endl;
 
 //    std::cout<<"before ObstacleDetector"<<std::endl;
     if (enableStereo) {

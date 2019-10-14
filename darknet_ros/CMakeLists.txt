@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8.12)
+cmake_minimum_required(VERSION 3.5)
 project(cubicle_detect)
 
 # Configure CCache if available
