@@ -182,6 +182,7 @@ class YoloObjectDetector {
          * when 3D information is required.
          */
         cv::Mat disparityFrame;
+//        cv::Mat disparityFrameOrg;
         int globalframe;
         /**
          * @brief This parameter is used to scale down the calibration parameters and image size and is a user input
@@ -428,6 +429,8 @@ class YoloObjectDetector {
          * @brief Final height of the image that is divisible by 4.
          */
         int Height_crp;
+        double camHeight;
+        double camAngle;
         /**
          * @brief Flag to indicate whether the input images are fully divisible by 4.
          */
@@ -449,6 +452,8 @@ class YoloObjectDetector {
          * in meters. It is a 1D lookup table based on the disparity value of a point.
          */
         double *depth3D;
+//        int **recDisparity;
+//        double **recDepth;
 //        double xDirectionPosition[1280][129] ={{}};
 //        double yDirectionPosition[844][129] ={{}};
 //        double depthTable[129] = {};

@@ -1542,7 +1542,7 @@ void ObstaclesDetection::GenerateNegativeObstacles() {
 
 void ObstaclesDetection::Initiate(int disparity_size, double baseline,
         double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity,
-        bool enNeg, const std::string& Parameter_filename){
+        double cam_angle, double cam_height, bool enNeg, const std::string& Parameter_filename){
 
 //    std::cout<<camera_type<<", "<<disparity_size<<", "<<baseline<<std::endl;
 
@@ -1574,7 +1574,8 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     for (int r=0; r<Width; r++) {
         xDirectionPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
-            xDirectionPosition[r][c]=(r-u0)*baseline/c;
+//            xDirectionPosition[r][c]=(r-u0)*baseline/c;
+            xDirectionPosition[r][c]=(r-u0)*baseline/c;//-baseline/2;
 //        std::cout<<xDirectionPosition[r][c]<<std::endl;
         }
     }
@@ -1586,7 +1587,8 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 //    for (int r=300; r<301; r++) {
         yDirectionPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
-            yDirectionPosition[r][c]=(v0-r)*baseline/c;
+//            yDirectionPosition[r][c]=(v0-r)*baseline/c;
+            yDirectionPosition[r][c] = ((v0-r)*baseline/c) - (focal*baseline*sin(cam_angle*M_PI/180)/c);
 //      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
         }
     }
@@ -1594,7 +1596,8 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
     depthTable = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
     depthTable[0] =0;
     for( int i = 1; i < disp_size+1; ++i){
-        depthTable[i]=focal*baseline/i; //Y*dx/B
+//        depthTable[i]=focal*baseline/i; //Y*dx/B
+        depthTable[i] = focal*baseline*cos(cam_angle*M_PI/180)/i;
 //      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
     }
 

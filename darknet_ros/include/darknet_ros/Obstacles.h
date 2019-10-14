@@ -110,7 +110,8 @@ public:
      * @param enNeg Flag to indicate whether to enable negative obstacle detection
      * @param Parameter_filename Path to the file that contain parameters for superpixel segmentation.
      */
-    void Initiate(int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height, int scale, int min_disparity, bool enNeg, const std::string& Parameter_filename);
+    void Initiate(int disparity_size, double baseline, double u0, double v0, double focal, int Width, int Height,
+            int scale, int min_disparity, double cam_angle, double cam_height, bool enNeg, const std::string& Parameter_filename);
 
     /**
      * @brief This is the main function that run obstacle detection, road detection and slope detection.
