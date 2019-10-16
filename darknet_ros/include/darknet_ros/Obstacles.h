@@ -558,7 +558,7 @@ private:
     * @brief Lookup table that will give the Z direction (depth) distance with respect to the left camera center
     * in meters. It is a 1D lookup table based on the disparity value of a point.
     */
-    double *depthTable;
+    double **depthTable;
 
     /**
      * @brief Bounding box for the region selected to process for negative obstacle detection.

@@ -12,14 +12,14 @@
   <arg name="min_disparity"              default="7"/>
   <arg name="disparity_scope"            default="128"/>
 
- <param name="use_sim_time" value="true" />
+ <param name="use_sim_time" value="false" />
 
 <!--  <node pkg="tf" type="static_transform_publisher" name="broad_laser_front_to_cam"-->
 <!--        args="-0.123 -0.754 1.287 0 1.3962633 -1.5707963 velo camera1 100" />-->
 
 <!--  Localization-->
   <include file="$(find sslam)/launch/bus_core.launch" />
-<!--  <include file="$(find sslam_estimator)/launch/bus_global_core.launch" />-->
+<!--  <include file="$(find sslam)/launch/bus_global_core.launch" />-->
 <!--  <include file="$(find undistort_images)/launch/bus.launch" />-->
 <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
 
@@ -33,7 +33,7 @@
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="stereo_pitch"          value="10.0" />
+    <param name="stereo_pitch"          value="0.0" />
     <param name="stereo_height"         value="2.03" />
     <param name="image_left_topic"      value="/left/image_rect" />
     <param name="image_right_topic"     value="/right/image_rect" />

@@ -1,6 +1,8 @@
 cmake-build-debug/
+build/
 lib/
 *.a
 .idea/
 .vscode/
+darknet/scripts/cuda_script
 

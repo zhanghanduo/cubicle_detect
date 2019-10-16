@@ -1820,13 +1820,13 @@ void YoloObjectDetector::Tracking (){
 //            std::cout<<"blob prediction finished"<<std::endl;
 
         if (!currentFrameBlobs.empty()){
-            std::cout<<"before matchCurrentFrameBlobsToExistingBlobs"<<std::endl;
+//            std::cout<<"before matchCurrentFrameBlobsToExistingBlobs"<<std::endl;
             matchCurrentFrameBlobsToExistingBlobs();
-            std::cout<<"before trackingFNs"<<std::endl;
+//            std::cout<<"before trackingFNs"<<std::endl;
             trackingFNs();
-            std::cout<<"before addNewTracks"<<std::endl;
+//            std::cout<<"before addNewTracks"<<std::endl;
             addNewTracks();
-            std::cout<<"before updateUnmatchedTracks"<<std::endl;
+//            std::cout<<"before updateUnmatchedTracks"<<std::endl;
             updateUnmatchedTracks();
         } else {
             for (auto &existingBlob : blobs) {
