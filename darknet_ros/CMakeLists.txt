@@ -146,31 +146,31 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 # Find CUDNN
-function(find_cudnn)
-  if (DEFINED ENV{CUDNN_ROOT} AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
-    set(CUDNN_ROOT $ENV{CUDNN_ROOT})
-  elseif (DEFINED CUDA_TOOLKIT_ROOT_DIR AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
-    set(CUDNN_ROOT ${CUDA_TOOLKIT_ROOT_DIR})
-  endif()
-  #  set(CUDNN_ROOT /usr/local/cuda CACHE PATH "CUDNN root path")
-  find_path(CUDNN_INCLUDE_DIRS cudnn.h
-          HINTS ${CUDNN_ROOT}
-          ${CUDNN_ROOT}/include
-          DOC "CUDNN include path")
-  find_library(CUDNN_LIBRARIES NAMES libcudnn.so cudnn.lib
-          PATHS ${CUDNN_ROOT}
-          ${CUDNN_ROOT}/lib
-          ${CUDNN_ROOT}/lib64
-          ${CUDNN_ROOT}/lib/x64
-          DOC "CUDNN library path")
-  if(CUDNN_INCLUDE_DIRS AND CUDNN_LIBRARIES)
-    set(CUDNN_FOUND TRUE PARENT_SCOPE)
-    message(STATUS "Found CUDNN (include: ${BoldGreen} ${CUDNN_INCLUDE_DIRS} ${ColourReset}, library: ${BoldGreen} ${CUDNN_LIBRARIES} ${ColourReset})")
-    mark_as_advanced(CUDNN_INCLUDE_DIRS CUDNN_LIBRARIES)
-  else()
-    MESSAGE(STATUS "Failed to find CUDNN in path: ${BoldGreen} ${CUDNN_ROOT} (${BoldRed}Did you set CUDNN_ROOT properly? ${ColourReset})")
-  endif()
-endfunction()
+#function(find_cudnn)
+#  if (DEFINED ENV{CUDNN_ROOT} AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
+#    set(CUDNN_ROOT $ENV{CUDNN_ROOT})
+#  elseif (DEFINED CUDA_TOOLKIT_ROOT_DIR AND NOT DEFINED CUDNN_ROOT)  # use env variable if not defined
+#    set(CUDNN_ROOT ${CUDA_TOOLKIT_ROOT_DIR})
+#  endif()
+#  #  set(CUDNN_ROOT /usr/local/cuda CACHE PATH "CUDNN root path")
+#  find_path(CUDNN_INCLUDE_DIRS cudnn.h
+#          HINTS ${CUDNN_ROOT}
+#          ${CUDNN_ROOT}/include
+#          DOC "CUDNN include path")
+#  find_library(CUDNN_LIBRARIES NAMES libcudnn.so cudnn.lib
+#          PATHS ${CUDNN_ROOT}
+#          ${CUDNN_ROOT}/lib
+#          ${CUDNN_ROOT}/lib64
+#          ${CUDNN_ROOT}/lib/x64
+#          DOC "CUDNN library path")
+#  if(CUDNN_INCLUDE_DIRS AND CUDNN_LIBRARIES)
+#    set(CUDNN_FOUND TRUE PARENT_SCOPE)
+#    message(STATUS "Found CUDNN (include: ${BoldGreen} ${CUDNN_INCLUDE_DIRS} ${ColourReset}, library: ${BoldGreen} ${CUDNN_LIBRARIES} ${ColourReset})")
+#    mark_as_advanced(CUDNN_INCLUDE_DIRS CUDNN_LIBRARIES)
+#  else()
+#    MESSAGE(STATUS "Failed to find CUDNN in path: ${BoldGreen} ${CUDNN_ROOT} (${BoldRed}Did you set CUDNN_ROOT properly? ${ColourReset})")
+#  endif()
+#endfunction()
 
 # Find X11
 MESSAGE ( STATUS "Searching for X11..." )
@@ -184,7 +184,7 @@ ENDIF ( X11_FOUND )
 
 # Find rquired packeges
 find_package(Boost REQUIRED COMPONENTS thread)
-find_package(OpenCV 3.4.3 REQUIRED)
+find_package(OpenCV 3.4 REQUIRED)
 
 find_package(catkin REQUIRED
         COMPONENTS
@@ -249,21 +249,21 @@ include_directories(
     /usr/local/cuda/lib64
   )
 
-  find_cudnn()
-  if(CUDNN_FOUND)
-      include_directories(SYSTEM ${CUDNN_INCLUDE_DIRS})
-      list(APPEND CUDA_LIBRARIES ${CUDNN_LIBRARIES})
-      message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
-      option(CUDNN "Enable CuDNN" ON)
-      add_definitions(-DCUDNN)
-      # If cuda arch is sm_75 (RTX 2080 or 2080 Ti), add definition of CUDNN_HALF to accelerate
-      if( ${ARCH} STREQUAL "-arch=sm_75")
-        add_definitions(-DCUDNN_HALF)
-        message("${BoldGreen} Enabled CUDNN_HALF ${ColourReset}")
-      endif()
-  else()
-      message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
-  endif()
+#  find_cudnn()
+#  if(CUDNN_FOUND)
+#      include_directories(SYSTEM ${CUDNN_INCLUDE_DIRS})
+#      list(APPEND CUDA_LIBRARIES ${CUDNN_LIBRARIES})
+#      message("${BoldGreen} -- Successfully include CUDNN flags ${ColourReset}")
+#      option(CUDNN "Enable CuDNN" ON)
+#      add_definitions(-DCUDNN)
+#      # If cuda arch is sm_75 (RTX 2080 or 2080 Ti), add definition of CUDNN_HALF to accelerate
+#      if( ${ARCH} STREQUAL "-arch=sm_75")
+#        add_definitions(-DCUDNN_HALF)
+#        message("${BoldGreen} Enabled CUDNN_HALF ${ColourReset}")
+#      endif()
+#  else()
+#      message("${BoldRed} -- CUDNN not found, some dependent functionalities will be disabled ${ColourReset}")
+#  endif()
 
   cuda_add_library(${PROJECT_NAME}_lib
           src/YoloObjectDetector.cu
@@ -321,7 +321,7 @@ target_link_libraries(${PROJECT_NAME}_lib
         cudart
         cublas
         curand
-        cudnn
+#        cudnn
         ${Boost_LIBRARIES}
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}

@@ -574,7 +574,7 @@ void ObstaclesDetection::RefineObstaclesMap () {
             obs.obsPoints = points;
             obs.max_disparity = obj_disparity;
 //            obs.depth = depthTable[obj_disparity];
-            obs.depth = depthTable[obj_disparity][disp_row];
+            obs.depth = depthTable[disp_row][obj_disparity];
             obs.startX = xDirectionPosition[startCol][obj_disparity];
             obs.endX = xDirectionPosition[endCol][obj_disparity];
             obs.startY = yDirectionPosition[startRow][obj_disparity];
@@ -825,7 +825,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
     }
 
     int point1R = dynamicLookUpTableRoad[maxDispForSlopeStart];
-    double startDepth = depthTable[maxDispForSlopeStart][point1R] * 100;
+    double startDepth = depthTable[point1R][maxDispForSlopeStart] * 100;
     double point1Z = startDepth;
     double pointLastZ = startDepth;
     double point1Y = yDirectionPosition[point1R][maxDispForSlopeStart] * 100;
@@ -842,10 +842,11 @@ void ObstaclesDetection::RoadSlopeCalculation () {
     std::vector<cv::Point2f> pts;
     for (int d = maxDispForSlopeStart; d > minDispForSlope; d--) {
         int pointR = dynamicLookUpTableRoad[d];
-        double pointZ = depthTable[d][pointR] * 100;
+        double pointZ = depthTable[pointR][d] * 100;
+
         double pointY = yDirectionPosition[pointR][d]*100-((pointZ-startDepth)*slopeAdjHeight/slopeAdjLength);
         int currentZ = (int) (pointZ / zResolutionForSlopeMap);
-        int currentY = slope_map.rows / 2 - (int) ((inRdHeight + pointY) / yResolutionForSlopeMap);
+        int currentY = slope_map.rows / 2 - (int) ((inRdHeight - pointY) / yResolutionForSlopeMap);
 
 //        if(d%2 == 0){
         if(toggle){
@@ -923,6 +924,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //            rowDiff = rowDiff + 10;
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
 //            std::cout<<pointZ
+//            all intermediary lines
             cv::line(left_rect_clr, cv::Point(0, pointR), cv::Point(left_rect_clr.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
             for (int c = slope_map.rows - 30; c > 80; c=c-2) {
                 slope_map.at<cv::Vec3b>(c, currentZ) = cv::Vec3b(255, 255, 255);
@@ -1001,6 +1003,7 @@ void ObstaclesDetection::RoadSlopeCalculation () {
             cv::putText(slope_map, strSlopePitch.str(), cv::Point(strStart, 100), CV_FONT_HERSHEY_PLAIN, 1,
                         CV_RGB(0, 250, 0));
 //            cv::line(slopeOutput, cv::Point(0, pointR), cv::Point(slopeOutput.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
+//            last line
             cv::line(left_rect_clr, cv::Point(0, pointR), cv::Point(left_rect_clr.cols - 1, pointR), cv::Scalar(0, 200, 0), 2);
 
         }
@@ -1304,7 +1307,7 @@ void ObstaclesDetection::SaliencyBasedDetection(){
         int min_width = dispThreshForNeg[road_dispariy];
 //        }
 
-        if (contourArea(contours[i])>min_width*min_width && depthTable[road_dispariy][corres_rd_row]<maxDepthForNegObs) {
+        if (contourArea(contours[i])>min_width*min_width && depthTable[corres_rd_row][road_dispariy]<maxDepthForNegObs) {
             cv::Vec4f lines;
             cv::fitLine(cv::Mat(contours[i]),lines,CV_DIST_L2,0,0.01,0.01);
             if (abs(lines[1]/lines[0])<0.6){ //30 degree slope check
@@ -1492,7 +1495,7 @@ void ObstaclesDetection::GenerateNegativeObstacles() {
             int center_row1;
             center_row1 = (int) (road_starting_row + mc[0]);
             int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
-            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]][center_row1] << "m";
+            str1 << depthTable[center_row1][dynamicLookUpTableRoadProfile[center_row1]] << "m";
             cv::putText(negObsSaliencyOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
                         0.6, CV_RGB(250, 250, 250));
 //            if(contourListSaliency[0][0].y-contourListSaliency[1][0].y<20){
@@ -1501,7 +1504,7 @@ void ObstaclesDetection::GenerateNegativeObstacles() {
                                  offset1);
                 int center_row2 = (int) (road_starting_row + mc[1]);
                 int center_col2 = (int) (left_offset + mu[1].m10 / mu[1].m00);
-                str2 << depthTable[dynamicLookUpTableRoadProfile[center_row2]][center_row2] << "m";
+                str2 << depthTable[center_row2][dynamicLookUpTableRoadProfile[center_row2]] << "m";
                 cv::putText(negObsSaliencyOutput, str2.str(), cv::Point(center_col2, center_row2),
                             CV_FONT_HERSHEY_PLAIN, 0.6, CV_RGB(250, 250, 250));
             }
@@ -1517,7 +1520,7 @@ void ObstaclesDetection::GenerateNegativeObstacles() {
             std::ostringstream str1;
             int center_row1 = (int) (road_starting_row + mc[0]);
             int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
-            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]][center_row1] << "m";
+            str1 << depthTable[center_row1][dynamicLookUpTableRoadProfile[center_row1]] << "m";
             cv::putText(negObsSaliencyOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
                         0.6, CV_RGB(250, 250, 250));//        }
         }
@@ -1536,8 +1539,8 @@ void ObstaclesDetection::GenerateNegativeObstacles() {
             std::ostringstream str1;
             int center_row1 = (int) (road_starting_row + mc[0] + top_offset);
             int center_col1 = (int) (left_offset + mu[0].m10 / mu[0].m00);
-            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]][center_row1] << "m";
-            str1 << depthTable[dynamicLookUpTableRoadProfile[center_row1]][center_row1] << "m";
+            str1 << depthTable[center_row1][dynamicLookUpTableRoadProfile[center_row1]] << "m";
+            str1 << depthTable[center_row1][dynamicLookUpTableRoadProfile[center_row1]] << "m";
             cv::putText(negObsIntensityOutput, str1.str(), cv::Point(center_col1, center_row1), CV_FONT_HERSHEY_PLAIN,
                         0.6, CV_RGB(250, 250, 250));
         }
@@ -1653,7 +1656,7 @@ void ObstaclesDetection::Initiate(int disparity_size, double baseline,
 //    pubName = "/wide/map_msg";
     depthForSlpoe = 25/scale; //m -- slope // 30, 25 av1
     depthForSlopeStart = 3/scale; //m -- slope //5 , 3 av1
-    slopeAdjHeight = 5/scale; // cm -- slope // 20 ; 0 av1
+    slopeAdjHeight = 0;//5/scale; // cm -- slope // 20 ; 0 av1
     slopeAdjLength = 1500/scale; // cm -- slope
     minDepthDiffToCalculateSlope = 800/scale; // cm -- slope
     minNoOfPixelsForObject = 100/scale;

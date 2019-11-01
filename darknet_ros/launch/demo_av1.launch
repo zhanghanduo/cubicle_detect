@@ -18,9 +18,9 @@
 <!--        args="-0.123 -0.754 1.287 0 1.3962633 -1.5707963 velo camera1 100" />-->
 
 <!--  Localization-->
- <include file="$(find sslam)/launch/bus_av1.launch" />
+<!-- <include file="$(find sslam)/launch/bus_av1.launch" />-->
 <!--  <include file="$(find sslam_estimator)/launch/bus_global_core.launch" />-->
-<!--    <include file="$(find undistort_images)/launch/bus_av1.launch" />-->
+    <include file="$(find undistort_images)/launch/bus_av1.launch" />
 <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
 
 <!--   Start darknet and ros wrapper-->
@@ -40,7 +40,7 @@
     <param name="image_info_left"       value="/left/camera_info" />
     <param name="image_info_right"      value="/right/camera_info" />
     <param name="filter_dynamic"        value="true" />
-    <param name="scale"                 value="1" />
+    <param name="scale"                 value="2" />
     <param name="enable_stereo"         value="true" />
     <param name="enable_classification" value="true" />
     <param name="enable_neg"            value="false" />
