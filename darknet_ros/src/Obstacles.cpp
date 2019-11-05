@@ -791,6 +791,24 @@ void ObstaclesDetection::SurfaceNormalCalculation () {
 
 }
 
+void ObstaclesDetection::RoadSlopeAtEveryPoint (int minDisp, int maxDisp, double point1Z, double point1Y) {
+    for (int r=road_starting_row; r<disparity_map.rows; r++){
+        for (int c=0; c<disparity_map.cols; c++){
+            auto d = static_cast<int>(disparity_map.at<uchar>(r,c));
+            if (static_cast<int>(roadmap.at<uchar>(r,c))==1 && d>minDisp && d<maxDisp){
+                double pointZ = depthTable[r][d] * 100;
+                double pointY = yDirectionPosition[r][d]*100-((pointZ-point1Z)*slopeAdjHeight/slopeAdjLength);
+                double slopeAtd = atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265;
+                int slopeVal = 128;
+                if (fabs(slopeAtd) < 15.0){
+                    slopeVal = static_cast<int>((15.0 + slopeAtd) * 255.0 / 30.0);
+                }
+                left_rect_clr.at<Vec3b>(r, c) = Vec3b(slopeVal, slopeVal, slopeVal);
+            }
+        }
+    }
+}
+
 void ObstaclesDetection::RoadSlopeCalculation () {
 
 //    slope_map = cv::Mat::zeros(heightForSlope/2,depthForSlpoe*zResolutionForSlopeMap+250, CV_8UC3);
@@ -839,6 +857,9 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 
     bool toggle = true;
     bool firstSeg = true;
+    //Dense-slope
+    RoadSlopeAtEveryPoint(minDispForSlope, maxDispForSlopeStart, point1Z, point1Y);
+
     std::vector<cv::Point2f> pts;
     for (int d = maxDispForSlopeStart; d > minDispForSlope; d--) {
         int pointR = dynamicLookUpTableRoad[d];
@@ -847,6 +868,17 @@ void ObstaclesDetection::RoadSlopeCalculation () {
         double pointY = yDirectionPosition[pointR][d]*100-((pointZ-startDepth)*slopeAdjHeight/slopeAdjLength);
         int currentZ = (int) (pointZ / zResolutionForSlopeMap);
         int currentY = slope_map.rows / 2 - (int) ((inRdHeight - pointY) / yResolutionForSlopeMap);
+
+        //Semi-dense slope
+//        double slopeAtd = atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265;
+//        int slopeVal = 128;
+//        if (fabs(slopeAtd) < 15.0){
+//            slopeVal = static_cast<int>((15.0 + slopeAtd) * 255.0 / 30.0);
+//        }
+//        for (int cc = 0; cc < left_rect_clr.cols; cc++)
+//            if ( int(disparity_map.at<uchar>(pointR, cc)) == d)
+//                left_rect_clr.at<Vec3b>(pointR, cc) = Vec3b(slopeVal, slopeVal, slopeVal);
+        //End of Semi-dense slope
 
 //        if(d%2 == 0){
         if(toggle){
@@ -914,8 +946,11 @@ void ObstaclesDetection::RoadSlopeCalculation () {
         if ((pointZ - pointLastZ) > minDepthDiffToCalculateSlope) {
             if (firstSeg) {
                 slope_angle = atan((pointY - pointLastY) / (pointZ - pointLastZ)) * 180 / 3.14159265;
+//                slope_angle = atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265;
             }
             double slope = (cvRound(10*atan((pointY - pointLastY) / (pointZ - pointLastZ)) * 180 / 3.14159265))/10.0;
+//            double slope = (cvRound(10*atan((pointY - point1Y) / (pointZ - point1Z)) * 180 / 3.14159265))/10.0;
+
 //            std::ostringstream strSlope;
 //            strSlope << (int) (pointLastZ / 100) << "m to " << (int) (pointZ / 100) << "m: " << slope
 //                     << " deg";//<<road_height;

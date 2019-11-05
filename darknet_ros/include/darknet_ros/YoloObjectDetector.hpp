@@ -451,7 +451,7 @@ class YoloObjectDetector {
          * @brief Lookup table that will give the Z direction (depth) distance with respect to the left camera center
          * in meters. It is a 1D lookup table based on the disparity value of a point.
          */
-        double *depth3D;
+        double **depth3D;
 //        int **recDisparity;
 //        double **recDepth;
 //        double xDirectionPosition[1280][129] ={{}};

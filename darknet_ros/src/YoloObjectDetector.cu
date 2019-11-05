@@ -349,7 +349,10 @@ void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoCons
 //  for(ii = 0; ii < Height; ii++)
 //      recDepth[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
-  depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+//  depth3D = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
+  depth3D = static_cast<double **>(calloc(Height, sizeof(double *)));
+  for(ii = 0; ii < Height; ii++)
+      depth3D[ii] = static_cast<double *>(calloc(disp_size + 1, sizeof(double)));
 
 //  ObstacleDetector.Initiate(left_info_copy->header.frame_id, disp_size, stereo_baseline_, u0, v0, focal, Width, Height, Scale, min_disparity);
   ObstacleDetector.Initiate(disp_size, stereo_baseline_, u0, v0, focal, Width_crp, Height_crp, Scale, 8,
@@ -405,7 +408,7 @@ void YoloObjectDetector::DefineLUTs() {
         x3DPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
 //            x3DPosition[r][c]=(r-u0)*stereo_baseline_/c;
-            x3DPosition[r][c]=(r-u0)*stereo_baseline_/c;//-stereo_baseline_/2;
+            x3DPosition[r][c]=(r-u0)*stereo_baseline_/c;
 //        std::cout<<xDirectionPosition[r][c]<<std::endl;
         }
     }
@@ -415,34 +418,29 @@ void YoloObjectDetector::DefineLUTs() {
         y3DPosition[r][0]=0;
         for (int c=1; c<disp_size+1; c++) {
 //            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c;
-            y3DPosition[r][c]=((v0-r)*stereo_baseline_/c) - (focal*stereo_baseline_*sin(camAngle*M_PI/180)/c);
+//            y3DPosition[r][c]=((v0-r)*stereo_baseline_/c) - (focal*stereo_baseline_*sin(camAngle*M_PI/180)/c);
+            y3DPosition[r][c] = ((r-v0)*stereo_baseline_*cos(camAngle*M_PI/180)/c) +
+                                       (focal*stereo_baseline_*sin(camAngle*M_PI/180)/c);
 //            y3DPosition[r][c]=(v0-r)*stereo_baseline_/c - camHeight;
 //      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
         }
     }
 
-//    for (int r=0; r<Height; r++) {
-//        recDepth[r][0]=0;
-//        for (int c=1; c<disp_size+1; c++) {
-//            recDepth[r][c]=(focal*cos(camAngle*M_PI/180) + (v0-r)*sin(camAngle*M_PI/180))*stereo_baseline_/c;
-////             std::cout<<r<<","<<c<<" : "<<depth[r][c]<<"; ";
-//        }
+//    depth3D[0] =0;
+//    for( int i = 1; i < disp_size+1; ++i){
+//        depth3D[i]=focal*stereo_baseline_*cos(camAngle*M_PI/180)/i;
+////        depth3D[i]=focal*stereo_baseline_/i; //Y*dx/B
+////      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
 //    }
 
-//    for (int r=0; r<Height; r++) {
-////        recDisparity[r][0]=0;
-//        for (int c=0; c<disp_size+1; c++) {
-//            recDisparity[r][c]= static_cast<int>((c * focal) / (focal * cos(camAngle * M_PI / 180) +
-//                    (v0 - r) * sin(camAngle * M_PI / 180))); //focal*baseline/i;  //Y*dx/B
-//            // std::cout<<r<<","<<c<<" : "<<depth[r][c]<<"; ";
-//        }
-//    }
-
-    depth3D[0] =0;
-    for( int i = 1; i < disp_size+1; ++i){
-        depth3D[i]=focal*stereo_baseline_*cos(camAngle*M_PI/180)/i;
-//        depth3D[i]=focal*stereo_baseline_/i; //Y*dx/B
-//      std::cout<<"i: "<<i<<", "<<depthTable[i]<<"; \n";
+    for (int r=0; r<Height_crp; r++) {
+        depth3D[r][0]=0;
+        for (int c=1; c<disp_size+1; c++) {
+//            yDirectionPosition[r][c]=(v0-r)*baseline/c;
+//            yDirectionPosition[r][c] = ((v0-r)*baseline/c) - (focal*baseline*sin(cam_angle*M_PI/180)/c);
+            depth3D[r][c] = (focal*stereo_baseline_*cos(camAngle*M_PI/180)/c) - ((r-v0)*stereo_baseline_*sin(camAngle*M_PI/180)/c);
+//      std::cout<<r<<", "<<c<<": "<<yDirectionPosition[r][c]<<"; ";//std::endl;
+        }
     }
 
 }
@@ -777,6 +775,7 @@ void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *dat
                                       int delay, char *prefix, int avg_frames, float hier, int w, int h,
                                       int frames, int fullscreen)
 {
+//  std::cout<<"datafile: "<<datafile<<std::endl;
   demoPrefix_ = prefix;
   demoDelay_ = delay;
   demoFrame_ = avg_frames;
@@ -1233,7 +1232,8 @@ void *YoloObjectDetector::trackInThread() {
                             if (dis > min_disparity) { //(3600-200)*(dis-12)/(128-12)
                                 outputObs.position_3d[0] = x3DPosition[center_c_][dis];
                                 outputObs.position_3d[1] = y3DPosition[center_r_][dis];
-                                outputObs.position_3d[2] = depth3D[dis];
+                                outputObs.position_3d[2] = depth3D[center_r_][dis];
+//                                outputObs.position_3d[2] = depth3D[dis];
 //                                std::cout<<"dis: "<<dis<<", "<<depth3D[dis]<<"; dis:"<<disOrg <<", "
 //                                    <<recDepth[center_r_][disOrg]<<std::endl;
                                 double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
@@ -1621,7 +1621,8 @@ void YoloObjectDetector::trackingFNs() {
                                     if (dis > min_disparity && hsvBBox.area() > 300) { //(3600-200)*(dis-12)/(128-12)
                                         tmpTrack.position_3d[0] = x3DPosition[center_c_][dis];
                                         tmpTrack.position_3d[1] = y3DPosition[center_r_][dis];
-                                        tmpTrack.position_3d[2] = depth3D[dis];
+                                        tmpTrack.position_3d[2] = depth3D[center_r_][dis];
+//                                        tmpTrack.position_3d[2] = depth3D[dis];
                                         double xmin_3d, xmax_3d, ymin_3d, ymax_3d;
 //                                        std::cout << "debug 1.6" << std::endl;
                                         xmin_3d = x3DPosition[static_cast<int>(xmin)][dis];

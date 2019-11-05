@@ -198,6 +198,8 @@ private:
      */
     void SurfaceNormalCalculation();
 
+    void RoadSlopeAtEveryPoint(int minDisp, int maxDisp, double point1Z, double point1Y);
+
     /**
      * @brief This function calculates the road surface angle, pitch angle, road plane, road surface normal
      * with respect to the current vehicle location. Road information is based on refinedRoadProfile vector.
@@ -413,7 +415,7 @@ private:
     */
     int minimum_disparity;
     /**
-     * @brief Smallest image row number of the road is visible (or the furthest road viable image row).
+     * @brief Smallest image row the road is visible (or the furthest road viable image row).
      */
     int road_starting_row;
     /**
