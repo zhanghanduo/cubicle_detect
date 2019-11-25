@@ -221,6 +221,8 @@ class YoloObjectDetector {
          */
         bool publishDetectionImage(const cv::Mat &detectionImage, const ros::Publisher &publisher_);
 
+		void publishGrayImage(const cv::Mat &detectionImage, const ros::Publisher &publisher_);
+
         /**
          * @brief This function is deprecated and ot used in the code. Can be used to publish an image.
          * @param detectionImage Image to be published in cv::Mat
@@ -312,6 +314,8 @@ class YoloObjectDetector {
          * VO.
          */
         void CreateMsg();
+
+		void DisplayResults();
 
         /**
          * @brief This function generates the ObsDisparity matrix which contains disparity information that only
@@ -469,6 +473,8 @@ class YoloObjectDetector {
          * @brief Flag to indicate whether to run generateStaticObsDisparityMap() function.
          */
         bool filter_dynamic_;
+
+//        ros::Publisher leftImagePub_, rightImagePub_;
         /**
          * @brief Publishers for visualization of the results.
          */
