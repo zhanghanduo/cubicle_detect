@@ -2057,6 +2057,9 @@ void YoloObjectDetector::Process(){
     if (enableClassification)
         detect_thread.join();
 
+	if (enableStereo)
+		stereo_thread.join();
+
 //    std::cout<<disparityFrame.size()<<std::endl;
 
 //    std::cout<<"before trackInThread"<<std::endl;
@@ -2097,7 +2100,7 @@ void YoloObjectDetector::Process(){
 //	std::cout<<"before ObstacleDetector"<<std::endl;
 	// 6. Get Obstacle Detection blobs.
 	if (enableStereo) {
-		stereo_thread.join();
+//		stereo_thread.join();
 		if(frame_num % 2 == 0) {
 			high_resolution_clock::time_point obs_time_ = high_resolution_clock::now();
 			// 4. Obstacle detection according to the u-v disparity

@@ -14,7 +14,7 @@ option(BUILD_OPENCV_WRAPPER "Make library compatible with cv::Mat and cv::cuda::
 project(libSGM VERSION 2.6.0)
 
 #if(BUILD_OPENCV_WRAPPER)
-	find_package(OpenCV 3.4.0 REQUIRED core)
+	find_package(OpenCV 3.3 REQUIRED core)
 	include_directories(${OpenCV_INCLUDE_DIRS})
 #endif()
 

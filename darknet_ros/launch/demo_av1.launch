@@ -64,7 +64,7 @@
 <!--      <param name="source_frame"                      value="$(arg source_frame)" />-->
 <!--      <param name="base_frame"                        value="$(arg robot_frame)" />-->
 <!--      <param name="input_type"                        value="2" />-->
-<!--      <param name="smooth_value"                      value="0.7" />-->
+<!--      <param name="local_range"                      value="100" />-->
 <!--      <param name="obstacle/map"                      value="/obs_map" />-->
 <!--      <param name="road_slope_vis"                    value="$(arg road_slope_vis)" />-->
 <!--      <param name="publish/map"                       value="$(arg publish_obstacle)" />-->

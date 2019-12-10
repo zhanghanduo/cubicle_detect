@@ -172,8 +172,8 @@ function(find_cudnn)
   endif()
 endfunction()
 
-# Find rquired packeges
-find_package(Boost REQUIRED COMPONENTS thread)
+# Find required packages
+#find_package(Boost REQUIRED COMPONENTS thread)
 find_package(OpenCV 3.3 REQUIRED)
 
 find_package(catkin REQUIRED
@@ -186,7 +186,6 @@ find_package(catkin REQUIRED
         nodelet
         image_geometry
         std_msgs
-#        actionlib
         obstacle_msgs
         image_transport
         eigen_conversions
@@ -211,7 +210,6 @@ catkin_package(
   CATKIN_DEPENDS
         cv_bridge
         roscpp
-#        actionlib
         rospy
         std_msgs
         geometry_msgs
@@ -219,8 +217,8 @@ catkin_package(
         message_filters
         obstacle_msgs
         image_transport
-  DEPENDS
-        Boost
+#  DEPENDS
+#        Boost
 )
 
 include_directories(
@@ -228,16 +226,16 @@ include_directories(
         ${DARKNET_PATH}/include
         include
         ${OpenCV_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIRS}
+#        ${Boost_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
         ${EIGEN3_INCLUDE_DIR}
 )
 
 #if (CUDA_FOUND)
 
-#  link_directories(
-#    /usr/local/cuda/lib64
-#  )
+  link_directories(
+    /usr/local/cuda/lib64
+  )
 
   find_cudnn()
   if(CUDNN_FOUND)
@@ -312,7 +310,7 @@ target_link_libraries(${PROJECT_NAME}_lib
         cublas
         curand
 #        cudnn
-        ${Boost_LIBRARIES}
+#        ${Boost_LIBRARIES}
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
         ${EIGEN3_LIBS}
