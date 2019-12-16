@@ -1212,7 +1212,7 @@ void *YoloObjectDetector::trackInThread() {
                 mask = occlutionMap(rect, ii, false);
 
                 std::vector<cv::Point3f> cent_2d, cent_3d;
-                Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin);
+                Blob outputObs(xmin, ymin, xmax - xmin, ymax - ymin, 0);
                 outputObs.category = detListCurrFrame.at(ii).objCLass;
                 outputObs.probability = detListCurrFrame.at(ii).det_conf;
 
@@ -1453,6 +1453,8 @@ void YoloObjectDetector::addNewBlob(Blob &currentFrameBlob, std::vector<Blob> &e
     currentFrameBlob.blnStillBeingTracked = true;
     currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
     currentFrameBlob.trackedInCurrentFrame = true;
+    track_counter ++;
+    currentFrameBlob.id = track_counter;
 
     existingBlobs.push_back(currentFrameBlob);
 }
@@ -1791,6 +1793,7 @@ void YoloObjectDetector::updateUnmatchedTracks() {
         objectIDinTrack++;
 
     }
+
 }
 
 void YoloObjectDetector::Tracking (){
@@ -1800,6 +1803,8 @@ void YoloObjectDetector::Tracking (){
         if (!currentFrameBlobs.empty()){
             blnFirstFrame = false;
             for (auto &currentFrameBlob : currentFrameBlobs){
+                track_counter ++;
+                currentFrameBlob.id = track_counter;
                 currentFrameBlob.blnCurrentMatchFoundOrNewBlob = true;
                 currentFrameBlob.blnAlreadyTrackedInThisFrame = true;
                 currentFrameBlob.trackedInCurrentFrame = true;
@@ -1868,6 +1873,16 @@ void YoloObjectDetector::Tracking (){
     matchedFNs.clear();
     matchedFrmID.clear();
     matchedFrmIDTrackID.clear();
+
+    for (int ii = 0; ii < blobs.size();) {
+        if (!blobs[ii].blnStillBeingTracked){
+            blobs[ii] = blobs.back();
+            blobs.pop_back();
+        } else {
+            ++ii;
+        }
+    }
+
 }
 
 void YoloObjectDetector::CreateMsg(){
@@ -1876,7 +1891,8 @@ void YoloObjectDetector::CreateMsg(){
     for (unsigned long int i = 0; i < blobs.size(); i++) {
         if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
             obstacle_msgs::obs tmpObs;
-            tmpObs.identityID = i;
+//            tmpObs.identityID = i;
+            tmpObs.identityID = blobs[i].id;
             tmpObs.centerPos.x = static_cast<float>(blobs[i].position_3d[0]);
             tmpObs.centerPos.y = static_cast<float>(blobs[i].position_3d[1]);
             tmpObs.centerPos.z = static_cast<float>(blobs[i].position_3d[2]);
@@ -1949,7 +1965,7 @@ void YoloObjectDetector::DisplayResults() {
 			                                        static_cast<int>(rectMinY+blobs[i].boundingRects.back().height/2), 2, 2), colors.at(i), CV_FILLED);
 			cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
 			int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
-			str_ << i <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
+			str_ << blobs[i].id <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
 //            str_ << i;
 			cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255,255,255), 1.8);
 

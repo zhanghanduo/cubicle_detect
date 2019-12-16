@@ -808,6 +808,8 @@ class YoloObjectDetector {
          */
         cv::Size bboxResize;
 
+        unsigned long track_counter = 0;
+
     };
 
 } /* namespace darknet_ros*/

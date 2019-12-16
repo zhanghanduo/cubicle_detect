@@ -5,8 +5,10 @@
 
 namespace darknet_ros {
 
-    Blob::Blob(float xmin, float ymin, float width, float height) {
+    Blob::Blob(float xmin, float ymin, float width, float height, unsigned long tr_id) {
         counter = 1;
+
+        id = tr_id;
 
         cv::Rect currentBoundingRect = cv::Rect_<int>(static_cast<int>(xmin),
                                                       static_cast<int>(ymin),

@@ -21,6 +21,8 @@ namespace darknet_ros {
 
         unsigned long counter;
 
+        unsigned long id = 0;
+
         /**
          * @brief Holds the current frame width of the track in meters (3D absolute coordinates).
          */
@@ -164,7 +166,7 @@ namespace darknet_ros {
          * @param width Width of the bounding box.
          * @param height Height of the bounding box.
          */
-        Blob(float x, float y, float width, float height);
+        Blob(float x, float y, float width, float height, unsigned long tr_id);
 
         /**
          * @brief This function is deprecated.
