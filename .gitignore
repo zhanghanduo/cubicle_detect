@@ -5,4 +5,4 @@ lib/
 .idea/
 .vscode/
 darknet/scripts/cuda_script
-
+size input output

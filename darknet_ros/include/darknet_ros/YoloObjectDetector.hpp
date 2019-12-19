@@ -28,7 +28,6 @@
 #include <ros/package.h>
 #include <std_msgs/Header.h>
 #include <std_msgs/Int8.h>
-#include <actionlib/server/simple_action_server.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
 #include <stereo_msgs/DisparityImage.h>
@@ -618,14 +617,7 @@ class YoloObjectDetector {
         int waitKeyDelay_;
         int fullScreen_;
         char *demoPrefix_;
-        boost::shared_mutex mutexImageCallback_;
-        bool imageStatus_ = false;
-        boost::shared_mutex mutexImageStatus_;
-        bool isNodeRunning_ = true;
-        boost::shared_mutex mutexNodeStatus_;
-        int actionId_;
-        boost::shared_mutex mutexActionStatus_;
-        //*****************//
+        std::mutex mutexImageCallback_;
         ros::Time image_time_, prvImageTime;
         std_msgs::Header imageHeader_;
         /**

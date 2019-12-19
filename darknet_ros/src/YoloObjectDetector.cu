@@ -69,12 +69,6 @@ YoloObjectDetector::YoloObjectDetector()
 
 YoloObjectDetector::~YoloObjectDetector()
 {
-//  finish_disparity_method();
-  {
-    boost::unique_lock<boost::shared_mutex> lockNodeStatus(mutexNodeStatus_);
-    isNodeRunning_ = false;
-  }
-
   delete ssgm;
   cv::destroyAllWindows();
 //  yoloThread_.join();
@@ -481,15 +475,12 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr &image1
 
         // std::cout<<"Debug inside cameraCallBack scaling image height "<<frameHeight_<<std::endl;
         {
-            boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
+	        mutexImageCallback_.lock();
             origLeft = cam_image1->image.clone();//cv::Mat(cam_image1->image, left_roi_);
             origRight = cam_image2->image.clone();//cv::Mat(cam_image2->image, right_roi_);
 //            cv::cvtColor(origLeft, camImageOrig, cv::COLOR_GRAY2BGR);
             camImageOrig = cv_rgb->image.clone();//cv::Mat(cv_rgb->image.clone(), left_roi_);
-        }
-        {
-            boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
-            imageStatus_ = true;
+		    mutexImageCallback_.unlock();
         }
 
         // std::cout<<"Debug inside cameraCallBack starting image resize"<<std::endl;
@@ -753,10 +744,6 @@ void *YoloObjectDetector::fetchInThread()
 
   buff_ = mat_to_image(camImageCopy_);
 
-//  {
-//    boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
-//    buffId_ = actionId_;//[buffIndex_] = actionId_;
-//  }
   if(!use_grey)
     rgbgr_image(buff_);//[buffIndex_]);
 
@@ -767,25 +754,25 @@ void *YoloObjectDetector::fetchInThread()
 
 void *YoloObjectDetector::displayInThread()
 {
-//  show_image_cv(buff_, "YOLO V3", ipl_);//[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
-  show_image_cv(buff_, "YOLO V3");
-  int c = cv::waitKey(waitKeyDelay_);
-  if (c != -1) c = c%256;
-  if (c == 27) {
-      demoDone_ = 1;
-      return nullptr;
-  } else if (c == 82) {
-      demoThresh_ += .02;
-  } else if (c == 84) {
-      demoThresh_ -= .02;
-      if(demoThresh_ <= .02) demoThresh_ = .02;
-  } else if (c == 83) {
-      demoHier_ += .02;
-  } else if (c == 81) {
-      demoHier_ -= .02;
-      if(demoHier_ <= .0) demoHier_ = .0;
-  }
-  return nullptr;
+	//  show_image_cv(buff_, "YOLO V3", ipl_);//[(buffIndex_ + 1)%3], "YOLO V3", ipl_);
+	show_image_cv(buff_, "YOLO V3");
+	int c = cv::waitKey(waitKeyDelay_);
+	if (c != -1) c = c%256;
+	if (c == 27) {
+	  demoDone_ = 1;
+	  return nullptr;
+	} else if (c == 82) {
+	  demoThresh_ += .02;
+	} else if (c == 84) {
+	  demoThresh_ -= .02;
+	  if(demoThresh_ <= .02) demoThresh_ = .02;
+	} else if (c == 83) {
+	  demoHier_ += .02;
+	} else if (c == 81) {
+	  demoHier_ -= .02;
+	  if(demoHier_ <= .0) demoHier_ = .0;
+	}
+	return nullptr;
 }
 
 void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
@@ -794,25 +781,24 @@ void YoloObjectDetector::setupNetwork(char *cfgfile, char *weightfile, char *dat
                                       int frames, int fullscreen)
 {
 //  std::cout<<"datafile: "<<datafile<<std::endl;
-  demoPrefix_ = prefix;
-  demoDelay_ = delay;
-  demoFrame_ = avg_frames;
-  image **alphabet = load_alphabet_with_file(datafile);
-  demoNames_ = names;
-  compactDemoNames_ = less_names;
-  demoAlphabet_ = alphabet;
-  demoClasses_ = classes;
-  demoThresh_ = thresh;
-  demoHier_ = hier;
-  fullScreen_ = fullscreen;
-//  printf("YOLO V3\n");
-  net_ = load_network_custom(cfgfile, weightfile, 0, 1);
-  fuse_conv_batchnorm(*net_);
-//  calculate_binary_weights(*net_);
+	demoPrefix_ = prefix;
+	demoDelay_ = delay;
+	demoFrame_ = avg_frames;
+	image **alphabet = load_alphabet_with_file(datafile);
+	demoNames_ = names;
+	compactDemoNames_ = less_names;
+	demoAlphabet_ = alphabet;
+	demoClasses_ = classes;
+	demoThresh_ = thresh;
+	demoHier_ = hier;
+	fullScreen_ = fullscreen;
+	//  printf("YOLO V3\n");
+	net_ = load_network_custom(cfgfile, weightfile, 0, 1);
+	fuse_conv_batchnorm(*net_);
+	calculate_binary_weights(*net_);
 }
 
-void YoloObjectDetector:: yolo()
-{
+void YoloObjectDetector:: yolo() {
 //  srand(2222222);
 
 //  int i;
@@ -823,25 +809,25 @@ void YoloObjectDetector:: yolo()
 //  }
 //  avg_ = (float *) calloc(demoTotal_, sizeof(float));
 
-  ssgm = new sgm::StereoSGM(left_rectified.cols, left_rectified.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
+	ssgm = new sgm::StereoSGM(left_rectified.cols, left_rectified.rows, disp_size, 8, 8, sgm::EXECUTE_INOUT_HOST2HOST);
 
-  layer l = net_->layers[net_->n - 1];
-  roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
+	layer l = net_->layers[net_->n - 1];
+	roiBoxes_ = (darknet_ros::RosBox_ *) calloc(l.w * l.h * l.n, sizeof(darknet_ros::RosBox_));
 
-  buff_ = mat_to_image(camImageCopy_);
+	buff_ = mat_to_image(camImageCopy_);
 
-  buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
+	buffLetter_ = letterbox_image(buff_, net_->w, net_->h);
 
-  disparityFrame = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
+	disparityFrame = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
 //  disparityFrameOrg = cv::Mat(Height_crp, Width_crp, CV_8UC1, cv::Scalar(0));
 
-  buff_cv_l_ = left_rectified.clone();//camImageCopy_.clone();
+	buff_cv_l_ = left_rectified.clone();//camImageCopy_.clone();
 
-  buff_cv_r_ = right_rectified.clone();
+	buff_cv_r_ = right_rectified.clone();
 
 //  ipl_cv = cv::Mat(cvSize(buff_.w, buff_.h), CV_8U, buff_.c);
 
-    if(viewImage_) {
+	if (viewImage_) {
 
 //        cvNamedWindow("Initial roadmap", CV_WINDOW_AUTOSIZE);
 //        cvMoveWindow("Initial roadmap", 650, 350);
@@ -849,25 +835,25 @@ void YoloObjectDetector:: yolo()
 //        cvNamedWindow("Refined roadmap", CV_WINDOW_AUTOSIZE);
 //        cvMoveWindow("Refined roadmap", 900, 350);
 
-        cvNamedWindow("Slope Map", CV_WINDOW_NORMAL);
-        cvMoveWindow("Slope Map", 1460, 0);
-        cvResizeWindow("Slope Map", 720, 453);
+		cvNamedWindow("Slope Map", CV_WINDOW_NORMAL);
+		cvMoveWindow("Slope Map", 1460, 0);
+		cvResizeWindow("Slope Map", 720, 453);
 
-        cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
-        cvMoveWindow("Detection and Tracking", 0, 455);
-        cvResizeWindow("Detection and Tracking", 720, 453);
+		cvNamedWindow("Detection and Tracking", CV_WINDOW_NORMAL);
+		cvMoveWindow("Detection and Tracking", 0, 455);
+		cvResizeWindow("Detection and Tracking", 720, 453);
 
-        cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
-        cvMoveWindow("Obstacle Mask", 0, 0);
-        cvResizeWindow("Obstacle Mask", 720, 453);
+		cvNamedWindow("Obstacle Mask", CV_WINDOW_NORMAL);
+		cvMoveWindow("Obstacle Mask", 0, 0);
+		cvResizeWindow("Obstacle Mask", 720, 453);
 
-        if(enableStereo) {
-            cvNamedWindow("Disparity", CV_WINDOW_NORMAL);
-            cvMoveWindow("Disparity", 700, 0);
-            cvResizeWindow("Disparity", 720, 453);
-        }
+		if (enableStereo) {
+			cvNamedWindow("Disparity", CV_WINDOW_NORMAL);
+			cvMoveWindow("Disparity", 700, 0);
+			cvResizeWindow("Disparity", 720, 453);
+		}
 //        cv::startWindowThread();
-    }
+	}
 
 //  int count = 0;
 
@@ -882,7 +868,7 @@ void YoloObjectDetector:: yolo()
 //  }
 
 //  demoTime_ = what_time_is_it_now();
-  notInitiated = false;
+	notInitiated = false;
 
 }
 

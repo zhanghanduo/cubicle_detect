@@ -1,7 +1,7 @@
 # @author  Zhang Handuo (hzhang032@e.ntu.edu.sg)
 
 # first we can indicate the documentation build as an option and set it to ON by default
-option(BUILD_DOC "Build documentation" ON)
+option(BUILD_DOC "Build documentation" OFF)
 
 if(BUILD_DOC)
     # check if Doxygen is installed
