@@ -979,18 +979,18 @@ void ObstaclesDetection::RoadSlopeCalculation () {
 //                std::cout<<angle<<", "<<angle*180.0/3.14159265<<std::endl;
 
                 /* Rotation using rodrigues */
-                cv::Mat rot_vec = cv::Mat::zeros(1,3,CV_32F);
-                rot_vec.at<float>(0,0) = (float) angle;
-                rot_vec.at<float>(0,1) = 0.0;//(float) yaw;
-                rot_vec.at<float>(0,2) = 0.0;
+//                cv::Mat rot_vec = cv::Mat::zeros(1,3,CV_32F);
+//                rot_vec.at<float>(0,0) = (float) angle;
+//                rot_vec.at<float>(0,1) = 0.0;//(float) yaw;
+//                rot_vec.at<float>(0,2) = 0.0;
 
 //                std::cout<<roll<<", "<<pitch<<", "<<yaw<<std::endl;
 
-                cv::Mat rot_mat;
-                cv::Rodrigues(rot_vec, rot_mat);
+//                cv::Mat rot_mat;
+//                cv::Rodrigues(rot_vec, rot_mat);
 
                 /// Construct pose
-                cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
+//                cv::Affine3f pose(rot_mat, cv::Vec3f(0.0,0.0,0.0));
 
                 if (firstSeg){
                     pitch_angle = angle;

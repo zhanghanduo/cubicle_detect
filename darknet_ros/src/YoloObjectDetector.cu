@@ -1383,7 +1383,7 @@ void YoloObjectDetector::matchCurrentFrameBlobsToExistingBlobs() {
             double disSimilarityVal = overallDisSimilarity.at<double>(trackID, assignment[trackID]);
 //            std::cout << trackID << "," << assignment[trackID] <<", "<<disSimilarityVal<< "\t";
             if ((!blobs[trackID].trackedInCurrentFrame)
-                && disSimilarityVal < 0.75) { //TODO: define varying threshold for each sequence
+                && disSimilarityVal < 0.75) {
 
                 currentFrmDet.trackedInCurrentFrame = true;
                 addBlobToExistingBlobs(currentFrmDet, blobs, trackID, true);
@@ -1562,7 +1562,7 @@ void YoloObjectDetector::trackingFNs() {
                         existingTrack.blnStillBeingTracked = false;
                     } else {
 
-                        Blob tmpTrack(xmin, ymin, width, height);
+                        Blob tmpTrack(xmin, ymin, width, height, 0);
                         tmpTrack.category = existingTrack.category;
                         tmpTrack.probability = existingTrack.probability;
 
@@ -1837,15 +1837,19 @@ void YoloObjectDetector::Tracking (){
 
 //            std::cout<<"blob prediction finished"<<std::endl;
 
-        if (!currentFrameBlobs.empty()){
-//            std::cout<<"before matchCurrentFrameBlobsToExistingBlobs"<<std::endl;
-            matchCurrentFrameBlobsToExistingBlobs();
-//            std::cout<<"before trackingFNs"<<std::endl;
-            trackingFNs();
-//            std::cout<<"before addNewTracks"<<std::endl;
-            addNewTracks();
-//            std::cout<<"before updateUnmatchedTracks"<<std::endl;
-            updateUnmatchedTracks();
+        if (!currentFrameBlobs.empty()) {
+            if (!blobs.empty()) {
+//                std::cout << "before matchCurrentFrameBlobsToExistingBlobs" << std::endl;
+                matchCurrentFrameBlobsToExistingBlobs();
+//                std::cout << "before trackingFNs" << std::endl;
+                trackingFNs();
+//                std::cout << "before addNewTracks" << std::endl;
+                addNewTracks();
+//                std::cout << "before updateUnmatchedTracks" << std::endl;
+                updateUnmatchedTracks();
+            } else {
+                addNewTracks();
+            }
         } else {
             for (auto &existingBlob : blobs) {
                 if (!existingBlob.blnCurrentMatchFoundOrNewBlob) {
@@ -1962,8 +1966,10 @@ void YoloObjectDetector::DisplayResults() {
 			int rectMinX = blobs[i].boundingRects.back().x;
 			int rectMinY = blobs[i].boundingRects.back().y;
 			cv::rectangle(tracking_output, cv::Rect(static_cast<int>(rectMinX+blobs[i].boundingRects.back().width/2),
-			                                        static_cast<int>(rectMinY+blobs[i].boundingRects.back().height/2), 2, 2), colors.at(i), CV_FILLED);
-			cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20), colors.at(i), CV_FILLED);
+			                                        static_cast<int>(rectMinY+blobs[i].boundingRects.back().height/2), 2, 2),
+			                                                colors.at(blobs[i].id), CV_FILLED);
+			cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20),
+			        colors.at(blobs[i].id), CV_FILLED);
 			int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
 			str_ << blobs[i].id <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
 //            str_ << i;
@@ -2086,9 +2092,6 @@ void YoloObjectDetector::Process(){
 //    std::cout<<"before ObsDisparity"<<std::endl;
 
     high_resolution_clock::time_point demo_t2 = high_resolution_clock::now();
-
-    duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
-    whole_duration_ += time_span.count();
 //    fps_ = 1./time_span.count();
 
 //    std::cout<<"before Createmsg"<<std::endl;
@@ -2154,6 +2157,8 @@ void YoloObjectDetector::Process(){
 
 
 //	std::cout<<"before display results"<<std::endl;
+    duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
+    whole_duration_ += time_span.count();
 	DisplayResults();
 
     if ( frame_num % 100 == 0 && enableConsoleOutput_ ) {
