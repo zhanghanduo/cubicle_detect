@@ -115,155 +115,161 @@ bool YoloObjectDetector::CudaInfo() {
   }
 }
 
-bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p)
-{
-  nodeHandle_ = nh;
-  nodeHandle_pub = nh_p;
-  // Load common parameters.
-  nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
-  nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
-  nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
-  nodeHandle_.param("image_view/eval", enableEvaluation_, false);
+bool YoloObjectDetector::readParameters(ros::NodeHandle nh, ros::NodeHandle nh_p) {
+	nodeHandle_ = nh;
+	nodeHandle_pub = nh_p;
+	// Load common parameters.
+	nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
+	nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
+	nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
+	nodeHandle_.param("image_view/eval", enableEvaluation_, false);
 
-  // Check if Xserver is running on Linux.
-  if (XOpenDisplay(nullptr)) {
-    // Do nothing!
-    ROS_INFO("[YoloObjectDetector] Xserver is running.");
-  } else {
-    ROS_INFO("[YoloObjectDetector] Xserver is not running.");
-    viewImage_ = false;
-  }
+	// Check if Xserver is running on Linux.
+	if (XOpenDisplay(nullptr)) {
+		// Do nothing!
+		ROS_INFO("[YoloObjectDetector] Xserver is running.");
+	} else {
+		ROS_INFO("[YoloObjectDetector] Xserver is not running.");
+		viewImage_ = false;
+	}
 
-  // Set vector sizes.
-  nodeHandle_.param("yolo_model/detection_classes/names", classLabels_,
-                    std::vector<std::string>(0));
-  nodeHandle_.param("yolo_model/compact_classes/names", compact_classLabels_,
-                    std::vector<std::string>(0));
-  numClasses_ = classLabels_.size();
-  compact_numClasses_ = compact_classLabels_.size();
-  rosBoxes_ = std::vector<std::vector<RosBox_> >(numClasses_);
-  rosBoxCounter_ = std::vector<int>(numClasses_);
+	// Set vector sizes.
+	nodeHandle_.param("yolo_model/detection_classes/names", classLabels_,
+	                  std::vector<std::string>(0));
+	nodeHandle_.param("yolo_model/compact_classes/names", compact_classLabels_,
+	                  std::vector<std::string>(0));
+	numClasses_ = classLabels_.size();
+	compact_numClasses_ = compact_classLabels_.size();
+	rosBoxes_ = std::vector<std::vector<RosBox_> >(numClasses_);
+	rosBoxCounter_ = std::vector<int>(numClasses_);
 
-    // Initialize deep network of darknet.
-    std::string weightsPath;
-    std::string configPath;
-    std::string dataPath;
-    std::string configModel;
-    std::string weightsModel;
+	// Initialize deep network of darknet.
+	std::string weightsPath;
+	std::string configPath;
+	std::string dataPath;
+	std::string configModel;
+	std::string weightsModel;
 
-    // Look up table initialization
-    counter = 0;
+	// Look up table initialization
+	counter = 0;
 
-    nodeHandle_.param<int>("min_disparity", min_disparity, 7);
-    nodeHandle_.param<int>("disparity_scope", disp_size, 128);
-    nodeHandle_.param<double>("stereo_pitch", camAngle, 10.0);
-    nodeHandle_.param<double>("stereo_height", camHeight, 0.0);
-    nodeHandle_.param<bool>("use_grey", use_grey, false);
-    nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
-    nodeHandle_.param<bool>("enable_classification", enableClassification, true);
-    nodeHandle_.param<int>("scale", Scale, 1);
-    nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
-    nodeHandle_.param<bool>("enable_neg", enableNeg, false);
-    nodeHandle_.param<std::string>("seg_path", parameter_filename,
-            ros::package::getPath("cubicle_detect") + "/config/params.yml");
+	nodeHandle_.param<int>("min_disparity", min_disparity, 7);
+	nodeHandle_.param<int>("disparity_scope", disp_size, 128);
+	nodeHandle_.param<double>("stereo_pitch", camAngle, 10.0);
+	nodeHandle_.param<double>("stereo_height", camHeight, 0.0);
+	nodeHandle_.param<bool>("use_grey", use_grey, false);
+	nodeHandle_.param<bool>("enable_stereo", enableStereo, true);
+	nodeHandle_.param<bool>("enable_classification", enableClassification, true);
+	nodeHandle_.param<int>("scale", Scale, 1);
+	nodeHandle_.param<bool>("filter_dynamic", filter_dynamic_, true);
+	nodeHandle_.param<bool>("enable_neg", enableNeg, false);
+	nodeHandle_.param<std::string>("seg_path", parameter_filename,
+	                               ros::package::getPath("cubicle_detect") + "/config/params.yml");
 //    std::cout<<"parameter_filename: "<<parameter_filename<<std::endl;
-    // Threshold of object detection.
-    float thresh;
-    nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
+	// Threshold of object detection.
+	float thresh;
+	nodeHandle_.param("yolo_model/threshold/value", thresh, (float) 0.3);
 
-    // Path to weights file.
-    nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
-                      std::string("yolov3-spp.weights"));
-    nodeHandle_.param("weights_path", weightsPath, ros::package::getPath
-    ("cubicle_detect") + "/yolo_network_config/weights");
-    weightsPath += "/" + weightsModel;
-    weights = new char[weightsPath.length() + 1];
-    strcpy(weights, weightsPath.c_str());
+	// Path to weights file.
+	nodeHandle_.param("yolo_model/weight_file/name", weightsModel,
+	                  std::string("yolov3-spp.weights"));
+	nodeHandle_.param("weights_path", weightsPath, ros::package::getPath
+			                                               ("cubicle_detect") + "/yolo_network_config/weights");
+	weightsPath += "/" + weightsModel;
+	weights = new char[weightsPath.length() + 1];
+	strcpy(weights, weightsPath.c_str());
 
-    // Path to config file.
-    nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov3-spp.cfg"));
-    nodeHandle_.param("config_path", configPath, ros::package::getPath
-    ("cubicle_detect") + "/yolo_network_config/cfg");
-    configPath += "/" + configModel;
-    cfg = new char[configPath.length() + 1];
-    strcpy(cfg, configPath.c_str());
+	// Path to config file.
+	nodeHandle_.param("yolo_model/config_file/name", configModel, std::string("yolov3-spp.cfg"));
+	nodeHandle_.param("config_path", configPath, ros::package::getPath
+			                                             ("cubicle_detect") + "/yolo_network_config/cfg");
+	configPath += "/" + configModel;
+	cfg = new char[configPath.length() + 1];
+	strcpy(cfg, configPath.c_str());
 
-    // Path to data folder.
-    dataPath = darknetFilePath_;
-    dataPath += "/data";
-    data = new char[dataPath.length() + 1];
-    strcpy(data, dataPath.c_str());
+	// Path to data folder.
+	dataPath = darknetFilePath_;
+	dataPath += "/data";
+	data = new char[dataPath.length() + 1];
+	strcpy(data, dataPath.c_str());
 
-    // Get classes.
-    detectionNames = (char**) realloc((void*)
-            detectionNames, (numClasses_ + 1) * sizeof(char*));
-    for (int i = 0; i < numClasses_; i++) {
-        detectionNames[i] = new char[classLabels_[i].length() + 1];
-        strcpy(detectionNames[i], classLabels_[i].c_str());
-    }
+	// Get classes.
+	detectionNames = (char **) realloc((void *)
+			                                   detectionNames, (numClasses_ + 1) * sizeof(char *));
+	for (int i = 0; i < numClasses_; i++) {
+		detectionNames[i] = new char[classLabels_[i].length() + 1];
+		strcpy(detectionNames[i], classLabels_[i].c_str());
+	}
 
-    compact_detectionNames = (char**) realloc((void*)
-            compact_detectionNames, (compact_numClasses_ + 1) * sizeof(char*));
-    for (int i = 0; i < compact_numClasses_; i++) {
-        compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
-        strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
-    }
+	compact_detectionNames = (char **) realloc((void *)
+			                                           compact_detectionNames,
+	                                           (compact_numClasses_ + 1) * sizeof(char *));
+	for (int i = 0; i < compact_numClasses_; i++) {
+		compact_detectionNames[i] = new char[compact_classLabels_[i].length() + 1];
+		strcpy(compact_detectionNames[i], compact_classLabels_[i].c_str());
+	}
 
-    // Load network.
-    setupNetwork(cfg, weights, data, thresh, detectionNames,
-            compact_detectionNames, numClasses_,
-            0, nullptr, 1, 0.5, 0, 0, 0, 0);
+	// Load network.
+	setupNetwork(cfg, weights, data, thresh, detectionNames,
+	             compact_detectionNames, numClasses_,
+	             0, nullptr, 1, 0.5, 0, 0, 0, 0);
 
-    std::string detectionImageTopicName;
-    int detectionImageQueueSize;
-    bool detectionImageLatch;
-    std::string obstacleBoxesTopicName;
-    int obstacleBoxesQueueSize;
-    std::string disparityTopicName;
-    int disparityQueueSize;
-    std::string obs_disparityTopicName;
-    int obs_disparityQueueSize;
+	std::string detectionImageTopicName;
+	int detectionImageQueueSize;
+	bool detectionImageLatch;
+	std::string obstacleBoxesTopicName;
+	int obstacleBoxesQueueSize;
+	std::string disparityTopicName;
+	int disparityQueueSize;
+	std::string obs_disparityTopicName;
+	int obs_disparityQueueSize;
 
-    nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
-                      std::string("detection_image"));
-    nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
-    nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
+	nodeHandle_.param("publishers/detection_image/topic", detectionImageTopicName,
+	                  std::string("detection_image"));
+	nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
+	nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
-    nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
-                      std::string("/obs_map"));
-    nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
-    nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera"));
+	nodeHandle_.param("publishers/obstacle_boxes/topic", obstacleBoxesTopicName,
+	                  std::string("/obs_map"));
+	nodeHandle_.param("publishers/obstacle_boxes/queue_size", obstacleBoxesQueueSize, 1);
+	nodeHandle_.param("publishers/obstacle_boxes/frame_id", pub_obs_frame_id, std::string("camera"));
 
-    nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
-                      std::string("/disparity_map"));
-    nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
+	nodeHandle_.param("publishers/disparity_map/topic", disparityTopicName,
+	                  std::string("/disparity_map"));
+	nodeHandle_.param("publishers/disparity_map/queue_size", disparityQueueSize, 1);
 
-    nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
-                      std::string("/obs_disparity_map"));
-    nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
-                      std::string("camera"));
-    nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
+	nodeHandle_.param("publishers/obs_disparity_map/topic", obs_disparityTopicName,
+	                  std::string("/obs_disparity_map"));
+	nodeHandle_.param("publishers/obs_disparity_map/frame_id", obs_disparityFrameId,
+	                  std::string("camera"));
+	nodeHandle_.param("publishers/obs_disparity_map/queue_size", obs_disparityQueueSize, 1);
 
-    disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
-                                                                                disparityQueueSize);
+	disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(disparityTopicName,
+	                                                                            disparityQueueSize);
 
-    obs_disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(obs_disparityTopicName,
-                                                                                    obs_disparityQueueSize);
+	obs_disparityPublisher_ = nodeHandle_pub.advertise<stereo_msgs::DisparityImage>(obs_disparityTopicName,
+	                                                                                obs_disparityQueueSize);
 
-    obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
-            obstacleBoxesTopicName, obstacleBoxesQueueSize);
+	obstaclePublisher_ = nodeHandle_pub.advertise<obstacle_msgs::MapInfo>(
+			obstacleBoxesTopicName, obstacleBoxesQueueSize);
 
-    detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
-                                                                            detectionImageQueueSize,
-                                                                            detectionImageLatch);
+	detectionImagePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>(detectionImageTopicName,
+	                                                                        detectionImageQueueSize,
+	                                                                        detectionImageLatch);
 
-    disparityColorPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("disparity_color", 10);
-    trackingPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("track_image", 10);
-    obstacleMaskPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("obstacle_image", 10);
-    slopePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("slope_image", 10);
+	disparityColorPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("disparity_color", 10);
+	trackingPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("track_image", 10);
+	obstacleMaskPublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("obstacle_image", 10);
+	slopePublisher_ = nodeHandle_pub.advertise<sensor_msgs::Image>("slope_image", 10);
 //    leftImagePub_ = nodeHandle_pub.advertise<sensor_msgs::Image>("left_input", 10);
 //	rightImagePub_ = nodeHandle_pub.advertise<sensor_msgs::Image>("right_input", 10);
-  return true;
+
+//	std::vector<cv::Scalar> colors;
+	cv::RNG rng(0);
+	for (size_t i = 0; i < 1000 + 1; i++)
+		colors.emplace_back(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+
+	return true;
 }
 
 void YoloObjectDetector::loadCameraCalibration(const sensor_msgs::CameraInfoConstPtr &left_info,
@@ -1813,6 +1819,7 @@ void YoloObjectDetector::Tracking (){
             }
         }
     } else {
+//	    std::cout<<"+1 loop"<<std::endl;
         for (auto &existingBlob : blobs) {
             existingBlob.blnCurrentMatchFoundOrNewBlob = false;
             existingBlob.blnAlreadyTrackedInThisFrame = false;
@@ -1835,7 +1842,7 @@ void YoloObjectDetector::Tracking (){
 //            existingBlob.preditcRect = existingBlob.GetRectPrediction();
         }
 
-//            std::cout<<"blob prediction finished"<<std::endl;
+//        std::cout<<"blob prediction finished"<<std::endl;
 
         if (!currentFrameBlobs.empty()) {
             if (!blobs.empty()) {
@@ -1862,8 +1869,9 @@ void YoloObjectDetector::Tracking (){
                 }
             }
         }
-//            std::cout<<"blob association finished"<<std::endl;
+//        std::cout<<"blob association finished"<<std::endl;
     }
+//	std::cout<<"first frame association finished, blobs: "<<blobs.size()<<std::endl;
 
 //    if (blnFirstFrame) {
 //        blnFirstFrame = false;
@@ -1878,6 +1886,8 @@ void YoloObjectDetector::Tracking (){
     matchedFrmID.clear();
     matchedFrmIDTrackID.clear();
 
+//	std::cout<<"before removal loop"<<std::endl;
+
     for (int ii = 0; ii < blobs.size();) {
         if (!blobs[ii].blnStillBeingTracked){
             blobs[ii] = blobs.back();
@@ -1886,6 +1896,7 @@ void YoloObjectDetector::Tracking (){
             ++ii;
         }
     }
+//	std::cout<<"after removal loop, "<<blobs.size()<<std::endl;
 
 }
 
@@ -1947,34 +1958,53 @@ void YoloObjectDetector::DisplayResults() {
 //    if (enableStereo)
 //        output1 = disparityFrame.clone();
 
+//	std::cout<<"Display results 1"<<std::endl;
+
 	output = camImageCopy_.clone();// buff_cv_l_.clone();
 	if(output.type() == CV_8UC1)
 		cv::cvtColor(output, tracking_output, CV_GRAY2RGB);
 	else
 		tracking_output = output;
 
-	std::vector<cv::Scalar> colors;
-	cv::RNG rng(0);
-	for(size_t i=0; i < blobs.size(); i++)
-		colors.emplace_back(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
+//	std::cout<<"Display results 2"<<std::endl;
+
+//	std::vector<cv::Scalar> colors;
+//	cv::RNG rng(0);
+//	for(size_t i=0; i < track_counter+1; i++)
+//		colors.emplace_back(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
+
+//	std::cout<<"Display results 3: "<<colors.size()<<std::endl;
 
 	for (size_t i = 0; i < blobs.size(); i++) {
 //            if (blobs[i].blnStillBeingTracked == true) {
+//		std::cout<<"Display results 3.1, "<<i;
+//		std::cout<<", "<<blobs[i].id;
+//		std::cout<<", "<< blobs[i].blnCurrentMatchFoundOrNewBlob<<std::endl;
 		std::ostringstream str_;
 		if (blobs[i].blnCurrentMatchFoundOrNewBlob) {
-			cv::rectangle(tracking_output, blobs[i].boundingRects.back(), colors.at(i), 2);
+//			std::cout<<", "<<i<<", ID: "<<blobs[i].id;
+//			std::cout<<", 3.1.1, "<<std::endl;
+			int clr_idx = static_cast<int>(blobs[i].id);
+			if (clr_idx > 1000){
+				clr_idx -= 1000;
+			}
+			cv::rectangle(tracking_output, blobs[i].boundingRects.back(), colors.at(clr_idx), 2);
 			int rectMinX = blobs[i].boundingRects.back().x;
 			int rectMinY = blobs[i].boundingRects.back().y;
+//			std::cout<<"3.1.2, "<<std::endl;
 			cv::rectangle(tracking_output, cv::Rect(static_cast<int>(rectMinX+blobs[i].boundingRects.back().width/2),
 			                                        static_cast<int>(rectMinY+blobs[i].boundingRects.back().height/2), 2, 2),
-			                                                colors.at(blobs[i].id), CV_FILLED);
+			                                                colors.at(clr_idx), CV_FILLED);
+//			std::cout<<"3.1.3, "<<std::endl;
 			cv::rectangle(tracking_output, cv::Rect(rectMinX, rectMinY, blobs[i].boundingRects.back().width, 20),
-			        colors.at(blobs[i].id), CV_FILLED);
+			        colors.at(clr_idx), CV_FILLED);
+//			std::cout<<"3.1.4, "<<std::endl;
 			int distance = static_cast<int>(sqrt(pow(blobs[i].position_3d[2],2)+pow(blobs[i].position_3d[0],2)));
 			str_ << blobs[i].id <<":" << distance <<"m";//<<"; "<<blobs[i].disparity;
 //            str_ << i;
+//			std::cout<<"3.1.5, "<<std::endl;
 			cv::putText(tracking_output, str_.str(), cv::Point(rectMinX, rectMinY+16) , cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(255,255,255), 1.8);
-
+//			std::cout<<"3.1.6, "<<std::endl;
 //            cv::Rect predRect;
 //            predRect.width = static_cast<int>(blobs[i].t_lastRectResult.width);//static_cast<int>(blobs[i].state.at<float>(4));
 //            predRect.height = static_cast<int>(blobs[i].t_lastRectResult.height);//static_cast<int>(blobs[i].state.at<float>(5));
@@ -1984,8 +2014,10 @@ void YoloObjectDetector::DisplayResults() {
 //            cv::rectangle(color_out, blobs[i].preditcRect, CV_RGB(255,255,255), 2);
 //            cv::rectangle(output1, blobs[i].currentBoundingRect, cv::Scalar( 255, 255, 255 ), 2);
 		}
-
+//		std::cout<<std::endl;
 	}
+
+//	std::cout<<"Display results 4"<<std::endl;
 
 	cv::Mat cm_disp;
 
@@ -1998,6 +2030,8 @@ void YoloObjectDetector::DisplayResults() {
 		convertScaleAbs(disparityFrame, scaledDisparityMap, 3.1);
 		applyColorMap(scaledDisparityMap, cm_disp, cv::COLORMAP_JET);
 	}
+
+//	std::cout<<"Display results 5"<<std::endl;
 
 	if (!publishDetectionImage(tracking_output, trackingPublisher_)) {
 		ROS_DEBUG("Tracking image has not been broadcast.");
@@ -2031,6 +2065,8 @@ void YoloObjectDetector::DisplayResults() {
 			ROS_DEBUG("Slope map image has not been broadcast.");
 		}
 	}
+
+//	std::cout<<"Display results 6"<<std::endl;
 
 	free(buff_.data);
 
@@ -2160,6 +2196,8 @@ void YoloObjectDetector::Process(){
     duration<double> time_span = duration_cast<duration<double>>(demo_t2 - demo_t1);
     whole_duration_ += time_span.count();
 	DisplayResults();
+
+//	std::cout<<"after display results"<<std::endl;
 
     if ( frame_num % 100 == 0 && enableConsoleOutput_ ) {
         fps_ = 1 / whole_duration_ * 100;

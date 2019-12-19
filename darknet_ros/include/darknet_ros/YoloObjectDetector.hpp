@@ -537,6 +537,8 @@ class YoloObjectDetector {
         obstacle_msgs::obs obstacles;
 //        Util::CPPTimer timer_yolo, timer_1, timer_2;
 //        Util::HOGFeatureDescriptor* hog_descriptor;
+
+		std::vector<cv::Scalar> colors;
         /**
          * @brief Constructor for Obstacles.cpp where obstacle, road and slope detections are performed.
          */
