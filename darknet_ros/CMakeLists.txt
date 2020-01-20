@@ -212,6 +212,7 @@ catkin_package(
         roscpp
         rospy
         std_msgs
+        sensor_msgs
         geometry_msgs
         image_geometry
         message_filters

@@ -14,13 +14,8 @@
 
  <param name="use_sim_time" value="false" />
 
-<!--  <node pkg="tf" type="static_transform_publisher" name="broad_laser_front_to_cam"-->
-<!--        args="-0.123 -0.754 1.287 0 1.3962633 -1.5707963 velo camera1 100" />-->
-
 <!--  Localization-->
-  <include file="$(find sslam)/launch/bus_core.launch" />
-<!--  <include file="$(find sslam)/launch/bus_global_core.launch" />-->
-<!--  <include file="$(find undistort_images)/launch/bus.launch" />-->
+ <include file="$(find sslam)/launch/bus_av1_local.launch" />
 <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
 
 <!--   Start darknet and ros wrapper-->
@@ -29,12 +24,12 @@
     <rosparam command="load"            file="$(find cubicle_detect)/config/cv.yaml"/>
     <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
     <param name="use_grey"              value="false" />
+    <param name="stereo_pitch"          value="10.0" />
+    <param name="stereo_height"         value="2.03" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
     <param name="disparity_scope"       value="$(arg disparity_scope)" />
-    <param name="stereo_pitch"          value="0.0" />
-    <param name="stereo_height"         value="2.03" />
     <param name="image_left_topic"      value="/left/image_rect" />
     <param name="image_right_topic"     value="/right/image_rect" />
     <param name="image_info_left"       value="/left/camera_info" />
@@ -64,24 +59,12 @@
 <!--      <param name="source_frame"                      value="$(arg source_frame)" />-->
 <!--      <param name="base_frame"                        value="$(arg robot_frame)" />-->
 <!--      <param name="input_type"                        value="2" />-->
-<!--      <param name="smooth_value"                      value="0.7" />-->
+<!--      <param name="local_range"                      value="100" />-->
 <!--      <param name="obstacle/map"                      value="/obs_map" />-->
 <!--      <param name="road_slope_vis"                    value="$(arg road_slope_vis)" />-->
 <!--      <param name="publish/map"                       value="$(arg publish_obstacle)" />-->
 <!--  </node>-->
 
-<!--  <node pkg="curbDetection" type="curbDetection_node" name="curbDetection_node" output="screen">-->
-<!--    &lt;!&ndash;        <param name="config_path"     value="$(arg config_path)" />&ndash;&gt;-->
-<!--  </node>-->
+ <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam)/config/sslam_rviz_local.rviz" />
 
-<!--  <node pkg="multi_lanedetection" type="multi_lanedetection_node" name="lanedetection_node" output="screen">-->
-<!--    <param name="make_offline_video"            value="false"/>-->
-<!--    <param name="leftRectTopic"                 value="/left/image_rect" />-->
-<!--    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>-->
-<!--  </node>-->
-
- <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam)/config/sslam_rviz_config.rviz" />
-<!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/../config/demo.rviz" />-->
-
- <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

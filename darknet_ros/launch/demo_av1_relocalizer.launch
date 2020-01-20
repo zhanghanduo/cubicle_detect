@@ -18,9 +18,7 @@
 <!--        args="-0.123 -0.754 1.287 0 1.3962633 -1.5707963 velo camera1 100" />-->
 
 <!--  Localization-->
- <include file="$(find sslam)/launch/bus_av1.launch" />
-<!--  <include file="$(find sslam_estimator)/launch/bus_global_core.launch" />-->
-<!--    <include file="$(find undistort_images)/launch/bus_av1.launch" />-->
+ <include file="$(find sslam)/launch/bus_av1_relocalizer.launch" />
 <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
 
 <!--   Start darknet and ros wrapper-->

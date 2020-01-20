@@ -12,12 +12,10 @@
   <arg name="min_disparity"              default="7"/>
   <arg name="disparity_scope"            default="128"/>
 
-  <param name="use_sim_time" value="true" />
+  <param name="use_sim_time" value="false" />
 
   <!--  Localization-->
-  <include file="$(find ugv_slam)/launch/bus_core.launch" />
-  <!--  <include file="$(find sslam_estimator)/launch/bus_global_core.launch" />-->
-  <include file="$(find undistort_images)/launch/bus.launch" />
+  <include file="$(find sslam)/launch/bus_av1_mapping.launch" />
   <!--  <include file="$(find lane_detector)/launch/lanenet.launch" />-->
 
   <!--   Start darknet and ros wrapper-->
@@ -26,6 +24,8 @@
     <rosparam command="load"            file="$(find cubicle_detect)/config/cv.yaml"/>
     <rosparam command="load"            file="$(find cubicle_detect)/config/yolov3-spp.yaml"/>
     <param name="use_grey"              value="false" />
+    <param name="stereo_pitch"          value="10.0" />
+    <param name="stereo_height"         value="2.03" />
     <param name="weights_path"          value="$(arg yolo_weights_path)" />
     <param name="config_path"           value="$(arg yolo_config_path)" />
     <param name="min_disparity"         value="$(arg min_disparity)" />
@@ -59,7 +59,7 @@
   <!--      <param name="source_frame"                      value="$(arg source_frame)" />-->
   <!--      <param name="base_frame"                        value="$(arg robot_frame)" />-->
   <!--      <param name="input_type"                        value="2" />-->
-  <!--      <param name="smooth_value"                      value="0.7" />-->
+  <!--      <param name="local_range"                      value="100" />-->
   <!--      <param name="obstacle/map"                      value="/obs_map" />-->
   <!--      <param name="road_slope_vis"                    value="$(arg road_slope_vis)" />-->
   <!--      <param name="publish/map"                       value="$(arg publish_obstacle)" />-->
@@ -75,8 +75,7 @@
   <!--    <param name="/publishers/lane_img/topic"    value="/lane_detection_img"/>-->
   <!--  </node>-->
 
-<!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam_estimator)/config/sslam_rviz_config.rviz" />-->
-  <!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/config/demo.rviz" />-->
+  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find sslam)/config/sslam_global_config.rviz" />
+  <!--  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find cubicle_detect)/../config/demo.rviz" />-->
 
-  <!--<node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/front_camera/image_raw raw out:=/camera/image_raw" /> -->
 </launch>

@@ -731,7 +731,6 @@ void *YoloObjectDetector::stereoInThread()
     counter ++;
 
 
-
 //        ObstacleDetector.ExecuteDetection(disparityFrame[(buffIndex_ + 2) % 3], output);
 //    }
     return nullptr;
